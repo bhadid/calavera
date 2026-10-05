@@ -1,9 +1,9 @@
 # Direct dependencies
-fastapi==0.115.6
-uvicorn==0.34.0
+fastapi==0.142.2
+uvicorn==0.54.0
 httpx==0.28.1
-PyYAML==6.0.2
-mutagen==1.47.0
+PyYAML==6.0.3
+mutagen==1.48.1
 
 # Their dependencies, pinned for reproducible builds
 # (regenerate with: docker run --rm calavera-app:local pip freeze)
@@ -15,7 +15,7 @@ h11==0.16.0
 httpcore==1.0.9
 idna==3.20
 pydantic==2.13.5
-pydantic_core==2.46.5
-starlette==0.41.3
+pydantic_core==2.49.0
+starlette==0.52.1
 typing_extensions==4.16.0
 typing-inspection==0.4.4
