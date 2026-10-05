@@ -16,7 +16,7 @@ COPY frontend/ ./
 RUN npm run build
 
 # --- amdl: official release binary, checksum-verified -------------------------
-FROM debian:13.2-slim AS amdl
+FROM debian:13.7-slim AS amdl
 ARG AMDL_VERSION
 ARG AMDL_SHA256
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl \
