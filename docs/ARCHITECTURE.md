@@ -25,6 +25,10 @@ the app container only.
 
 ```
 compose.yaml              both services and every version pin
+.github/
+  workflows/upstream-check.yml   weekly check of the amdl and wrapper-lite pins
+  scripts/check-upstream.sh      the check itself; opens issues, changes nothing
+  dependabot.yml                 dependency update pull requests
 .env.example              host-specific settings
 wrapper/
   Dockerfile              builds wrapper-lite from source at a pinned commit
