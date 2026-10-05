@@ -1,0 +1,73 @@
+name: calavera
+
+services:
+  # wrapper-lite: holds the Apple Music session and serves the decryption API.
+  # Reachable on the Compose network only.
+  wrapper:
+    build:
+      context: ./wrapper
+      args:
+        WRAPPER_REF: 2fd7e0eaef081f93cf687428b965674937832ba4
+    image: calavera-wrapper:local
+    init: true
+    restart: unless-stopped
+    # Not privileged. wrapper-lite's rootless launcher creates user, mount and
+    # PID namespaces, bind-mounts /dev/urandom and mounts /proc inside them.
+    # With Docker's defaults that fails on "mount /dev/urandom" (AppArmor)
+    # and then on "mount proc" (masked /proc paths).
+    security_opt:
+      - seccomp:unconfined
+      - apparmor:unconfined
+      - systempaths=unconfined
+    environment:
+      TZ: ${TZ:-UTC}
+    volumes:
+      - wrapper-session:/app/rootfs/data
+      - control:/control
+    expose:
+      - "12340"
+      - "12341"
+
+  # Calavera: web UI, API, download queue, FLAC conversion, library import.
+  app:
+    build:
+      context: ./app
+      args:
+        AMDL_VERSION: v0.1.0
+        AMDL_SHA256: 949e287d0fd92d0960ae9b14a0582c1056afaa78a7f66d486648d80673ef8d59
+    image: calavera-app:local
+    init: true
+    restart: unless-stopped
+    user: "${PUID:-1000}:${PGID:-1000}"
+    depends_on:
+      - wrapper
+    environment:
+      TZ: ${TZ:-UTC}
+      CALAVERA_WRAPPER_URL: http://wrapper:12340
+      CALAVERA_SUPERVISOR_URL: http://wrapper:12341
+      CALAVERA_CONTROL_TOKEN_FILE: /control/token
+    ports:
+      - "${BIND_ADDRESS:?set BIND_ADDRESS in .env}:${WEB_PORT:-8080}:8080"
+    volumes:
+      - ./data:/data
+      - "${STAGING_PATH:-./data/staging}:/staging"
+      - control:/control:ro
+      # The music library. rslave: a network mount that comes up after this
+      # container is still seen. create_host_path: false: Docker never creates
+      # the folder itself if the path is wrong.
+      - type: bind
+        source: ${LIBRARY_PATH:?set LIBRARY_PATH in .env}
+        target: /library
+        bind:
+          propagation: rslave
+          create_host_path: false
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/api/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  wrapper-session:
+  control:
