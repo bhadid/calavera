@@ -27,9 +27,28 @@ The build fails if a test fails. The tests cover link parsing, the amdl output
 parser, settings validation, FLAC conversion and verification (real ffmpeg on
 generated audio) and the library import rules.
 
-Not covered by automated tests: the API routes, the job pipeline as a whole,
-the supervisor, and the frontend. They were exercised by hand; see
-"Manual checks" below.
+Not covered by automated tests: the API routes, the job pipeline as a whole
+and the supervisor. They were exercised by hand; see "Manual checks" below.
+
+## Browser smoke test
+
+`scripts/browser-smoke.mjs` drives a headless Chrome through a running
+Calavera: redirect of unknown paths, navigation clicks, the back button,
+search from the URL, an artist page, the account page, and console errors
+(which includes Content-Security-Policy violations). It is read-only. Run it
+after changing frontend dependencies or routing:
+
+```bash
+docker run -d --name chrome --network calavera_default --shm-size=512m zenika/alpine-chrome \
+  --no-sandbox --disable-gpu --disable-dev-shm-usage \
+  --remote-debugging-address=0.0.0.0 --remote-debugging-port=9222 --remote-allow-origins='*' about:blank
+docker run --rm --network calavera_default -e BASE=http://app:8080 \
+  -v "$PWD/scripts/browser-smoke.mjs":/t.mjs:ro node:22-alpine node /t.mjs
+docker rm -f chrome
+```
+
+It needs the wrapper to be signed in (it checks search results and the
+account status).
 
 ### Python dependencies
 

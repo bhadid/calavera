@@ -30,6 +30,8 @@ compose.yaml              both services and every version pin
   scripts/check-upstream.sh      the check itself; opens issues, changes nothing
   dependabot.yml                 dependency update pull requests
 .env.example              host-specific settings
+scripts/
+  browser-smoke.mjs       read-only browser test of the main routes
 wrapper/
   Dockerfile              builds wrapper-lite from source at a pinned commit
   supervisor.py           process supervisor + sign-in control API (stdlib only)
