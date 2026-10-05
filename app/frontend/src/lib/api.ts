@@ -1,4 +1,4 @@
-import type { Album, Artist, Job, LogLine, SearchResults, Settings, Status } from "./types";
+import type { Album, AlbumDetail, Artist, Job, LogLine, SearchResults, Settings, Status } from "./types";
 
 /** An error whose message is safe to show to the user. */
 export class ApiError extends Error {
@@ -36,10 +36,14 @@ export const api = {
 
   jobs: () => request<{ jobs: Job[] }>("GET", "/jobs").then((r) => r.jobs),
   job: (id: string) => request<{ job: Job; log: LogLine[] }>("GET", `/jobs/${id}`),
-  /** Resolves with both lists even when every link was rejected. */
-  addJobs: async (urls: string[]): Promise<AddJobsResponse> => {
+  /**
+   * Queue links. `trackIds` (for a single album link) limits the job to
+   * those songs. Resolves with both lists even when every link was rejected.
+   */
+  addJobs: async (urls: string[], trackIds?: string[]): Promise<AddJobsResponse> => {
+    const body = trackIds ? { items: urls.map((url) => ({ url, track_ids: trackIds })) } : { urls };
     try {
-      return await request<AddJobsResponse>("POST", "/jobs", { urls });
+      return await request<AddJobsResponse>("POST", "/jobs", body);
     } catch (e) {
       if (e instanceof ApiError && e.status === 422 && e.body && typeof e.body === "object" && "rejected" in e.body) {
         return e.body as AddJobsResponse;
@@ -49,6 +53,8 @@ export const api = {
   },
   cancelJob: (id: string) => request<unknown>("POST", `/jobs/${id}/cancel`),
   retryJob: (id: string) => request<unknown>("POST", `/jobs/${id}/retry`),
+  /** Import what the job has or can still get, adding to an existing album folder. */
+  importJob: (id: string) => request<unknown>("POST", `/jobs/${id}/import`),
   discardFiles: (id: string) => request<unknown>("DELETE", `/jobs/${id}/files`),
   removeJob: (id: string) => request<unknown>("DELETE", `/jobs/${id}`),
 
@@ -60,5 +66,7 @@ export const api = {
   submitCode: (code: string) => request<unknown>("POST", "/account/code", { code }),
 
   search: (q: string) => request<SearchResults>("GET", `/catalog/search?q=${encodeURIComponent(q)}`),
+  album: (id: string, storefront?: string) =>
+    request<AlbumDetail>("GET", `/catalog/albums/${encodeURIComponent(id)}${storefront ? `?sf=${storefront}` : ""}`),
   artist: (id: string) => request<Artist & { albums: Album[] }>("GET", `/catalog/artists/${encodeURIComponent(id)}`),
 };

@@ -1,6 +1,7 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { api, ApiError } from "../lib/api";
-import { qualityLabel, year } from "../lib/format";
+import { albumPath, plural, qualityLabel, year } from "../lib/format";
 import { useStore } from "../lib/store";
 import type { Album } from "../lib/types";
 import { Cover } from "./Cover";
@@ -56,14 +57,19 @@ export function AlbumGrid({ albums }: { albums: Album[] }) {
         const quality = qualityLabel(album.traits);
         return (
           <article key={album.id} className="card album">
-            <Cover src={album.artwork} size={180} />
+            {/* The cover and title open the album's page, where single songs can be chosen. */}
+            <Link to={albumPath(album.url) ?? `/album/${album.id}`} className="album-link" aria-label={`${album.name}: show songs`}>
+              <Cover src={album.artwork} size={180} />
+            </Link>
             <div className="album-text">
-              <h3 title={album.name}>{album.name}</h3>
+              <h3 title={album.name}>
+                <Link to={albumPath(album.url) ?? `/album/${album.id}`}>{album.name}</Link>
+              </h3>
               <p className="artist muted" title={album.artist}>
                 {album.artist}
               </p>
               <p className="small muted">
-                {[year(album.release_date), `${album.track_count} ${album.track_count === 1 ? "track" : "tracks"}`]
+                {[year(album.release_date), plural(album.track_count, "track")]
                   .filter(Boolean)
                   .join(" · ")}
               </p>

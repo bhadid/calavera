@@ -54,6 +54,21 @@ def check_finished(path: Path, codec: str) -> AudioInfo:
     return info
 
 
+def check_decodes(ffmpeg: str, path: Path) -> None:
+    """Raise AudioError unless the whole file decodes without errors.
+
+    A download that was cut off can leave a file whose header (duration,
+    tags) looks complete while audio data is missing; only decoding it shows
+    that.
+    """
+    proc = subprocess.run(
+        [ffmpeg, "-v", "error", "-xerror", "-i", str(path), "-map", "0:a:0", "-f", "null", "-"],
+        capture_output=True, text=True,
+    )
+    if proc.returncode != 0 or proc.stderr.strip():
+        raise AudioError(f"{path.name}: audio data is incomplete or damaged")
+
+
 def decoded_md5(ffmpeg: str, path: Path) -> str:
     """MD5 of the audio decoded to 32-bit PCM: equal for two files exactly when
     they hold the same audio, whatever the codec."""

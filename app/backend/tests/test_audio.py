@@ -75,6 +75,16 @@ def test_failed_verification_keeps_the_source(tmp_path, make_track, monkeypatch)
     assert src.exists() and not src.with_suffix(".flac").exists()
 
 
+def test_cut_off_download_is_detected_by_decoding(tmp_path, make_track):
+    whole = make_track(tmp_path / "whole.m4a")
+    audio.check_decodes("ffmpeg", whole)                      # a complete file passes
+    cut = tmp_path / "cut.m4a"
+    data = whole.read_bytes()
+    cut.write_bytes(data[: len(data) * 2 // 3])               # header intact, audio data missing
+    with pytest.raises(audio.AudioError, match="incomplete or damaged"):
+        audio.check_decodes("ffmpeg", cut)
+
+
 def test_truncated_file_is_reported(tmp_path):
     bad = tmp_path / "a.m4a"
     bad.write_bytes(b"not audio")

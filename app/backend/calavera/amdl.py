@@ -18,6 +18,7 @@ import yaml
 
 from .settings import Settings
 
+_QUEUE_RE = re.compile(r"^Queue (\d+) of (\d+)")
 _TRACK_RE = re.compile(r"^Track (\d+) of (\d+)")
 _PERCENT_RE = re.compile(r"^(Downloading|Decrypting)\.\.\.\s+(\d+)%")
 _QUALITY_RE = re.compile(r"^(\d+)-bit / (\d+) Hz")
@@ -111,6 +112,7 @@ class Summary:
 @dataclass
 class Progress:
     """Where the download is, derived line by line from amdl's output."""
+    songs_started: int = 0  # which of the links given to amdl it is working on (1-based)
     track: int = 0
     total: int = 0
     phase: str = ""       # "Downloading" | "Decrypting" | ""
@@ -138,7 +140,9 @@ class Progress:
         if m := _PERCENT_RE.match(line):
             self.phase, self.percent = m[1], int(m[2])
             return True
-        if m := _TRACK_RE.match(line):
+        if m := _QUEUE_RE.match(line):
+            self.songs_started = int(m[1])
+        elif m := _TRACK_RE.match(line):
             self.track, self.total = int(m[1]), int(m[2])
             self.phase, self.percent = "", 0
         elif m := _QUALITY_RE.match(line):
@@ -164,7 +168,7 @@ class Runner:
 
     async def run(
         self,
-        url: str,
+        urls: list[str],
         job_dir: Path,
         config: dict,
         on_line: Callable[[str], None],
@@ -174,7 +178,7 @@ class Runner:
         config_path.write_text(yaml.safe_dump(config, sort_keys=False, allow_unicode=True), encoding="utf-8")
         os.chmod(config_path, 0o600)
         self._proc = await asyncio.create_subprocess_exec(
-            self._bin, "--config", str(config_path), url,
+            self._bin, "--config", str(config_path), *urls,
             cwd=job_dir,
             stdin=asyncio.subprocess.DEVNULL,
             stdout=asyncio.subprocess.PIPE,

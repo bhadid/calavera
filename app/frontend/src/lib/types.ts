@@ -9,6 +9,17 @@ export interface JobResult {
   tracks?: number;
   format?: string;
   quality?: string[];
+  /** Tracks on the album in total; 0 when unknown. */
+  album_tracks?: number;
+  /** Songs of the album Apple does not offer. */
+  unavailable?: number;
+}
+
+export interface JobOptions {
+  /** Only these songs of the album were asked for. */
+  track_ids?: string[];
+  merge?: boolean;
+  resume?: boolean;
 }
 
 export interface Job {
@@ -26,10 +37,13 @@ export interface Job {
   detail: string;
   error: string;
   result: JobResult[];
+  options: JobOptions;
   created_at: number;
   started_at: number | null;
   finished_at: number | null;
   has_files: boolean;
+  /** Finished tracks sitting in staging that could still be imported. */
+  staged_tracks: number;
 }
 
 export interface LogLine {
@@ -87,6 +101,19 @@ export interface Album {
   explicit: boolean;
   single: boolean;
   in_library?: string | null;
+}
+
+export interface Track extends Song {
+  track_number: number;
+  disc_number: number;
+  /** False for songs Apple lists but does not offer (greyed out in its apps). */
+  available: boolean;
+  in_library: boolean;
+}
+
+export interface AlbumDetail extends Album {
+  storefront: string;
+  tracks: Track[];
 }
 
 export interface Song {

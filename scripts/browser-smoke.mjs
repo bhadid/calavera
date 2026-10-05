@@ -43,9 +43,25 @@ check("no errors on these pages", p.errors.length === 0, p.errors.join(" ; ")); 
 p = await page(base + "/search?q=hatebreed"); await p.wait(6000);
 const cards = await p.ev(`document.querySelectorAll("article.album").length`);
 check("search from URL shows albums", cards > 0, `${cards} album cards, field="${await p.ev(`document.querySelector('input[type=search]').value`)}"`);
+const albumHref = await p.ev(`document.querySelector("article.album a.album-link")?.getAttribute("href")`);
+check("album cards link to their album page", /^\/album\/\d+\?sf=[a-z]{2}$/.test(albumHref ?? ""), albumHref);
 await p.ev(`document.querySelector('a.chip')?.click()`); await p.wait(5000);
 check("artist chip opens the artist page", /^\/artist\/\d+$/.test(await p.ev("location.pathname")) && (await p.ev(`document.querySelectorAll("article.album").length`)) > 0, await p.ev(`document.querySelector("h1")?.innerText`));
 check("no errors on search/artist", p.errors.length === 0, p.errors.join(" ; ")); await p.close();
+
+if (albumHref) {
+  p = await page(base + albumHref); await p.wait(5000);
+  const rows = await p.ev(`document.querySelectorAll(".track").length`);
+  const selectable = await p.ev(`document.querySelectorAll(".track input:not(:disabled)").length`);
+  const label = await p.ev(`document.querySelector(".actionbar .button")?.innerText.replace(/\\s+/g, " ").trim()`);
+  check("album page lists its songs with a download button", rows > 0 && Boolean(label), `${rows} songs, ${selectable} selectable, button "${label}"`);
+  if (selectable > 1) {
+    await p.ev(`document.querySelector(".track input:not(:disabled)").closest("label").click()`); await p.wait(300);
+    const after = await p.ev(`document.querySelector(".actionbar .button")?.innerText.replace(/\\s+/g, " ").trim()`);
+    check("unticking a song changes the button", after !== label, `"${after}"`);
+  }
+  check("no errors on the album page", p.errors.length === 0, p.errors.join(" ; ")); await p.close();
+}
 
 p = await page(base + "/account"); await p.wait(3000);
 check("account page renders status", /Signed in to Apple Music/i.test(await p.ev(`document.querySelector("main").innerText`)));

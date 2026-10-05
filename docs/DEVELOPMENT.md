@@ -96,14 +96,15 @@ Interactive reference while the app runs: `http://<host>:<port>/api/docs`.
 |---|---|
 | `GET /api/health` | Liveness. |
 | `GET /api/status` | Wrapper, library and staging state. |
-| `GET /api/jobs` · `POST /api/jobs {"urls": [...]}` | List jobs · queue links. |
+| `GET /api/jobs` · `POST /api/jobs` | List jobs · queue links: `{"urls": [...]}`, or `{"items": [{"url": ..., "track_ids": [...]}]}` for chosen songs of an album. |
 | `GET /api/jobs/{id}` | One job with its log. |
-| `POST /api/jobs/{id}/cancel` · `/retry` | Cancel · run again. |
+| `POST /api/jobs/{id}/cancel` · `/retry` | Cancel · run again from the start. |
+| `POST /api/jobs/{id}/import` | Import what the job has or can still get, adding to an existing album folder ("Keep N tracks", "Add missing tracks"). |
 | `DELETE /api/jobs/{id}/files` · `DELETE /api/jobs/{id}` | Discard staging files · remove the job. |
 | `GET /api/events` | Server-Sent Events: `job`, `removed`, `log`. |
 | `GET` · `PUT /api/settings` | Read · change settings (partial updates accepted). |
 | `POST /api/account/login` · `/api/account/code` | Start a sign-in · submit the 2FA code. |
-| `GET /api/catalog/search?q=` · `/api/catalog/artists/{id}` · `/api/catalog/albums/{id}` | Catalogue. |
+| `GET /api/catalog/search?q=` · `/api/catalog/artists/{id}` · `/api/catalog/albums/{id}?sf=` | Catalogue. The album response lists tracks with `available` and `in_library`. |
 
 Errors are `{"error": "<message>"}` with a fitting status code.
 
@@ -131,6 +132,12 @@ pipeline:
 - one-track and 13-track album downloads, FLAC on: tags, lyrics, cover,
   permissions, decoded-audio identity;
 - re-queue an album that is in the library: skipped without downloading;
+- an album with unavailable songs: only the available ones are downloaded,
+  the result says "N of M" and how many are not available;
+- choose two songs on the album page, then a third: the third is added to
+  the existing folder, the first two are untouched;
+- "Add missing tracks" on a skipped album; "Keep N tracks" on a failed job
+  that has staged tracks, including one cut-off file that must be left out;
 - cancel during download: process gone, staging removed;
 - restart the app during a download: job becomes `interrupted`, retry works;
 - discard files, retry, remove, clear history;

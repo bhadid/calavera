@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { api, ApiError } from "../lib/api";
-import { timeOfDay } from "../lib/format";
+import { plural, timeOfDay } from "../lib/format";
 import { useStore } from "../lib/store";
 import type { Job, JobStatus, LogLine } from "../lib/types";
 import { useConfirm } from "./Confirm";
@@ -110,6 +110,13 @@ export function JobCard({ job }: { job: Job }) {
     }
   }
 
+  // "Keep downloaded tracks": a download that failed part-way still has
+  // finished tracks in staging. "Add missing tracks": the album folder
+  // exists; add only what it lacks. Both never replace a file.
+  const canKeep = job.status === "failed" && job.staged_tracks > 0;
+  const canAddMissing = job.status === "skipped" && job.kind === "album" && !job.options.merge;
+  const selection = job.options.track_ids?.length ?? 0;
+
   async function discard() {
     const ok = await confirm({
       title: "Discard downloaded files?",
@@ -143,15 +150,24 @@ export function JobCard({ job }: { job: Job }) {
             <h3 title={job.title || job.url}>{job.title || (job.kind === "album" ? "Album" : "Song")}</h3>
             <p className="muted">{job.artist || job.url}</p>
           </div>
-          <span className={`tag ${status.tone}`}>{status.label}</span>
+          <span className="job-tags">
+            {job.status === "done" && job.result.some((r) => (r.unavailable ?? 0) > 0) && <span className="tag tag-warn">partial</span>}
+            <span className={`tag ${status.tone}`}>{status.label}</span>
+          </span>
         </div>
+        {selection > 0 && active && <p className="small muted">{plural(selection, "selected song")}</p>}
 
         {job.status === "running" && (
           <Meter fraction={job.progress} caption={[STAGE[job.stage] ?? "working", job.detail.toLowerCase()].filter(Boolean).join(" · ")} />
         )}
 
         {(job.status === "failed" || job.status === "interrupted") && job.error && <p className="job-error">{job.error}</p>}
-        {job.status === "skipped" && job.detail && <p className="small muted">{job.detail}</p>}
+        {(job.status === "skipped" || job.status === "done") && job.detail && <p className="small muted">{job.detail}</p>}
+        {canKeep && (
+          <p className="small muted">
+            {plural(job.staged_tracks, "track")} finished downloading and can be kept.
+          </p>
+        )}
 
         {job.result.map((r, i) => (
           <p key={i} className="small job-result">
@@ -161,7 +177,8 @@ export function JobCard({ job }: { job: Job }) {
                   →
                 </span>{" "}
                 {r.path}
-                {r.tracks ? ` · ${r.tracks} ${r.tracks === 1 ? "track" : "tracks"}` : ""}
+                {r.tracks ? ` · ${plural(r.tracks, "track")}` : ""}
+                {r.tracks && r.album_tracks && !selection && r.tracks < r.album_tracks ? ` of ${r.album_tracks}` : ""}
                 {r.format ? ` · ${r.format.toUpperCase()}` : ""}
                 {r.quality?.length ? ` · ${r.quality.join(", ")}` : ""}
               </>
@@ -174,6 +191,26 @@ export function JobCard({ job }: { job: Job }) {
           {active && (
             <button className="button button-small" disabled={busy} onClick={() => act(() => api.cancelJob(job.id))}>
               Cancel
+            </button>
+          )}
+          {canKeep && (
+            <button
+              className="button button-small button-primary"
+              disabled={busy}
+              title="Convert and import the tracks that finished downloading. Existing files in the library are never replaced."
+              onClick={() => act(() => api.importJob(job.id))}
+            >
+              Keep {plural(job.staged_tracks, "track")}
+            </button>
+          )}
+          {canAddMissing && (
+            <button
+              className="button button-small"
+              disabled={busy}
+              title="Add only the tracks the existing album folder does not have. Existing files are never replaced."
+              onClick={() => act(() => api.importJob(job.id))}
+            >
+              Add missing tracks
             </button>
           )}
           {!active && job.status !== "done" && (

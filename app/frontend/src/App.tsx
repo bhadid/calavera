@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { Layout } from "./components/Layout";
 import { AccountPage } from "./pages/Account";
+import { AlbumPage } from "./pages/Album";
 import { ArtistPage } from "./pages/Artist";
 import { QueuePage } from "./pages/Queue";
 import { SearchPage } from "./pages/Search";
@@ -14,6 +15,7 @@ export function App() {
       <Route element={<Layout />}>
         <Route index element={<QueuePage />} />
         <Route path="search" element={<SearchPage />} />
+        <Route path="album/:id" element={<AlbumPage />} />
         <Route path="artist/:id" element={<ArtistPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="account" element={<AccountPage />} />

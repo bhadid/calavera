@@ -1139,6 +1139,7 @@ textarea {
 .backlink {
   display: inline-flex;
   align-items: center;
+  justify-self: start;
   min-height: var(--tap);
   font-weight: 700;
 }
@@ -1435,5 +1436,159 @@ textarea {
   *::after {
     animation: none !important;
     transition: none !important;
+  }
+}
+
+/* ---- album page: song selection ---------------------------------------------------------- */
+.album-link {
+  display: block;
+  text-decoration: none;
+}
+
+.album-link:hover {
+  background: none;
+}
+
+.album-link:hover .cover {
+  box-shadow: 3px 3px 0 var(--accent);
+}
+
+.album-text h3 a {
+  text-decoration: none;
+}
+
+.album-text h3 a:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  background: none;
+}
+
+.album-head {
+  display: flex;
+  gap: 20px;
+  align-items: flex-end;
+}
+
+.album-head-text {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.album-head-text h1 {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.tracks {
+  list-style: none;
+  padding: 0;
+}
+
+.track {
+  border-bottom: 1px solid var(--line);
+}
+
+.track:last-child {
+  border-bottom: 0;
+}
+
+/* The whole row is the tap target for its checkbox. */
+.track label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+
+.track label:hover {
+  background: var(--surface-2);
+}
+
+.track-blocked label {
+  cursor: default;
+}
+
+.track-blocked label:hover {
+  background: none;
+}
+
+.track-blocked .track-name,
+.track-blocked .track-number {
+  color: var(--muted);
+}
+
+.track input {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  accent-color: var(--accent-strong);
+  cursor: inherit;
+}
+
+.track-number {
+  flex: none;
+  width: 2ch;
+  color: var(--muted);
+  text-align: right;
+}
+
+.track-text {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+}
+
+.track-text > * {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.actionbar {
+  position: sticky;
+  bottom: calc(12px + var(--tabbar-height) + env(safe-area-inset-bottom));
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  padding: 12px 14px;
+}
+
+.actionbar p {
+  flex: 1 1 220px;
+}
+
+.add-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.job-tags {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+@media (max-width: 720px) {
+  .album-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+  }
+
+  .actionbar .button {
+    width: 100%;
+  }
+
+  .track-duration {
+    display: none;
   }
 }

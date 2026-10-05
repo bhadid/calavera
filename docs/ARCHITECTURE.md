@@ -49,7 +49,8 @@ app/
       wrapper.py          client for wrapper-lite and the supervisor
       amdl.py             amdl config, process runner, output parser
       audio.py            probing, FLAC conversion and verification, tag clean-up
-      library.py          the never-overwrite library import
+      library.py          the never-overwrite library import and merge
+      plan.py             which tracks of an album to download (pure functions)
       jobs.py             queue, worker and the pipeline
       api.py              HTTP routes, events, static files, request guard
     tests/                pytest; runs in the Dockerfile's `test` stage
@@ -60,7 +61,8 @@ app/
       components/         Layout (top bar, tab bar, status line), JobCard,
                           AlbumGrid, Cover, Icon, Controls (switch, segmented
                           control), Confirm (confirmation dialog)
-      pages/              Queue, Search, Artist, Settings, Account
+      pages/              Queue, Search, Album (song selection), Artist,
+                          Settings, Account
       styles.css          design tokens and all styles
 ```
 
@@ -69,23 +71,38 @@ app/
 `JobManager._run` in `jobs.py`, one job at a time:
 
 1. **Preflight.** Fails early, before any download, if the wrapper is not
-   signed in, the library is unusable, or staging has under 1 GB free. If the
-   album's folder already exists in the library, the job ends as `skipped`
-   without downloading.
-2. **Download.** amdl runs with a config file generated for this job and
+   signed in, the library is unusable, or staging has under 1 GB free.
+2. **Plan** (`plan.py`, album jobs). The catalogue says which songs exist
+   and which of them Apple actually offers. Left out: songs that are not
+   available, songs outside an explicit selection, and, in merge mode, tracks
+   the album folder already has. A plain album job whose folder exists ends
+   here as `skipped`; so does any job with nothing left to download.
+3. **Download.** amdl runs with a config file generated for this job and
    writes Apple Lossless files to `<staging>/<job id>/music/<Artist>/<Album>/`.
-   Its output is parsed line by line for progress. The job only continues if
-   amdl exits with 0 and its summary says every track completed with no
-   errors.
-3. **Verify.** Every track must be ALAC, have a duration and a title tag (an
+   It gets the album link when the whole album is wanted, otherwise one song
+   link per wanted track, all in a single run. Its output is parsed line by
+   line for progress. The job only continues if amdl exits with 0 and
+   reports every requested track completed with no errors.
+4. **Verify.** Every track must be ALAC, have a duration and a title tag (an
    unfinished track has none).
-4. **Convert** (if FLAC is on). Per track: ffmpeg writes the FLAC, tags are
+5. **Convert** (if FLAC is on). Per track: ffmpeg writes the FLAC, tags are
    normalised, sample rate and bit depth must match the source, and the
    decoded audio of both files must have the same MD5. Only then is the `.m4a`
    deleted.
-5. **Import.** `library.import_album` applies the library rules.
-6. **Clean up.** Staging is deleted when everything was imported, kept
+6. **Import.** `library.import_album` applies the library rules; in merge
+   mode `library.merge_album` adds only missing tracks to an existing folder.
+7. **Clean up.** Staging is deleted when everything was imported, kept
    otherwise.
+
+Job options, stored with the job: `track_ids` (only these songs), `merge`
+(may add to an existing album folder; set for song selections, single songs
+and the "add missing" / "keep tracks" actions) and `resume`.
+
+**Resuming.** `POST /api/jobs/{id}/import` re-runs a finished job in merge
+mode. If the job still has tracks in staging, nothing is downloaded: tracks
+that do not decode completely are dropped, the rest go through steps 4 to 7.
+That is "Keep N tracks" after a failed download. Without staged tracks the
+job runs from the start in merge mode ("Add missing tracks").
 
 Each stage is one method. A new stage (for example "ask Navidrome to scan")
 is a new method called from `_run`.

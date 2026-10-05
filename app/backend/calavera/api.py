@@ -24,6 +24,7 @@ from .config import Config
 from .config import load as load_config
 from .db import Database
 from .jobs import JobError, JobManager
+from .plan import track_file_stem
 from .settings import Settings
 from .wrapper import WrapperClient
 
@@ -43,8 +44,16 @@ CONTENT_SECURITY_POLICY = "; ".join([
 ])
 
 
+class NewJobItem(BaseModel):
+    url: str
+    # Song ids to download from an album link. Empty or absent: the whole album.
+    track_ids: list[str] | None = Field(default=None, max_length=500)
+
+
 class NewJobs(BaseModel):
-    urls: list[str] = Field(min_length=1, max_length=50)
+    """Either plain links, or items when specific songs of an album are wanted."""
+    urls: list[str] = Field(default_factory=list, max_length=50)
+    items: list[NewJobItem] = Field(default_factory=list, max_length=50)
 
 
 class Login(BaseModel):
@@ -146,12 +155,15 @@ def create_app(config: Config | None = None) -> FastAPI:
 
     @app.post("/api/jobs")
     async def add_jobs(body: NewJobs):
+        wanted = [NewJobItem(url=u) for u in dict.fromkeys(u.strip() for u in body.urls if u.strip())] + body.items
+        if not wanted:
+            raise HTTPException(422, "No links were given.")
         added, rejected = [], []
-        for raw in dict.fromkeys(u.strip() for u in body.urls if u.strip()):
+        for item in wanted:
             try:
-                added.append(jobs.enqueue(raw))
+                added.append(jobs.enqueue(item.url, item.track_ids))
             except (urls.UnsupportedUrl, JobError) as e:
-                rejected.append({"url": raw, "error": str(e)})
+                rejected.append({"url": item.url, "error": str(e)})
         return JSONResponse({"added": added, "rejected": rejected}, status_code=201 if added else 422)
 
     def require_job(job_id: str) -> dict:
@@ -175,6 +187,18 @@ def create_app(config: Config | None = None) -> FastAPI:
         require_job(job_id)
         try:
             jobs.retry(job_id)
+        except JobError as e:
+            raise HTTPException(409, str(e)) from e
+        return {"job": jobs.get(job_id)}
+
+    @app.post("/api/jobs/{job_id}/import")
+    async def import_job(job_id: str):
+        """Import what the job has (or can still get), adding to an existing
+        album folder if there is one. Used for "Keep downloaded tracks" and
+        "Add missing tracks"."""
+        require_job(job_id)
+        try:
+            jobs.import_anyway(job_id)
         except JobError as e:
             raise HTTPException(409, str(e)) from e
         return {"job": jobs.get(job_id)}
@@ -279,13 +303,25 @@ def create_app(config: Config | None = None) -> FastAPI:
         await asyncio.to_thread(mark_owned, results["albums"])
         return results
 
+    def mark_owned_tracks(album: dict) -> None:
+        folder = album.get("in_library")
+        present = library.track_keys(config.library_dir / folder) if folder else set()
+        for track in album["tracks"]:
+            track["in_library"] = library.stem_key(track_file_stem(track)) in present
+
     @app.get("/api/catalog/albums/{album_id}")
-    async def catalog_album(album_id: str, storefront_code: str = ""):
+    async def catalog_album(album_id: str, sf: str = ""):
+        """An album with its tracks, each marked as available or not and as
+        already in the library or not. `sf` is the store code of the link."""
+        if not album_id.isdigit() or (sf and not (len(sf) == 2 and sf.isalpha())):
+            raise HTTPException(422, "Not a valid album reference.")
         try:
-            album = await catalog.album(storefront_code or await storefront(), album_id, get_settings().language)
+            album = await catalog.album(sf.lower() or await storefront(), album_id, get_settings().language)
         except CatalogError as e:
             raise HTTPException(502, str(e)) from e
+        album["storefront"] = sf.lower() or await storefront()
         await asyncio.to_thread(mark_owned, [album])
+        await asyncio.to_thread(mark_owned_tracks, album)
         return album
 
     @app.get("/api/catalog/artists/{artist_id}")

@@ -58,6 +58,11 @@ def _song(item: dict) -> dict:
         "duration_ms": a.get("durationInMillis", 0),
         "traits": a.get("audioTraits") or [],
         "explicit": a.get("contentRating") == "explicit",
+        "track_number": a.get("trackNumber", 0),
+        "disc_number": a.get("discNumber", 1),
+        # Apple lists songs it does not offer for streaming (greyed out in
+        # its own apps). They carry no play parameters and cannot be downloaded.
+        "available": "playParams" in a,
     }
 
 

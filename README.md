@@ -12,7 +12,7 @@ You need an Apple ID with an active Apple Music subscription. Whether using
 this is permitted for you depends on Apple's terms and the law where you live;
 that is yours to check.
 
-> **Status:** early (0.1.0). Verified on one Debian 12 host. See
+> **Status:** early (0.2.0). Verified on one Debian 12 host. See
 > [Known limits](#known-limits).
 
 ## What it does
@@ -21,6 +21,9 @@ that is yours to check.
   per-job log. The queue survives restarts.
 - **Search** the Apple Music catalogue, browse an artist's albums, and see
   which albums you already have.
+- **Choose songs.** Open an album to pick individual songs. Songs Apple lists
+  but does not offer (greyed out in its own apps) are shown as such and left
+  out automatically.
 - **FLAC by default.** Each track is converted from Apple Lossless and
   verified to decode to identical audio before the original is deleted. Can be
   switched off to keep Apple Lossless (`.m4a`).
@@ -102,9 +105,14 @@ the 6-digit code.
 ## Using it
 
 - **Queue:** paste one or more album or song links (one per line) and press
-  *Add to queue*.
+  *Add to queue*. With a single album link, *Choose songs* opens the album
+  instead.
 - **Search:** type an artist, album or song, or paste a link. *In library*
-  marks albums whose folder already exists.
+  marks albums whose folder already exists. Tap a cover or title to open the
+  album.
+- **Album page:** every song with a checkbox. Everything downloadable starts
+  selected; untick what you do not want. Songs that are not available or are
+  already in your library cannot be ticked and say why.
 - **Settings:** FLAC on/off, highest sample rate, lyrics, cover size, metadata
   language, store for search.
 
@@ -112,9 +120,9 @@ Job outcomes:
 
 | Status | Meaning |
 |---|---|
-| In library | Downloaded, verified, and copied to the library. |
-| Already in library | The album folder exists; nothing was changed. If Calavera only found out after downloading, the files stay in staging until you press *Discard files*. |
-| Failed | See the message and the log. Nothing partial is ever imported: if one track fails, the album is not imported. Files stay in staging until you retry, discard or remove the job. |
+| In library | Downloaded, verified, and copied to the library. A *partial* tag means some songs of the album are not available on Apple Music; the card says how many. |
+| Already in library | The album folder exists; nothing was changed and usually nothing was downloaded. *Add missing tracks* adds the songs the folder lacks. |
+| Failed | See the message and the log. A track that fails unexpectedly stops the import: nothing partial is imported on its own. If some tracks did finish, *Keep N tracks* imports those; otherwise retry, discard or remove the job. |
 | Canceled / Interrupted | Stopped by you, or by a restart. *Retry* runs it again. |
 
 ### Library rules
@@ -124,8 +132,15 @@ Albums are stored as `<library>/<Artist>/<Album>/NN. Title.flac` plus
 
 - Existing files and folders are never overwritten, renamed or deleted.
 - An existing artist folder is reused (matched case-insensitively).
-- An existing album folder means the whole album is skipped.
-- Only complete, verified albums are imported.
+- An existing album folder means a whole-album download is skipped.
+- Tracks are added to an existing album folder only when you ask for exactly
+  that: by choosing songs, by downloading a single song, or with *Add missing
+  tracks* / *Keep N tracks*. Only tracks that are not there yet are added. A
+  track counts as present if a file with the same name exists in any audio
+  format, so an album you hold as `.m4a` is not doubled up with `.flac`
+  files. An existing cover image is kept.
+- Only verified tracks are imported. Songs Apple does not offer are left out
+  up front and reported; any other failed track stops the import.
 - If the library folder is missing, empty or read-only (for example an
   unmounted network share), nothing is written.
 - The copy goes to a hidden temporary folder, every file is read back and
@@ -195,8 +210,11 @@ On GitHub, two things watch for you:
 - Album and song links only. Playlists, artist "download everything", Dolby
   Atmos, AAC and music videos are not supported.
 - One download at a time.
-- A single song is stored as its album folder with one track; a later download
-  of the full album is then skipped as already present.
+- A single song is stored in its album's folder. A later whole-album download
+  is then reported as *Already in library*; use *Add missing tracks* to get
+  the rest.
+- Whether a track is "already there" is decided by file name (track number
+  and title). Tracks you named differently are not recognised.
 - No built-in login (see above) and no HTTPS.
 - Search uses an anonymous token taken from Apple's web player, the same way
   amdl does. If Apple changes the web player, search stops working until

@@ -38,6 +38,11 @@ def test_progress_follows_tracks_and_drops_progress_bar_lines():
     assert 1 / 13 <= progress.fraction < 2 / 13
 
 
+def test_link_counter_for_runs_with_several_links():
+    progress, _ = feed("Queue 1 of 3: Song->Artist\nTrack 1 of 1: songs\nQueue 2 of 3: Song->Artist")
+    assert progress.songs_started == 2
+
+
 def test_fraction_within_a_track():
     progress, _ = feed("Track 1 of 4: songs\nDownloading...  50%  (1/2 MB)")
     assert progress.fraction == 0.0625  # half of the download half of track 1 of 4

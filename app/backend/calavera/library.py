@@ -7,7 +7,10 @@ The library is the user's whole collection, so the rules are strict:
   a directory this module created, and rename that directory once.
 * If the artist folder exists (compared case-insensitively) the album goes
   inside it; otherwise the artist folder is created.
-* If the album folder exists under that artist, the whole album is skipped.
+* If the album folder exists under that artist, the whole album is skipped,
+  unless the caller explicitly asks to merge. Merging adds only tracks that
+  are not there yet (compared by file name without extension, so a track that
+  exists as .m4a is not added again as .flac) and still never replaces a file.
 * If the library looks unmounted (missing, empty or read-only) nothing is
   written.
 * The album is copied into a hidden temporary folder, every file is read back
@@ -26,6 +29,9 @@ from dataclasses import dataclass
 from pathlib import Path
 
 TMP_PREFIX = ".calavera-importing-"
+# Anything a music library may hold; used to recognise tracks that are
+# already present, whatever their format.
+AUDIO_EXTS = (".flac", ".m4a", ".mp3", ".ogg", ".opus", ".wav", ".aac", ".aiff", ".wv", ".ape")
 # Characters the downloader replaces with "_" when it builds folder names.
 _FORBIDDEN = re.compile(r'[\\/<>:"|?*]')
 
@@ -34,7 +40,9 @@ _FORBIDDEN = re.compile(r'[\\/<>:"|?*]')
 class ImportResult:
     status: str   # "imported" | "exists" | "failed"
     message: str
-    path: str = ""  # album folder inside the library, relative to its root
+    path: str = ""   # album folder inside the library, relative to its root
+    added: int = 0   # tracks copied by this import
+    skipped: int = 0  # tracks left out because the library already had them
 
 
 def folder_name(name: str) -> str:
@@ -66,6 +74,25 @@ def find_album(library: Path, artist: str, album: str) -> str | None:
         return None
     album_entry = find_entry(library / artist_entry, folder_name(album))
     return f"{artist_entry}/{album_entry}" if album_entry else None
+
+
+def stem_key(stem: str) -> str:
+    """How a track is recognised: its file name without the extension,
+    compared case-insensitively."""
+    return _norm(stem)
+
+
+def track_key(file_name: str) -> str:
+    """The key of an audio file name, e.g. "01. One.flac"."""
+    return stem_key(os.path.splitext(file_name)[0])
+
+
+def track_keys(folder: Path) -> set[str]:
+    """Keys of the audio files already in an album folder."""
+    try:
+        return {track_key(e) for e in os.listdir(folder) if os.path.splitext(e)[1].lower() in AUDIO_EXTS}
+    except OSError:
+        return set()
 
 
 def library_problem(library: Path) -> str | None:
@@ -152,4 +179,85 @@ def import_album(src_dir: Path, library: Path, artist: str, album: str) -> Impor
             f"Copying to the library failed ({e}). If a folder starting with '{TMP_PREFIX}' was left "
             f"in the artist folder, it was created by this import and can be removed by hand.",
         )
-    return ImportResult("imported", f"Copied {len(files)} files and verified them.", f"{artist_dir.name}/{album}")
+    tracks = sum(1 for f in files if f.suffix.lower() in AUDIO_EXTS)
+    return ImportResult(
+        "imported", f"Copied {len(files)} files and verified them.", f"{artist_dir.name}/{album}", added=tracks
+    )
+
+
+def _place(tmp: Path, final: Path) -> bool:
+    """Give a verified temporary file its final name without ever replacing
+    an existing file. Returns False if the name was taken."""
+    try:
+        os.link(tmp, final)   # atomic, and fails if `final` exists
+    except FileExistsError:
+        tmp.unlink()
+        return False
+    except OSError:
+        # File system without hard links: fall back to a checked rename.
+        if os.path.lexists(final):
+            tmp.unlink()
+            return False
+        tmp.rename(final)
+        return True
+    tmp.unlink()
+    return True
+
+
+def merge_album(src_dir: Path, library: Path, artist: str, album: str) -> ImportResult:
+    """Add the tracks in `src_dir` that the library's album folder lacks.
+
+    If the album folder does not exist this is a normal import. Otherwise
+    each new track is copied to a hidden temporary file inside the album
+    folder, read back and checksummed, and then given its final name. Files
+    that are already there, in any audio format, are left untouched; so is an
+    existing cover image. The only files ever removed are this function's own
+    temporary copies.
+    """
+    problem = library_problem(library)
+    if problem:
+        return ImportResult("failed", problem)
+    artist_entry = find_entry(library, artist)
+    album_entry = find_entry(library / artist_entry, album) if artist_entry else None
+    if album_entry is None:
+        return import_album(src_dir, library, artist, album)
+
+    dest = library / artist_entry / album_entry
+    relative = f"{artist_entry}/{album_entry}"
+    if not dest.is_dir():
+        return ImportResult("failed", f"'{relative}' in the library is not a folder.")
+    files = sorted(p for p in src_dir.iterdir() if p.is_file())
+    present_tracks = track_keys(dest)
+    present_names = {_norm(e) for e in os.listdir(dest)}
+    file_mode = dest.stat().st_mode & 0o666
+    added = skipped = 0
+    try:
+        for f in files:
+            is_audio = f.suffix.lower() in AUDIO_EXTS
+            if (is_audio and track_key(f.name) in present_tracks) or _norm(f.name) in present_names:
+                skipped += is_audio
+                continue
+            tmp = dest / f"{TMP_PREFIX}{uuid.uuid4().hex[:8]}-{f.name}"
+            digest = _copy_new(f, tmp, file_mode)
+            if _sha256(tmp) != digest:
+                tmp.unlink()
+                raise OSError(f"checksum mismatch after copying {f.name}")
+            if _place(tmp, dest / f.name):
+                added += is_audio
+            else:
+                skipped += is_audio
+    except OSError as e:
+        return ImportResult(
+            "failed",
+            f"Adding to '{relative}' failed after {added} tracks ({e}). Tracks already added are complete; "
+            f"a leftover file starting with '{TMP_PREFIX}' can be removed by hand.",
+            relative, added=added, skipped=skipped,
+        )
+    if added == 0:
+        return ImportResult(
+            "exists", f"'{relative}' already has every one of these tracks. Nothing in the library was touched.",
+            relative, skipped=skipped,
+        )
+    noun = "track" if added == 1 else "tracks"
+    also = f"; {skipped} already there" if skipped else ""
+    return ImportResult("imported", f"Added {added} {noun} to the existing folder and verified them{also}.", relative, added=added, skipped=skipped)

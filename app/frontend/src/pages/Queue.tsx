@@ -1,6 +1,7 @@
 import { useState, type FormEvent, type KeyboardEvent } from "react";
 import { Link } from "react-router-dom";
 import { api, ApiError } from "../lib/api";
+import { albumPath } from "../lib/format";
 import { useStore } from "../lib/store";
 import { useConfirm } from "../components/Confirm";
 import { JobCard } from "../components/JobCard";
@@ -62,6 +63,10 @@ export function QueuePage() {
     if (!ok) return;
     await Promise.allSettled(removable.map((j) => api.removeJob(j.id)));
   }
+
+  // A single album link can also be opened to choose individual songs.
+  const links = text.split(/\s+/).filter(Boolean);
+  const chooseSongs = links.length === 1 ? albumPath(links[0]) : null;
 
   const wrapper = status?.wrapper;
   return (
@@ -129,9 +134,16 @@ export function QueuePage() {
           <p className="small muted" id="links-help">
             Album or song links. Shift+Enter for another line. Or <Link to="/search">search the catalogue</Link>.
           </p>
-          <button className="button button-primary" disabled={submitting || !text.trim()}>
-            <span aria-hidden="true">↓</span> Add to queue
-          </button>
+          <div className="add-actions">
+            {chooseSongs && (
+              <Link className="button" to={chooseSongs}>
+                Choose songs
+              </Link>
+            )}
+            <button className="button button-primary" disabled={submitting || !text.trim()}>
+              <span aria-hidden="true">↓</span> Add to queue
+            </button>
+          </div>
         </div>
       </form>
 

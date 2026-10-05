@@ -19,6 +19,21 @@ export function timeOfDay(seconds: number): string {
   return new Date(seconds * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 }
 
+/**
+ * The page for an album, from its Apple Music link, e.g.
+ * https://music.apple.com/de/album/some-name/123 -> /album/123?sf=de.
+ * Returns null for anything that is not a plain album link.
+ */
+export function albumPath(url: string): string | null {
+  const match = /music\.apple\.com\/([a-z]{2})\/album\/(?:[^/?#]+\/)?(\d+)(?:[?#](.*))?$/.exec(url.trim());
+  if (!match || /(^|[?&])i=\d/.test(match[3] ?? "")) return null;
+  return `/album/${match[2]}?sf=${match[1]}`;
+}
+
+export function plural(count: number, noun: string): string {
+  return `${count} ${noun}${count === 1 ? "" : "s"}`;
+}
+
 export function year(date: string): string {
   return date.slice(0, 4);
 }
