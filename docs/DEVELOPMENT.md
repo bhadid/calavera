@@ -1,0 +1,115 @@
+# Development
+
+Everything builds and runs in Docker; the host needs no Python or Node.
+
+## Build and run
+
+```bash
+cp .env.example .env            # point LIBRARY_PATH at a scratch folder with at least one entry in it
+mkdir -p data/staging
+docker compose build
+docker compose up -d
+docker compose logs -f app
+```
+
+Use a scratch library while developing, never a real one.
+
+## Backend tests
+
+```bash
+docker build --target test \
+  --build-arg AMDL_VERSION=v0.1.0 \
+  --build-arg AMDL_SHA256=949e287d0fd92d0960ae9b14a0582c1056afaa78a7f66d486648d80673ef8d59 \
+  app
+```
+
+The build fails if a test fails. The tests cover link parsing, the amdl output
+parser, settings validation, FLAC conversion and verification (real ffmpeg on
+generated audio) and the library import rules.
+
+Not covered by automated tests: the API routes, the job pipeline as a whole,
+the supervisor, and the frontend. They were exercised by hand; see
+"Manual checks" below.
+
+## Frontend
+
+Type-check and build:
+
+```bash
+docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp -v "$PWD/app/frontend":/w -w /w node:22-alpine \
+  sh -c 'npm ci && npm run build'
+```
+
+Live-reload dev server against a running backend (if you have Node locally):
+
+```bash
+cd app/frontend
+npm ci
+CALAVERA_API=http://<host>:8080 npm run dev      # http://localhost:5173
+```
+
+After changing dependencies in `package.json`, run `npm install` (as above,
+in the Node container) and commit the updated `package-lock.json`; the image
+build uses `npm ci`.
+
+## API
+
+Interactive reference while the app runs: `http://<host>:<port>/api/docs`.
+
+| Method and path | Purpose |
+|---|---|
+| `GET /api/health` | Liveness. |
+| `GET /api/status` | Wrapper, library and staging state. |
+| `GET /api/jobs` · `POST /api/jobs {"urls": [...]}` | List jobs · queue links. |
+| `GET /api/jobs/{id}` | One job with its log. |
+| `POST /api/jobs/{id}/cancel` · `/retry` | Cancel · run again. |
+| `DELETE /api/jobs/{id}/files` · `DELETE /api/jobs/{id}` | Discard staging files · remove the job. |
+| `GET /api/events` | Server-Sent Events: `job`, `removed`, `log`. |
+| `GET` · `PUT /api/settings` | Read · change settings (partial updates accepted). |
+| `POST /api/account/login` · `/api/account/code` | Start a sign-in · submit the 2FA code. |
+| `GET /api/catalog/search?q=` · `/api/catalog/artists/{id}` · `/api/catalog/albums/{id}` | Catalogue. |
+
+Errors are `{"error": "<message>"}` with a fitting status code.
+
+## Conventions
+
+- **Backend:** type hints throughout; modules stay small and single-purpose;
+  blocking work (ffmpeg, file copies, hashing) goes through
+  `asyncio.to_thread`; errors meant for the user are `JobError` /
+  `HTTPException` with a complete sentence.
+- **Frontend:** function components and hooks, no state library; server state
+  lives in `lib/store.tsx`; styles use the tokens in `styles.css` only; no
+  inline scripts and no web fonts (the Content-Security-Policy forbids
+  them); interactive elements are at least 44 px tall on touch devices;
+  destructive actions go through `useConfirm()`; status is never shown by
+  colour alone.
+- **Library safety:** anything that writes to the library goes through
+  `library.py` and keeps its rules. Add a test for every new rule.
+- Pin versions. No `latest`.
+
+## Manual checks
+
+What was run by hand for 0.1.0, as a checklist for changes that touch the
+pipeline:
+
+- one-track and 13-track album downloads, FLAC on: tags, lyrics, cover,
+  permissions, decoded-audio identity;
+- re-queue an album that is in the library: skipped without downloading;
+- cancel during download: process gone, staging removed;
+- restart the app during a download: job becomes `interrupted`, retry works;
+- discard files, retry, remove, clear history;
+- cross-site POST refused; invalid settings rejected with a message;
+- supervisor sign-in flow against a stand-in for wrapper-lite: wrong
+  password, 2FA wait, bad code format, good code, concurrent sign-in refused,
+  password masked in logs;
+- UI screenshots in light, dark and phone width.
+
+## Troubleshooting
+
+| Symptom | Look at |
+|---|---|
+| "Wrapper offline" | `docker compose logs wrapper`. `mount ... failed` means the `security_opt` entries in `compose.yaml` are not in effect. |
+| Jobs fail with "Not signed in" | Account page; the wrapper log at the bottom of it. |
+| "The library folder is empty" | The library path is not mounted on the host, or `LIBRARY_PATH` is wrong. |
+| Search fails, downloads work | Apple changed its web player; see `catalog.py`. |
+| A job fails with "N of M tracks downloaded" | The job log. Usually a track without a lossless version. |
