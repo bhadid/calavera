@@ -168,6 +168,28 @@ Change a pin, then `docker compose build && docker compose up -d`. After
 changing amdl, download one album and check the result: Calavera reads amdl's
 terminal output (see `app/backend/calavera/amdl.py`).
 
+There is no need to follow every upstream release. Update when something
+stops working (Apple changes things; the fix arrives upstream) or when you
+want a new feature.
+
+#### Finding out about updates
+
+On GitHub, two things watch for you:
+
+- **`.github/workflows/upstream-check.yml`** runs every Monday and compares
+  the amdl and wrapper-lite pins with upstream. If either is behind it opens
+  an issue (label `upstream`) with the new version, the changes, and the
+  exact lines to put into `compose.yaml`, including amdl's checksum. One
+  issue per component; it adds a comment if upstream moves again. It never
+  changes anything itself. Run it by hand under *Actions → Upstream check →
+  Run workflow*, or locally with
+  `DRY_RUN=1 .github/scripts/check-upstream.sh` (needs `curl` and `jq`).
+- **Dependabot** (`.github/dependabot.yml`) opens weekly pull requests for
+  Calavera's own dependencies: Python and JavaScript packages (minor and
+  patch versions, grouped), Docker base images and GitHub Actions. Image
+  tags set through build arguments (`PYTHON_VERSION`, `NODE_VERSION`,
+  `DEBIAN_VERSION`) and the ffmpeg digest are not updated by it.
+
 ## Known limits
 
 - Album and song links only. Playlists, artist "download everything", Dolby

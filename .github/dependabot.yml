@@ -1,0 +1,41 @@
+# Dependabot keeps Calavera's own dependencies current by opening pull
+# requests. amdl and wrapper-lite are not covered here; see
+# .github/workflows/upstream-check.yml for those.
+#
+# Minor and patch updates are grouped into one pull request per ecosystem.
+# Major versions are left alone (they usually need code changes); security
+# fixes are proposed regardless of this file once Dependabot security updates
+# are switched on in the repository settings.
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: /app/backend
+    schedule:
+      interval: weekly
+    groups:
+      python:
+        update-types: [minor, patch]
+    ignore:
+      - dependency-name: "*"
+        update-types: [version-update:semver-major]
+
+  - package-ecosystem: npm
+    directory: /app/frontend
+    schedule:
+      interval: weekly
+    groups:
+      javascript:
+        update-types: [minor, patch]
+    ignore:
+      - dependency-name: "*"
+        update-types: [version-update:semver-major]
+
+  - package-ecosystem: docker
+    directories: [/app, /wrapper]
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
