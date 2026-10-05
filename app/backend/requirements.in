@@ -1,0 +1,12 @@
+# Direct runtime dependencies. Edit this file, then regenerate the lock:
+#
+#   docker run --rm -v "$PWD":/w -w /w python:3.12-slim-bookworm sh -c \
+#     'pip install -q pip-tools && pip-compile -q --strip-extras requirements.in && pip-compile -q --strip-extras requirements-dev.in'
+#
+# requirements.txt is generated from this file and pins every package,
+# including sub-dependencies, to versions that fit together.
+fastapi==0.142.2
+uvicorn==0.54.0
+httpx==0.28.1
+PyYAML==6.0.3
+mutagen==1.48.1

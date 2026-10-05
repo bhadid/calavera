@@ -31,6 +31,23 @@ Not covered by automated tests: the API routes, the job pipeline as a whole,
 the supervisor, and the frontend. They were exercised by hand; see
 "Manual checks" below.
 
+### Python dependencies
+
+`requirements.in` lists the packages Calavera uses directly;
+`requirements.txt` is generated from it by `pip-compile` and pins those plus
+all their sub-dependencies to a set that fits together (`requirements-dev.*`
+adds pytest). Never edit the `.txt` files by hand. To change a dependency,
+edit the `.in` file and regenerate:
+
+```bash
+cd app/backend
+docker run --rm -v "$PWD":/w -w /w python:3.12-slim-bookworm sh -c \
+  'pip install -q pip-tools && pip-compile -q --strip-extras requirements.in && pip-compile -q --strip-extras requirements-dev.in'
+```
+
+Dependabot understands this layout and regenerates the lock files in its
+pull requests.
+
 ## Frontend
 
 Type-check and build:

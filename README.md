@@ -161,7 +161,7 @@ Versions are pinned in `compose.yaml` and `app/Dockerfile`:
 | wrapper-lite | commit `2fd7e0eaef081f93cf687428b965674937832ba4` | `compose.yaml` → `wrapper.build.args.WRAPPER_REF` |
 | amdl | release `v0.1.0` + SHA-256 of the binary | `compose.yaml` → `app.build.args` |
 | ffmpeg | static 7.1, image digest | `app/Dockerfile` |
-| Python packages | exact versions | `app/backend/requirements.txt` |
+| Python packages | direct ones in `requirements.in`, full lock generated | `app/backend/requirements.txt` |
 | JavaScript packages | lockfile | `app/frontend/package-lock.json` |
 
 Change a pin, then `docker compose build && docker compose up -d`. After

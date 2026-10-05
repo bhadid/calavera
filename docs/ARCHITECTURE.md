@@ -36,7 +36,7 @@ wrapper/
 app/
   Dockerfile              frontend build, amdl download, tests, runtime image
   backend/
-    requirements.txt
+    requirements.in       direct dependencies; requirements.txt is the generated lock
     calavera/
       __main__.py         starts uvicorn
       config.py           deployment facts from the environment
