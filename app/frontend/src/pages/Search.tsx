@@ -141,10 +141,6 @@ export function SearchPage() {
               </div>
             ))}
           </div>
-          <p className="small muted">
-            A single song is stored as its album folder with one track. A later download of the full album is then
-            skipped as already present.
-          </p>
         </section>
       )}
     </>
