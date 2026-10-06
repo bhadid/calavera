@@ -1055,6 +1055,8 @@ textarea {
   justify-content: center;
   gap: 6px;
   min-height: 36px;
+  padding: 0 12px;
+  white-space: nowrap;
   border: var(--border) dashed var(--line);
   border-radius: var(--radius);
   font-size: var(--fs-small);
