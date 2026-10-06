@@ -184,6 +184,13 @@ The look combines three things, all implemented in `styles.css`:
   colour, a confirmation before destructive actions, reduced motion
   respected, light and dark themes following the system.
 
+Symbols follow one rule. Actions and notices use drawn icons from
+`components/Icon.tsx` (one rounded stroke style), so they look the same on
+every device. Status tags are words only. A few marks are typed characters
+on purpose, because they should look like terminal output: the status-line
+marks, the prompt before page titles, the log toggle and the text progress
+bar.
+
 The accent is pink. The logo is the favicon artwork with a frame drawn over
 its edge and a pink offset shadow in both themes.
 

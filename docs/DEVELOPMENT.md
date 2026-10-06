@@ -119,7 +119,8 @@ Errors are `{"error": "<message>"}` with a fitting status code.
   inline scripts and no web fonts (the Content-Security-Policy forbids
   them); interactive elements are at least 44 px tall on touch devices;
   destructive actions go through `useConfirm()`; status is never shown by
-  colour alone.
+  colour alone; icons come from `components/Icon.tsx`, not from typed
+  symbols (the exceptions are listed in ARCHITECTURE.md).
 - **Library safety:** anything that writes to the library goes through
   `library.py` and keeps its rules. Add a test for every new rule.
 - Pin versions. No `latest`.
