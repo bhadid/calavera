@@ -1,20 +1,36 @@
-// Small inline icon set (24x24, stroked) so the UI needs no icon dependency.
+// Calavera's icon set.
+//
+// Drawn for this interface rather than typed as text characters, so every
+// icon looks the same on every device. One style throughout: a 24 x 24 grid,
+// 2 px strokes (the weight of the interface's borders), square line ends and
+// sharp corners.
+//
+// To add an icon, add its path data to PATHS; several strokes go in one
+// string, each starting with "M".
 const PATHS = {
+  // navigation
   queue: "M4 6h16M4 12h16M4 18h10",
-  search: "M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16zm10 2-4.3-4.3",
-  settings:
-    "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm7.4-3a7.4 7.4 0 0 0-.1-1.2l2-1.6-2-3.4-2.4 1a7.6 7.6 0 0 0-2-1.2L14.5 3h-4l-.4 2.6a7.6 7.6 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.6a7.4 7.4 0 0 0 0 2.4l-2 1.6 2 3.4 2.4-1a7.6 7.6 0 0 0 2 1.2l.4 2.600h4l.4-2.600a7.6 7.6 0 0 0 2-1.2l2.4 1 2-3.4-2-1.6c.1-.4.1-.8.1-1.200z",
-  user: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm-8 9a8 8 0 0 1 16 0",
-  download: "M12 3v12m0 0-4.5-4.500M12 15l4.5-4.500M4 20h16",
-  check: "M5 12.500l4.5 4.500L19 7.5",
-  x: "M6 6l12 12M18 6 6 18",
-  retry: "M4 12a8 8 0 1 0 2.6-5.900M4 4v4.500h4.5",
-  trash: "M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13",
-  sun: "M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm0-15v2m0 16v2M2 12h2m16 0h2M5 5l1.4 1.400M17.6 17.6 19 19M5 19l1.4-1.400M17.6 6.4 19 5",
-  moon: "M20 14.500A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.500z",
-  auto: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zm0-18v18",
-  chevron: "M9 6l6 6-6 6",
-  warning: "M12 4 2.5 20h19L12 4zm0 6v5m0 2.500v.5",
+  search: "M4 4h11v11H4zM15 15l5 5",
+  settings: "M4 7h8M16 7h4M12 4.5h4v5h-4zM4 17h4M12 17h8M8 14.5h4v5H8z",
+  user: "M8.5 4h7v7h-7zM4 20v-5h16v5",
+  // actions
+  download: "M12 4v11M7 10.5l5 5 5-5M4 20h16",
+  back: "M20 12H5M11 6l-6 6 6 6",
+  retry: "M19 12v7H5V6h9M11 2.5L14.5 6 11 9.5",
+  trash: "M4 7h16M9 7V4h6v3M6 7v13h12V7M10 11v5M14 11v5",
+  close: "M6 6l12 12M18 6L6 18",
+  // disclosure and direction
+  "chevron-right": "M9 5l7 7-7 7",
+  "chevron-down": "M5 9l7 7 7-7",
+  "arrow-right": "M4 12h15M13 6l6 6-6 6",
+  // status
+  check: "M4 12.5l5 5L20 6.5",
+  warning: "M12 3.5L2.5 20.5h19zM12 10v5M12 17.5v.5",
+  info: "M4 4h16v16H4zM12 11v6M12 7v.5",
+  // theme
+  sun: "M9 9h6v6H9zM12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2",
+  moon: "M19 14.5A8 8 0 0 1 9.5 5 8 8 0 1 0 19 14.5z",
+  auto: "M4 4h16v16H4zM4 20L20 4",
 } as const;
 
 export type IconName = keyof typeof PATHS;
@@ -28,12 +44,21 @@ export function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      strokeWidth="2"
+      strokeLinecap="square"
+      strokeLinejoin="miter"
       aria-hidden="true"
     >
       <path d={PATHS[name]} />
+    </svg>
+  );
+}
+
+/** The prompt mark in front of page titles and command-style inputs. */
+export function Prompt({ size = 20 }: { size?: number }) {
+  return (
+    <svg className="prompt" width={size * 0.6} height={size} viewBox="0 0 12 20" aria-hidden="true">
+      <path d="M2 3l7 7-7 7" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="square" strokeLinejoin="miter" />
     </svg>
   );
 }

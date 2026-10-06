@@ -194,9 +194,14 @@ textarea {
 }
 
 .prompt {
+  flex: none;
   color: var(--accent-strong);
   font-weight: 800;
   user-select: none;
+}
+
+h1 > .prompt {
+  align-self: center;
 }
 
 .sr-only {
@@ -366,6 +371,21 @@ textarea {
   text-decoration-color: var(--term-accent);
 }
 
+/* Square status marks: filled when settled, hollow while waiting. The word
+ * next to each mark carries the meaning; the mark only helps scanning. */
+.status-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 2px;
+  background: currentColor;
+  border: 2px solid currentColor;
+}
+
+.status-dot-wait {
+  background: transparent;
+}
+
 .statusline .key {
   color: var(--term-dim);
 }
@@ -448,8 +468,10 @@ textarea {
   box-shadow: 3px 3px 0 var(--shadow);
 }
 
-.callout-tag {
+.callout-icon {
   flex: none;
+  display: flex;
+  padding-top: 2px;
 }
 
 .callout-warn {
@@ -679,7 +701,8 @@ textarea {
 .prompt-field > .prompt {
   display: flex;
   align-items: flex-start;
-  padding: 10px 0 10px 12px;
+  box-sizing: content-box;
+  padding: 12px 0 10px 12px;
   font-size: 1rem;
   line-height: 1.5;
 }
@@ -919,8 +942,9 @@ textarea {
 }
 
 .job-result .mark {
+  display: inline-flex;
+  vertical-align: -2px;
   color: var(--ok-text);
-  font-weight: 800;
 }
 
 .job-actions {
@@ -1522,13 +1546,29 @@ textarea {
   color: var(--muted);
 }
 
+/* A checkbox drawn in the interface's own style: the box is a bordered
+ * square, the tick is the icon set's check mark. */
 .track input {
   flex: none;
-  width: 22px;
-  height: 22px;
+  appearance: none;
+  width: 24px;
+  height: 24px;
   margin: 0;
-  accent-color: var(--accent-strong);
+  border: var(--border) solid var(--line);
+  border-radius: 4px;
+  background: var(--surface) center / 18px 18px no-repeat;
   cursor: inherit;
+}
+
+.track input:checked {
+  background-color: var(--accent);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230c0c0c' stroke-width='3' stroke-linecap='square'%3E%3Cpath d='M4 12.5l5 5L20 6.5'/%3E%3C/svg%3E");
+}
+
+.track input:disabled {
+  border-style: dashed;
+  border-color: var(--muted);
+  background-color: transparent;
 }
 
 .track-number {

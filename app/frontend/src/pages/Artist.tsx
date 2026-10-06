@@ -4,6 +4,7 @@ import { api, ApiError } from "../lib/api";
 import type { Album, Artist } from "../lib/types";
 import { AlbumGrid } from "../components/AlbumGrid";
 import { Cover } from "../components/Cover";
+import { Icon } from "../components/Icon";
 
 export function ArtistPage() {
   const { id = "" } = useParams();
@@ -25,7 +26,7 @@ export function ArtistPage() {
 
   const back = (
     <Link to="/search" className="backlink">
-      ← Search
+      <Icon name="back" size={16} /> Search
     </Link>
   );
   if (error) {
@@ -33,7 +34,9 @@ export function ArtistPage() {
       <>
         {back}
         <div className="callout callout-bad" role="alert">
-          <span className="tag callout-tag">!</span>
+          <span className="callout-icon">
+            <Icon name="warning" size={20} />
+          </span>
           <div>{error}</div>
         </div>
       </>

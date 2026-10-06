@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { api, ApiError } from "../lib/api";
 import { useStore } from "../lib/store";
+import { Icon, Prompt } from "../components/Icon";
 
 function Countdown({ deadline }: { deadline: number }) {
   const [left, setLeft] = useState(() => Math.max(0, Math.round(deadline - Date.now() / 1000)));
@@ -22,9 +23,7 @@ export function AccountPage() {
   const heading = (
     <div className="page-head">
       <h1>
-        <span className="prompt" aria-hidden="true">
-          ❯
-        </span>
+        <Prompt />
         Account
       </h1>
     </div>
@@ -80,7 +79,9 @@ export function AccountPage() {
 
       {!wrapper.reachable ? (
         <div className="callout callout-bad" role="alert">
-          <span className="tag callout-tag">offline</span>
+          <span className="callout-icon">
+            <Icon name="warning" size={20} />
+          </span>
           <div>
             The wrapper container is not answering. Check <code>docker compose ps</code> and{" "}
             <code>docker compose logs wrapper</code>.
@@ -88,19 +89,25 @@ export function AccountPage() {
         </div>
       ) : wrapper.ready ? (
         <div className="callout callout-ok">
-          <span className="tag callout-tag">✓ ok</span>
+          <span className="callout-icon">
+            <Icon name="check" size={20} />
+          </span>
           <div>
             <strong>Signed in to Apple Music.</strong> Store: {wrapper.regions.join(", ")}. Downloads are ready.
           </div>
         </div>
       ) : wrapper.phase === "starting" ? (
         <div className="callout">
-          <span className="tag callout-tag">…</span>
+          <span className="callout-icon">
+            <Icon name="info" size={20} />
+          </span>
           <div>A session exists; the wrapper is starting.</div>
         </div>
       ) : !inProgress ? (
         <div className="callout callout-warn">
-          <span className="tag callout-tag">!</span>
+          <span className="callout-icon">
+            <Icon name="warning" size={20} />
+          </span>
           <div>
             <strong>Not signed in.</strong> Sign in once; the session is kept until Apple ends it.
           </div>
@@ -109,13 +116,17 @@ export function AccountPage() {
 
       {login.state === "failed" && (
         <div className="callout callout-bad" role="alert">
-          <span className="tag callout-tag">✕</span>
+          <span className="callout-icon">
+            <Icon name="warning" size={20} />
+          </span>
           <div>{login.message}</div>
         </div>
       )}
       {error && (
         <div className="callout callout-bad" role="alert">
-          <span className="tag callout-tag">✕</span>
+          <span className="callout-icon">
+            <Icon name="warning" size={20} />
+          </span>
           <div>{error}</div>
         </div>
       )}
@@ -158,15 +169,13 @@ export function AccountPage() {
               </button>
             </div>
             <p className="small muted">
-              If a device only shows Allow / Don't Allow, tap Allow to see the code, or get one under Settings → your
-              name → Sign-In &amp; Security → Get Verification Code.
+              If a device only shows Allow / Don't Allow, tap Allow to see the code, or get one under Settings, then your
+              name, then Sign-In &amp; Security, then Get Verification Code.
             </p>
           </form>
         ) : login.state === "running" ? (
           <p role="status">
-            <span className="prompt" aria-hidden="true">
-              ❯
-            </span>{" "}
+            <Prompt />{" "}
             {login.message || "Contacting Apple…"}
           </p>
         ) : (

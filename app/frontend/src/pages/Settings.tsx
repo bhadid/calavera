@@ -4,6 +4,7 @@ import { bytes } from "../lib/format";
 import { useStore } from "../lib/store";
 import type { Settings } from "../lib/types";
 import { Segmented, Switch } from "../components/Controls";
+import { Icon, Prompt } from "../components/Icon";
 
 const RATES: { value: Settings["max_sample_rate"]; label: string }[] = [
   { value: 44100, label: "44.1" },
@@ -43,9 +44,7 @@ export function SettingsPage() {
   const heading = (
     <div className="page-head">
       <h1>
-        <span className="prompt" aria-hidden="true">
-          ❯
-        </span>
+        <Prompt />
         Settings
       </h1>
     </div>
@@ -57,7 +56,9 @@ export function SettingsPage() {
         {heading}
         {error ? (
           <div className="callout callout-bad" role="alert">
-            <span className="tag callout-tag">!</span>
+            <span className="callout-icon">
+              <Icon name="warning" size={20} />
+            </span>
             <div>{error}</div>
           </div>
         ) : (
@@ -188,7 +189,9 @@ export function SettingsPage() {
 
         {error && (
           <div className="callout callout-bad" role="alert">
-            <span className="tag callout-tag">!</span>
+            <span className="callout-icon">
+              <Icon name="warning" size={20} />
+            </span>
             <div>{error}</div>
           </div>
         )}

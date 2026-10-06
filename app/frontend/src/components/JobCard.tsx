@@ -5,15 +5,16 @@ import { useStore } from "../lib/store";
 import type { Job, JobStatus, LogLine } from "../lib/types";
 import { useConfirm } from "./Confirm";
 import { Cover } from "./Cover";
+import { Icon } from "./Icon";
 
 const STATUS: Record<JobStatus, { label: string; tone: string }> = {
   queued: { label: "queued", tone: "" },
   running: { label: "running", tone: "tag-accent" },
-  done: { label: "✓ in library", tone: "tag-ok" },
+  done: { label: "in library", tone: "tag-ok" },
   skipped: { label: "already owned", tone: "tag-info" },
-  failed: { label: "✕ failed", tone: "tag-bad" },
+  failed: { label: "failed", tone: "tag-bad" },
   canceled: { label: "canceled", tone: "tag-ghost" },
-  interrupted: { label: "! interrupted", tone: "tag-warn" },
+  interrupted: { label: "interrupted", tone: "tag-warn" },
 };
 
 const STAGE: Record<string, string> = {
@@ -173,8 +174,8 @@ export function JobCard({ job }: { job: Job }) {
           <p key={i} className="small job-result">
             {r.status === "imported" && (
               <>
-                <span className="mark" aria-hidden="true">
-                  →
+                <span className="mark">
+                  <Icon name="arrow-right" size={14} />
                 </span>{" "}
                 {r.path}
                 {r.tracks ? ` · ${plural(r.tracks, "track")}` : ""}
@@ -230,7 +231,8 @@ export function JobCard({ job }: { job: Job }) {
           )}
           <span className="spacer" />
           <button className="button button-small button-plain" aria-expanded={showLog} onClick={() => setShowLog((v) => !v)}>
-            {showLog ? "▾ hide log" : "▸ show log"}
+            <Icon name={showLog ? "chevron-down" : "chevron-right"} size={14} />
+            {showLog ? "Hide log" : "Show log"}
           </button>
         </div>
         {showLog && <JobLog job={job} />}

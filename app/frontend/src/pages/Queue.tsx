@@ -5,6 +5,7 @@ import { albumPath } from "../lib/format";
 import { useStore } from "../lib/store";
 import { useConfirm } from "../components/Confirm";
 import { JobCard } from "../components/JobCard";
+import { Icon, Prompt } from "../components/Icon";
 
 export function QueuePage() {
   const { jobs, jobsLoaded, status, notify } = useStore();
@@ -73,15 +74,15 @@ export function QueuePage() {
     <>
       <div className="page-head">
         <h1>
-          <span className="prompt" aria-hidden="true">
-            ❯
-          </span>
+          <Prompt />
           Queue
         </h1>
       </div>
       {wrapper && !wrapper.ready && wrapper.phase !== "starting" && (
         <div className="callout callout-warn" role="alert">
-          <span className="tag callout-tag">!</span>
+          <span className="callout-icon">
+            <Icon name="warning" size={20} />
+          </span>
           <div>
             <strong>Not signed in to Apple Music.</strong> Downloads will fail until you <Link to="/account">sign in</Link>.
           </div>
@@ -89,7 +90,9 @@ export function QueuePage() {
       )}
       {status && !status.library.ok && (
         <div className="callout callout-bad" role="alert">
-          <span className="tag callout-tag">!</span>
+          <span className="callout-icon">
+            <Icon name="warning" size={20} />
+          </span>
           <div>
             <strong>The music library is not available.</strong> {status.library.problem}
           </div>
@@ -101,9 +104,7 @@ export function QueuePage() {
           Add Apple Music links
         </label>
         <div className="prompt-field">
-          <span className="prompt" aria-hidden="true">
-            ❯
-          </span>
+          <Prompt />
           <textarea
             id="links"
             className="textarea"
@@ -141,7 +142,7 @@ export function QueuePage() {
               </Link>
             )}
             <button className="button button-primary" disabled={submitting || !text.trim()}>
-              <span aria-hidden="true">↓</span> Add to queue
+              <Icon name="download" /> Add to queue
             </button>
           </div>
         </div>

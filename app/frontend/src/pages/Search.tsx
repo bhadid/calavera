@@ -5,7 +5,7 @@ import { duration } from "../lib/format";
 import type { SearchResults } from "../lib/types";
 import { AlbumGrid, QueueButton } from "../components/AlbumGrid";
 import { Cover } from "../components/Cover";
-import { Icon } from "../components/Icon";
+import { Icon, Prompt } from "../components/Icon";
 
 export function SearchPage() {
   // The query lives in the URL so results survive reloads and the back button.
@@ -45,9 +45,7 @@ export function SearchPage() {
     <>
       <div className="page-head">
         <h1>
-          <span className="prompt" aria-hidden="true">
-            ❯
-          </span>
+          <Prompt />
           Search
         </h1>
       </div>
@@ -79,7 +77,9 @@ export function SearchPage() {
 
       {error && (
         <div className="callout callout-bad" role="alert">
-          <span className="tag callout-tag">!</span>
+          <span className="callout-icon">
+            <Icon name="warning" size={20} />
+          </span>
           <div>{error}</div>
         </div>
       )}

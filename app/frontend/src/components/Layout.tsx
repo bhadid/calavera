@@ -27,7 +27,6 @@ function accountState(status: Status | null): { tone: Tone; text: string } {
 }
 
 const TONE_CLASS: Record<Tone, string> = { ok: "good", wait: "wait", bad: "fail" };
-const TONE_MARK: Record<Tone, string> = { ok: "●", wait: "◐", bad: "✕" };
 
 function StatusLine() {
   const { status, connected, jobsLoaded } = useStore();
@@ -53,7 +52,7 @@ function StatusLine() {
             <>
               <span className="key">{key}:</span>{" "}
               <span className={TONE_CLASS[state.tone]}>
-                <span aria-hidden="true">{TONE_MARK[state.tone]}</span> {state.text}
+                <span className={`status-dot status-dot-${state.tone}`} aria-hidden="true" /> {state.text}
               </span>
             </>
           );

@@ -5,6 +5,7 @@ import { duration, plural, qualityLabel, year } from "../lib/format";
 import { useStore } from "../lib/store";
 import type { AlbumDetail, Track } from "../lib/types";
 import { Cover } from "../components/Cover";
+import { Icon } from "../components/Icon";
 
 /** Why a song cannot be chosen, in words; null if it can. */
 function blocked(track: Track): string | null {
@@ -48,7 +49,7 @@ export function AlbumPage() {
   // Go back to where the user came from; a directly opened link has no history.
   const back = (
     <button className="button button-plain backlink" onClick={() => (window.history.length > 1 ? navigate(-1) : navigate("/search"))}>
-      ← Back
+      <Icon name="back" size={16} /> Back
     </button>
   );
 
@@ -57,7 +58,9 @@ export function AlbumPage() {
       <>
         {back}
         <div className="callout callout-bad" role="alert">
-          <span className="tag callout-tag">!</span>
+          <span className="callout-icon">
+            <Icon name="warning" size={20} />
+          </span>
           <div>{error}</div>
         </div>
       </>
@@ -123,7 +126,7 @@ export function AlbumPage() {
             <div className="album-tags">
               {quality && <span className={`tag ${quality.startsWith("Hi-Res") ? "tag-accent" : ""}`}>{quality}</span>}
               {album.explicit && <span className="tag tag-ghost">Explicit</span>}
-              {album.in_library && <span className="tag tag-ok">✓ folder in library</span>}
+              {album.in_library && <span className="tag tag-ok">folder in library</span>}
             </div>
           </div>
         </div>
@@ -131,7 +134,9 @@ export function AlbumPage() {
 
       {unavailable > 0 && (
         <div className="callout callout-warn">
-          <span className="tag callout-tag">!</span>
+          <span className="callout-icon">
+            <Icon name="warning" size={20} />
+          </span>
           <div>
             <strong>
               {unavailable} of {plural(album.tracks.length, "song")} {unavailable === 1 ? "is" : "are"} not available on Apple Music.
@@ -142,7 +147,9 @@ export function AlbumPage() {
       )}
       {selectable.length === 0 && unavailable < album.tracks.length && (
         <div className="callout callout-ok">
-          <span className="tag callout-tag">✓</span>
+          <span className="callout-icon">
+            <Icon name="check" size={20} />
+          </span>
           <div>Every available song of this album is already in your library.</div>
         </div>
       )}
@@ -186,10 +193,7 @@ export function AlbumPage() {
                     {track.artist !== album.artist && <span className="small muted">{track.artist}</span>}
                   </span>
                   {reason ? (
-                    <span className={`tag ${track.available ? "tag-ok" : "tag-ghost"}`}>
-                      {track.available ? "✓ " : ""}
-                      {reason}
-                    </span>
+                    <span className={`tag ${track.available ? "tag-ok" : "tag-ghost"}`}>{reason}</span>
                   ) : (
                     <span className="small muted track-duration">{duration(track.duration_ms)}</span>
                   )}
@@ -209,7 +213,7 @@ export function AlbumPage() {
               : "Songs are stored in the album's folder. Existing files are never replaced."}
         </p>
         <button className="button button-primary" disabled={busy || selected.size === 0 || Boolean(queued)} onClick={download}>
-          {selected.size > 0 && <span aria-hidden="true">↓</span>} {label}
+          {selected.size > 0 && <Icon name="download" />} {label}
         </button>
       </div>
     </>

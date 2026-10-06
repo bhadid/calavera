@@ -5,6 +5,7 @@ import { albumPath, plural, qualityLabel, year } from "../lib/format";
 import { useStore } from "../lib/store";
 import type { Album } from "../lib/types";
 import { Cover } from "./Cover";
+import { Icon } from "./Icon";
 
 /** Queues an item, or shows that it is already queued or owned. */
 export function QueueButton({
@@ -28,7 +29,7 @@ export function QueueButton({
   if (inLibrary || job?.status === "done") {
     return (
       <span className="owned owned-ok" title={inLibrary ?? undefined}>
-        <span aria-hidden="true">✓</span> in library
+        in library
       </span>
     );
   }
@@ -45,7 +46,7 @@ export function QueueButton({
   }
   return (
     <button className={`button button-primary button-small${block ? " button-block" : ""}`} disabled={busy} onClick={add}>
-      <span aria-hidden="true">↓</span> Download
+      <Icon name="download" size={16} /> Download
     </button>
   );
 }
