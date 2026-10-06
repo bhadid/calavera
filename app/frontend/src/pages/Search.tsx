@@ -5,7 +5,7 @@ import { duration } from "../lib/format";
 import type { SearchResults } from "../lib/types";
 import { AlbumGrid, QueueButton } from "../components/AlbumGrid";
 import { Cover } from "../components/Cover";
-import { Icon, Prompt } from "../components/Icon";
+import { Icon } from "../components/Icon";
 
 export function SearchPage() {
   // The query lives in the URL so results survive reloads and the back button.
@@ -45,7 +45,9 @@ export function SearchPage() {
     <>
       <div className="page-head">
         <h1>
-          <Prompt />
+          <span className="prompt" aria-hidden="true">
+          ❯
+        </span>
           Search
         </h1>
       </div>

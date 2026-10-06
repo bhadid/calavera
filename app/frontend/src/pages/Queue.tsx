@@ -5,7 +5,7 @@ import { albumPath } from "../lib/format";
 import { useStore } from "../lib/store";
 import { useConfirm } from "../components/Confirm";
 import { JobCard } from "../components/JobCard";
-import { Icon, Prompt } from "../components/Icon";
+import { Icon } from "../components/Icon";
 
 export function QueuePage() {
   const { jobs, jobsLoaded, status, notify } = useStore();
@@ -74,7 +74,9 @@ export function QueuePage() {
     <>
       <div className="page-head">
         <h1>
-          <Prompt />
+          <span className="prompt" aria-hidden="true">
+          ❯
+        </span>
           Queue
         </h1>
       </div>
@@ -104,7 +106,9 @@ export function QueuePage() {
           Add Apple Music links
         </label>
         <div className="prompt-field">
-          <Prompt />
+          <span className="prompt" aria-hidden="true">
+          ❯
+        </span>
           <textarea
             id="links"
             className="textarea"

@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { api, ApiError } from "../lib/api";
 import { useStore } from "../lib/store";
-import { Icon, Prompt } from "../components/Icon";
+import { Icon } from "../components/Icon";
 
 function Countdown({ deadline }: { deadline: number }) {
   const [left, setLeft] = useState(() => Math.max(0, Math.round(deadline - Date.now() / 1000)));
@@ -23,7 +23,9 @@ export function AccountPage() {
   const heading = (
     <div className="page-head">
       <h1>
-        <Prompt />
+        <span className="prompt" aria-hidden="true">
+          ❯
+        </span>
         Account
       </h1>
     </div>
@@ -89,9 +91,7 @@ export function AccountPage() {
         </div>
       ) : wrapper.ready ? (
         <div className="callout callout-ok">
-          <span className="callout-icon">
-            <Icon name="check" size={20} />
-          </span>
+          <span className="tag callout-tag">ok</span>
           <div>
             <strong>Signed in to Apple Music.</strong> Store: {wrapper.regions.join(", ")}. Downloads are ready.
           </div>
@@ -175,7 +175,9 @@ export function AccountPage() {
           </form>
         ) : login.state === "running" ? (
           <p role="status">
-            <Prompt />{" "}
+            <span className="prompt" aria-hidden="true">
+          ❯
+        </span>{" "}
             {login.message || "Contacting Apple…"}
           </p>
         ) : (

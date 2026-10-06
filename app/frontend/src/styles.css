@@ -194,14 +194,9 @@ textarea {
 }
 
 .prompt {
-  flex: none;
   color: var(--accent-strong);
   font-weight: 800;
   user-select: none;
-}
-
-h1 > .prompt {
-  align-self: center;
 }
 
 .sr-only {
@@ -371,22 +366,6 @@ h1 > .prompt {
   text-decoration-color: var(--term-accent);
 }
 
-/* Round status marks: filled when settled, a ring while waiting. The word
- * next to each mark carries the meaning; the mark only helps scanning. */
-.status-dot {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  margin-right: 2px;
-  border: 2px solid currentColor;
-  border-radius: 50%;
-  background: currentColor;
-}
-
-.status-dot-wait {
-  background: transparent;
-}
-
 .statusline .key {
   color: var(--term-dim);
 }
@@ -467,6 +446,10 @@ h1 > .prompt {
   border-radius: var(--radius);
   background: var(--surface);
   box-shadow: 3px 3px 0 var(--shadow);
+}
+
+.callout-tag {
+  flex: none;
 }
 
 .callout-icon {
@@ -702,8 +685,7 @@ h1 > .prompt {
 .prompt-field > .prompt {
   display: flex;
   align-items: flex-start;
-  box-sizing: content-box;
-  padding: 12px 0 10px 12px;
+  padding: 10px 0 10px 12px;
   font-size: 1rem;
   line-height: 1.5;
 }
@@ -1544,6 +1526,19 @@ h1 > .prompt {
 
 .track-blocked .track-name,
 .track-blocked .track-number {
+  color: var(--muted);
+}
+
+.track input {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  accent-color: var(--accent-strong);
+  cursor: inherit;
+}
+
+.track-number {
   color: var(--muted);
 }
 

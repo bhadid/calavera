@@ -26,6 +26,9 @@ function accountState(status: Status | null): { tone: Tone; text: string } {
   return { tone: "bad", text: "not signed in" };
 }
 
+// Typed on purpose: these marks are drawn by the device's own font, like
+// characters in a terminal.
+const TONE_MARK: Record<Tone, string> = { ok: "●", wait: "◐", bad: "✕" };
 const TONE_CLASS: Record<Tone, string> = { ok: "good", wait: "wait", bad: "fail" };
 
 function StatusLine() {
@@ -52,7 +55,7 @@ function StatusLine() {
             <>
               <span className="key">{key}:</span>{" "}
               <span className={TONE_CLASS[state.tone]}>
-                <span className={`status-dot status-dot-${state.tone}`} aria-hidden="true" /> {state.text}
+                <span aria-hidden="true">{TONE_MARK[state.tone]}</span> {state.text}
               </span>
             </>
           );

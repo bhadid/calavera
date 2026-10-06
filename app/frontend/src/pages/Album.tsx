@@ -147,9 +147,6 @@ export function AlbumPage() {
       )}
       {selectable.length === 0 && unavailable < album.tracks.length && (
         <div className="callout callout-ok">
-          <span className="callout-icon">
-            <Icon name="check" size={20} />
-          </span>
           <div>Every available song of this album is already in your library.</div>
         </div>
       )}

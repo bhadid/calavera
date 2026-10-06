@@ -15,10 +15,7 @@ const PATHS = {
   retry: "M4 12a8 8 0 1 0 2.6-5.9M4 4v4.5h4.5",
   trash: "M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13",
   close: "M6 6l12 12M18 6 6 18",
-  "chevron-right": "M9 6l6 6-6 6",
-  "chevron-down": "M6 9l6 6 6-6",
   "arrow-right": "M4 12h15m-6-6 6 6-6 6",
-  check: "M5 12.5l4.5 4.5L19 7.5",
   warning: "M12 4 2.5 20h19L12 4zm0 6v5m0 2.5v.5",
   info: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zm0-10v6m0-9.5v.5",
   sun: "M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm0-15v2m0 16v2M2 12h2m16 0h2M5 5l1.4 1.4M17.6 17.6 19 19M5 19l1.4-1.4M17.6 6.4 19 5",
@@ -43,15 +40,6 @@ export function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
       aria-hidden="true"
     >
       <path d={PATHS[name]} />
-    </svg>
-  );
-}
-
-/** The prompt mark in front of page titles and command-style inputs. */
-export function Prompt({ size = 20 }: { size?: number }) {
-  return (
-    <svg className="prompt" width={size * 0.6} height={size} viewBox="0 0 12 20" aria-hidden="true">
-      <path d="M2 3l7 7-7 7" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="square" strokeLinejoin="miter" />
     </svg>
   );
 }

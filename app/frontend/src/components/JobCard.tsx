@@ -231,8 +231,7 @@ export function JobCard({ job }: { job: Job }) {
           )}
           <span className="spacer" />
           <button className="button button-small button-plain" aria-expanded={showLog} onClick={() => setShowLog((v) => !v)}>
-            <Icon name={showLog ? "chevron-down" : "chevron-right"} size={14} />
-            {showLog ? "Hide log" : "Show log"}
+            {showLog ? "▾ hide log" : "▸ show log"}
           </button>
         </div>
         {showLog && <JobLog job={job} />}
