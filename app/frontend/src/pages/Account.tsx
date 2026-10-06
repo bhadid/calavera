@@ -91,7 +91,9 @@ export function AccountPage() {
         </div>
       ) : wrapper.ready ? (
         <div className="callout callout-ok">
-          <span className="tag callout-tag">ok</span>
+          <span className="callout-icon">
+            <Icon name="check" size={20} />
+          </span>
           <div>
             <strong>Signed in to Apple Music.</strong> Store: {wrapper.regions.join(", ")}. Downloads are ready.
           </div>
