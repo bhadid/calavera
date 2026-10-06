@@ -371,15 +371,16 @@ h1 > .prompt {
   text-decoration-color: var(--term-accent);
 }
 
-/* Square status marks: filled when settled, hollow while waiting. The word
+/* Round status marks: filled when settled, a ring while waiting. The word
  * next to each mark carries the meaning; the mark only helps scanning. */
 .status-dot {
   display: inline-block;
-  width: 9px;
-  height: 9px;
+  width: 10px;
+  height: 10px;
   margin-right: 2px;
-  background: currentColor;
   border: 2px solid currentColor;
+  border-radius: 50%;
+  background: currentColor;
 }
 
 .status-dot-wait {
@@ -1562,7 +1563,7 @@ h1 > .prompt {
 
 .track input:checked {
   background-color: var(--accent);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230c0c0c' stroke-width='3' stroke-linecap='square'%3E%3Cpath d='M4 12.5l5 5L20 6.5'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230c0c0c' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E");
 }
 
 .track input:disabled {
