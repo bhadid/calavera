@@ -50,6 +50,19 @@ docker rm -f chrome
 It needs the wrapper to be signed in (it checks search results and the
 account status).
 
+## Accent colour check
+
+After changing `app/frontend/src/lib/accentColour.ts` or the accent tokens in
+`styles.css`:
+
+```bash
+docker run --rm -v "$PWD":/w -w /w node:22-alpine node scripts/check-accent.mjs
+```
+
+It fails if any slider position, or monochrome, gives text on an accent fill
+less than 4.5:1 contrast, or if the default shades written into `styles.css`
+differ from the calculated ones.
+
 ### Python dependencies
 
 `requirements.in` lists the packages Calavera uses directly;

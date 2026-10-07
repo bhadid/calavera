@@ -9,8 +9,13 @@
  *                  shown by colour alone, reduced-motion respected,
  *                  destructive actions confirmed.
  *
- * Components use the tokens below only. A new theme or accent is a change to
- * this first block.
+ * Components use the tokens below only. A new theme is a change to this
+ * first block.
+ *
+ * The accent is the user's choice (Settings). Its shades arrive as the
+ * --ac-* variables, calculated in src/lib/accentColour.ts and set on the
+ * root element; the values after the commas are the same calculation for
+ * the default hue, and scripts/check-accent.mjs fails if they drift apart.
  */
 :root {
   /* colour */
@@ -21,10 +26,10 @@
   --muted: #5a544c;
   --line: #0c0c0c;
   --shadow: #0c0c0c;
-  --accent: #ff4fa0;
-  --accent-strong: #ff2e8f;
-  --accent-soft: #ffd6ea;
-  --on-accent: #0c0c0c;
+  --accent: var(--ac-l, #ff5297);
+  --accent-strong: var(--ac-strong-l, #ff2f8d);
+  --accent-soft: var(--ac-soft-l, #ffd7e2);
+  --on-accent: var(--ac-on-l, #0c0c0c);
   /* status fills carry black text in both themes */
   --ok: #58e3a4;
   --warn: #ffd23f;
@@ -39,7 +44,7 @@
   --term-bg: #0c0c0c;
   --term-fg: #f4f1ea;
   --term-dim: #9a958c;
-  --term-accent: #ff7ab8;
+  --term-accent: var(--ac-strong-d, #ff7daa);
 
   /* shape */
   --border: 2px;
@@ -66,10 +71,11 @@
     --ink: #f4f1ea;
     --muted: #aaa49a;
     --line: #f4f1ea;
-    --shadow: #ff4fa0;
-    --accent: #ff5fa8;
-    --accent-strong: #ff7ab8;
-    --accent-soft: #3b1529;
+    --shadow: var(--ac-d, #ff629d);
+    --accent: var(--ac-d, #ff629d);
+    --accent-strong: var(--ac-strong-d, #ff7daa);
+    --accent-soft: var(--ac-soft-d, #3d1423);
+    --on-accent: var(--ac-on-d, #0c0c0c);
     --ok-text: #58e3a4;
     --warn-text: #ffd23f;
     --bad-text: #ff8a80;
@@ -85,10 +91,11 @@
   --ink: #f4f1ea;
   --muted: #aaa49a;
   --line: #f4f1ea;
-  --shadow: #ff4fa0;
-  --accent: #ff5fa8;
-  --accent-strong: #ff7ab8;
-  --accent-soft: #3b1529;
+  --shadow: var(--ac-d, #ff629d);
+  --accent: var(--ac-d, #ff629d);
+  --accent-strong: var(--ac-strong-d, #ff7daa);
+  --accent-soft: var(--ac-soft-d, #3d1423);
+  --on-accent: var(--ac-on-d, #0c0c0c);
   --ok-text: #58e3a4;
   --warn-text: #ffd23f;
   --bad-text: #ff8a80;
@@ -243,9 +250,9 @@ textarea {
 }
 
 /* The logo is the favicon artwork. Its frame is drawn over the edge of the
- * pink tile rather than around it, which trims the empty space the favicon
- * leaves under the skull, and the offset shadow is the logo's own pink in
- * both themes. */
+ * accent tile rather than around it, which trims the empty space the favicon
+ * leaves under the skull, and the offset shadow is the accent in both
+ * themes. */
 .brand .skull {
   border-radius: var(--radius);
   outline: var(--border) solid var(--line);
@@ -1200,6 +1207,99 @@ textarea {
   width: 14ch;
 }
 
+/* Accent colour: a hue slider. The track shows the colours it selects; the
+ * thumb is the usual bordered knob. */
+.accent-control {
+  display: grid;
+  gap: 8px;
+  width: min(100%, 360px);
+}
+
+.setting-accent .setting-control {
+  flex: 1 1 280px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.hue {
+  appearance: none;
+  -webkit-appearance: none;
+  display: block;
+  width: 100%;
+  height: var(--tap);
+  margin: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.hue::-webkit-slider-runnable-track {
+  height: 20px;
+  border: var(--border) solid var(--line);
+  border-radius: 999px;
+  background: var(--hue-track);
+}
+
+.hue::-moz-range-track {
+  height: 16px;
+  border: var(--border) solid var(--line);
+  border-radius: 999px;
+  background: var(--hue-track);
+}
+
+.hue::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 28px;
+  height: 28px;
+  margin-top: -6px;
+  border: var(--border) solid var(--line);
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 2px 2px 0 var(--line);
+}
+
+.hue::-moz-range-thumb {
+  box-sizing: border-box;
+  width: 28px;
+  height: 28px;
+  border: var(--border) solid var(--line);
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 2px 2px 0 var(--line);
+}
+
+.hue:focus-visible {
+  outline: 3px solid var(--accent-strong);
+  outline-offset: 2px;
+  border-radius: 999px;
+}
+
+.hue:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+.accent-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.accent-value {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+}
+
+.accent-swatch {
+  width: 18px;
+  height: 18px;
+  border: var(--border) solid var(--line);
+  border-radius: 4px;
+  background: var(--accent);
+}
+
 /* A switch stays beside its label at every width. */
 .setting-inline {
   flex-wrap: nowrap;
@@ -1540,31 +1640,6 @@ textarea {
 
 .track-number {
   color: var(--muted);
-}
-
-/* A checkbox drawn in the interface's own style: the box is a bordered
- * square, the tick is the icon set's check mark. */
-.track input {
-  flex: none;
-  appearance: none;
-  width: 24px;
-  height: 24px;
-  margin: 0;
-  border: var(--border) solid var(--line);
-  border-radius: 4px;
-  background: var(--surface) center / 18px 18px no-repeat;
-  cursor: inherit;
-}
-
-.track input:checked {
-  background-color: var(--accent);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230c0c0c' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E");
-}
-
-.track input:disabled {
-  border-style: dashed;
-  border-color: var(--muted);
-  background-color: transparent;
 }
 
 .track-number {

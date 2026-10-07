@@ -33,8 +33,8 @@ that is yours to check.
 - **Careful with your library.** Nothing existing is overwritten, renamed or
   deleted; an album whose folder already exists is skipped.
 - **Sign in from the UI**, with two-factor code. The password is not stored.
-- A neo-brutalist, terminal-flavoured interface with light and dark themes
-  and a phone layout.
+- A neo-brutalist, terminal-flavoured interface with light and dark themes,
+  a phone layout and an accent colour you choose (or none).
 
 ## How it works
 
@@ -114,7 +114,9 @@ the 6-digit code.
   selected; untick what you do not want. Songs that are not available or are
   already in your library cannot be ticked and say why.
 - **Settings:** FLAC on/off, highest sample rate, lyrics, cover size, metadata
-  language, store for search.
+  language, store for search. Under *Appearance*, the accent colour: a slider, a
+  monochrome switch and a reset. That choice is kept in your browser, not on
+  the server.
 
 Job outcomes:
 

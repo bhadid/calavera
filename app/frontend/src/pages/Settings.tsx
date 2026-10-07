@@ -1,8 +1,10 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState, type CSSProperties, type FormEvent } from "react";
 import { api, ApiError } from "../lib/api";
 import { bytes } from "../lib/format";
 import { useStore } from "../lib/store";
 import type { Settings } from "../lib/types";
+import { useAccent } from "../lib/accent";
+import { DEFAULT_ACCENT, hueName, hueTrack } from "../lib/accentColour";
 import { Segmented, Switch } from "../components/Controls";
 import { Icon } from "../components/Icon";
 
@@ -24,12 +26,15 @@ const COVERS: { value: Settings["cover_size"]; label: string }[] = [
   { value: 5000, label: "5000 px" },
 ];
 
+const HUE_TRACK = hueTrack();
+
 export function SettingsPage() {
   const { status, notify } = useStore();
   const [saved, setSaved] = useState<Settings | null>(null);
   const [draft, setDraft] = useState<Settings | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [accent, setAccent, accentIsDefault] = useAccent();
 
   useEffect(() => {
     api
@@ -212,6 +217,68 @@ export function SettingsPage() {
           </div>
         )}
       </form>
+
+      {/* Kept in this browser and applied at once, so it sits outside the form above. */}
+      <section className="card group appearance" aria-labelledby="group-appearance">
+        <h2 className="group-title" id="group-appearance">
+          Appearance
+        </h2>
+        <div className="setting setting-inline">
+          <div className="setting-text">
+            <strong id="mono-label">Monochrome</strong>
+            <span className="small muted" id="mono-help">
+              No accent colour: black in the light theme, white in the dark one.
+            </span>
+          </div>
+          <div className="setting-control">
+            <Switch
+              checked={accent.mono}
+              onChange={(mono) => setAccent({ ...accent, mono })}
+              labelledBy="mono-label"
+              describedBy="mono-help"
+            />
+          </div>
+        </div>
+        <div className="setting setting-accent">
+          <label className="setting-text" htmlFor="accent-hue">
+            <strong>Accent colour</strong>
+            <span className="small muted">
+              Every shade is worked out from this one choice, for both themes. Saved in this browser.
+            </span>
+          </label>
+          <div className="setting-control">
+            <div className="accent-control">
+              <input
+                id="accent-hue"
+                className="hue"
+                type="range"
+                min={0}
+                max={359}
+                step={1}
+                value={accent.hue}
+                disabled={accent.mono}
+                aria-valuetext={`${hueName(accent.hue)}, ${accent.hue} degrees`}
+                style={{ "--hue-track": HUE_TRACK } as CSSProperties}
+                onChange={(e) => setAccent({ ...accent, hue: Number(e.target.value) })}
+              />
+              <div className="accent-foot">
+                <span className="accent-value small">
+                  <span className="accent-swatch" aria-hidden="true" />
+                  {accent.mono ? "mono" : `${hueName(accent.hue)} · ${accent.hue}°`}
+                </span>
+                <button
+                  type="button"
+                  className="button button-small"
+                  disabled={accentIsDefault}
+                  onClick={() => setAccent(DEFAULT_ACCENT)}
+                >
+                  Reset to default
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
       <section className="section" aria-labelledby="system-heading">
         <div className="section-head">

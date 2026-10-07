@@ -32,6 +32,7 @@ compose.yaml              both services and every version pin
 .env.example              host-specific settings
 scripts/
   browser-smoke.mjs       read-only browser test of the main routes
+  check-accent.mjs        contrast check of every accent colour choice
 wrapper/
   Dockerfile              builds wrapper-lite from source at a pinned commit
   supervisor.py           process supervisor + sign-in control API (stdlib only)
@@ -57,7 +58,8 @@ app/
   frontend/
     src/
       main.tsx, App.tsx   entry and routes
-      lib/                api client, types, store (jobs, status, toasts), theme
+      lib/                api client, types, store (jobs, status, toasts), theme,
+                          accent colour
       components/         Layout (top bar, tab bar, status line), JobCard,
                           AlbumGrid, Cover, Icon, Controls (switch, segmented
                           control), Confirm (confirmation dialog)
@@ -191,8 +193,21 @@ on purpose, because they should look like terminal output: the status-line
 marks, the prompt before page titles, the log toggle and the text progress
 bar.
 
-The accent is pink. The logo is the favicon artwork with a frame drawn over
-its edge and a pink offset shadow in both themes.
+The accent colour is the user's choice (Settings → Appearance): a hue
+slider, or monochrome. Only the hue is chosen. `lib/accentColour.ts`
+calculates every shade from it in the OKLCH colour model, where a fixed
+lightness looks equally light at every hue, so text on an accent fill stays
+readable wherever the slider is; each shade is as vivid as sRGB allows for
+that hue. The result is set as `--ac-*` variables on the root element, which
+the tokens in `styles.css` read, with the default (pink, hue 0) as their
+fallback. The choice is kept in the browser's local storage together with the
+calculated shades, so `public/theme.js` can apply them before first paint.
+`scripts/check-accent.mjs` checks the contrast of all 360 hues and
+monochrome, and that the fallbacks in `styles.css` match the calculation.
+
+The logo is the favicon artwork with a frame drawn over its edge and an
+accent-coloured offset shadow in both themes. The favicon file itself is a
+fixed pink and does not follow the slider.
 
 ## Extending
 
@@ -203,4 +218,4 @@ its edge and a pink offset shadow in both themes.
 | a link type (e.g. playlists) | `urls.py` (`SUPPORTED_KINDS`), `JobManager._collect` (folder layout), `_describe` |
 | an API endpoint | `api.py`, `lib/api.ts`, `lib/types.ts` |
 | a page | `pages/`, a `<Route>` in `App.tsx`, optionally `NAV` in `Layout.tsx` |
-| a colour or theme | the token block at the top of `styles.css` |
+| a colour or theme | the token block at the top of `styles.css`; accent shades in `lib/accentColour.ts` |
