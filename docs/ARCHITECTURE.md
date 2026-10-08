@@ -208,7 +208,9 @@ monochrome, and that the fallbacks in `styles.css` match the calculation.
 The logo is drawn in three flat colours (`components/Skull.tsx`). Its
 bone is white; its shadow and outline are two more shades of the chosen hue,
 calculated like the others, so the logo is tinted with the accent.
-`public/favicon.svg` is the same artwork in the default colours. When another
+The outline is one unit wide in the light theme and one and a half in the
+dark one. `public/favicon.svg` is the same artwork in the default colours
+with an outline two units wide, so that it holds up at 16 pixels. When another
 accent is chosen, `lib/accent.ts` recolours that file and sets the result as
 the browser-tab icon; a browser that ignores the change keeps the default one.
 

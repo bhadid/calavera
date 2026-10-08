@@ -32,7 +32,7 @@ export function Skull({ size = 32 }: { size?: number }) {
         <circle cx="20" cy="14" r="4.1" />
         <circle cx="21" cy="13" r="4.1" />
       </g>
-      <g fill="none" stroke="var(--logo-edge)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <g className="skull-line" fill="none" stroke="var(--logo-edge)" strokeLinecap="round" strokeLinejoin="round">
         <path d={SILHOUETTE} />
         <path d={LINES} />
       </g>
