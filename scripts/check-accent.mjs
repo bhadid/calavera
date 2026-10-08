@@ -35,6 +35,16 @@ for (const choice of choices) {
     }
   }
 }
+// The logo: its outline against its shadow, and its shadow against the bone.
+let worstLogo = Infinity;
+for (const choice of choices) {
+  const t = accentTokens(choice);
+  const ratio = contrast(t["--ac-logo-edge"], t["--ac-logo-shadow"]);
+  worstLogo = Math.min(worstLogo, ratio);
+  if (ratio < 4.5) fail(`${choice.mono ? "mono" : `hue ${choice.hue}`}: logo outline on its shadow is ${ratio.toFixed(2)}:1`);
+  if (contrast("#fdfdfd", t["--ac-logo-shadow"]) < 2) fail(`hue ${choice.hue}: logo shadow is too close to the bone`);
+}
+console.log(`logo outline on its shadow: worst ${worstLogo.toFixed(2)}:1`);
 console.log(`text on accent: worst ${worstText.toFixed(2)}:1 over ${choices.length} choices`);
 console.log(`outline on dark surfaces: worst ${worstEdge.toFixed(2)}:1`);
 
@@ -42,8 +52,19 @@ const css = readFileSync(new URL("../app/frontend/src/styles.css", import.meta.u
 for (const [name, value] of Object.entries(accentTokens(DEFAULT_ACCENT))) {
   if (!css.includes(`var(${name}, ${value})`)) fail(`styles.css default for ${name} should be ${value}`);
 }
-const pink = accentTokens({ hue: 356, mono: false });
-console.log("default", accentTokens(DEFAULT_ACCENT));
-console.log("pink (hue 356)", pink);
+
+// The favicon is the logo in the default colours, with the same drawing as the app's.
+const favicon = readFileSync(new URL("../app/frontend/public/favicon.svg", import.meta.url), "utf8");
+const logo = readFileSync(new URL("../app/frontend/src/components/Skull.tsx", import.meta.url), "utf8");
+const defaults = accentTokens(DEFAULT_ACCENT);
+const colours = new Set(favicon.match(/#[0-9a-fA-F]{6}\b/g));
+const expected = new Set(["#fdfdfd", defaults["--ac-logo-shadow"], defaults["--ac-logo-edge"]]);
+if (colours.size !== 3 || [...expected].some((c) => !colours.has(c))) {
+  fail(`favicon.svg colours are ${[...colours]}, expected ${[...expected]}`);
+}
+for (const [, d] of favicon.matchAll(/ d="([^"]+)"/g)) {
+  if (!logo.includes(`"${d}"`)) fail(`favicon.svg and Skull.tsx differ: ${d.slice(0, 30)}...`);
+}
+console.log("default", defaults);
 console.log(failed ? "FAILED" : "ALL PASS");
 process.exit(failed ? 1 : 0);

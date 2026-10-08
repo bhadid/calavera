@@ -3,7 +3,8 @@ import { bytes } from "../lib/format";
 import { useStore } from "../lib/store";
 import { useTheme } from "../lib/theme";
 import type { Status } from "../lib/types";
-import { Icon, Skull, type IconName } from "./Icon";
+import { Icon, type IconName } from "./Icon";
+import { Skull } from "./Skull";
 
 // The same four destinations are a row of tabs on wide screens and a bottom
 // tab bar on phones.

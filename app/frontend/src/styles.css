@@ -26,10 +26,12 @@
   --muted: #5a544c;
   --line: #0c0c0c;
   --shadow: #0c0c0c;
-  --accent: var(--ac-l, #ff5297);
-  --accent-strong: var(--ac-strong-l, #ff2f8d);
-  --accent-soft: var(--ac-soft-l, #ffd7e2);
+  --accent: var(--ac-l, #39a1ff);
+  --accent-strong: var(--ac-strong-l, #0996ff);
+  --accent-soft: var(--ac-soft-l, #cfe6ff);
   --on-accent: var(--ac-on-l, #0c0c0c);
+  --logo-shadow: var(--ac-logo-shadow, #6ca5e0);
+  --logo-edge: var(--ac-logo-edge, #00162f);
   /* status fills carry black text in both themes */
   --ok: #58e3a4;
   --warn: #ffd23f;
@@ -44,7 +46,7 @@
   --term-bg: #0c0c0c;
   --term-fg: #f4f1ea;
   --term-dim: #9a958c;
-  --term-accent: var(--ac-strong-d, #ff7daa);
+  --term-accent: var(--ac-strong-d, #68b4ff);
 
   /* shape */
   --border: 2px;
@@ -71,10 +73,10 @@
     --ink: #f4f1ea;
     --muted: #aaa49a;
     --line: #f4f1ea;
-    --shadow: var(--ac-d, #ff629d);
-    --accent: var(--ac-d, #ff629d);
-    --accent-strong: var(--ac-strong-d, #ff7daa);
-    --accent-soft: var(--ac-soft-d, #3d1423);
+    --shadow: var(--ac-d, #4ba7ff);
+    --accent: var(--ac-d, #4ba7ff);
+    --accent-strong: var(--ac-strong-d, #68b4ff);
+    --accent-soft: var(--ac-soft-d, #052643);
     --on-accent: var(--ac-on-d, #0c0c0c);
     --ok-text: #58e3a4;
     --warn-text: #ffd23f;
@@ -91,10 +93,10 @@
   --ink: #f4f1ea;
   --muted: #aaa49a;
   --line: #f4f1ea;
-  --shadow: var(--ac-d, #ff629d);
-  --accent: var(--ac-d, #ff629d);
-  --accent-strong: var(--ac-strong-d, #ff7daa);
-  --accent-soft: var(--ac-soft-d, #3d1423);
+  --shadow: var(--ac-d, #4ba7ff);
+  --accent: var(--ac-d, #4ba7ff);
+  --accent-strong: var(--ac-strong-d, #68b4ff);
+  --accent-soft: var(--ac-soft-d, #052643);
   --on-accent: var(--ac-on-d, #0c0c0c);
   --ok-text: #58e3a4;
   --warn-text: #ffd23f;
@@ -249,15 +251,8 @@ textarea {
   background: none;
 }
 
-/* The logo is the favicon artwork. Its frame is drawn over the edge of the
- * accent tile rather than around it, which trims the empty space the favicon
- * leaves under the skull, and the offset shadow is the accent in both
- * themes. */
-.brand .skull {
-  border-radius: var(--radius);
-  outline: var(--border) solid var(--line);
-  outline-offset: calc(-1 * var(--border));
-  box-shadow: 3px 3px 0 var(--accent);
+.skull {
+  flex: none;
 }
 
 .cursor {

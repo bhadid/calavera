@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Skull } from "./Icon";
+import { Skull } from "./Skull";
 
 /** Album artwork with a neutral placeholder while unknown or if it fails to load. */
 export function Cover({ src, size = 64, round = false }: { src: string; size?: number; round?: boolean }) {

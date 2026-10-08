@@ -44,22 +44,3 @@ export function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
     </svg>
   );
 }
-
-export function Skull({ size = 28 }: { size?: number }) {
-  return (
-    <svg className="skull" width={size} height={size} viewBox="0 0 32 32" aria-hidden="true">
-      <rect width="32" height="32" rx="7" fill="var(--accent)" />
-      <path
-        fill="var(--on-accent)"
-        d="M16 5c-5.4 0-9 3.5-9 8.3 0 2.7 1.3 4.5 2.8 5.7.7.6 1 1 1.1 1.8l.2 1.5c.1.8.8 1.4 1.6 1.4h6.6c.8 0 1.5-.6 1.6-1.4l.2-1.5c.1-.8.4-1.2 1.1-1.8 1.5-1.2 2.8-3 2.8-5.7C25 8.5 21.4 5 16 5z"
-      />
-      <g fill="var(--accent)">
-        <circle cx="12.1" cy="13.8" r="2.7" />
-        <circle cx="19.9" cy="13.8" r="2.7" />
-        <path d="M16 16.6l-1.5 2.8h3z" />
-        <rect x="13.2" y="21.6" width="1.6" height="3.4" rx=".5" />
-        <rect x="17.2" y="21.6" width="1.6" height="3.4" rx=".5" />
-      </g>
-    </svg>
-  );
-}

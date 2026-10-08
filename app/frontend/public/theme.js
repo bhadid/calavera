@@ -7,7 +7,8 @@ try {
   // Storage unavailable: follow the system theme.
 }
 try {
-  // Shades calculated and stored by src/lib/accent.ts.
+  // Shades calculated and stored by src/lib/accent.ts, which also recolours
+  // the browser-tab icon once the app has loaded.
   var tokens = (JSON.parse(localStorage.getItem("calavera-accent")) || {}).tokens || {};
   for (var name in tokens) {
     if (/^--ac-[a-z-]+$/.test(name) && /^#[0-9a-f]{6}$/.test(tokens[name])) {

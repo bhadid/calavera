@@ -6,10 +6,14 @@
 // holding it fixed is what guarantees that the text on an accent fill stays
 // readable wherever the slider is. Each shade is made as vivid as sRGB allows
 // for its hue, up to a cap taken from the original pink.
+//
+// The logo is tinted the same way: its shadow and its outline are two more
+// shades of the chosen hue, with lightness and chroma taken from the artwork
+// (drawn in violet). Its bone stays white.
 
 export type AccentChoice = { hue: number; mono: boolean };
 
-export const DEFAULT_ACCENT: AccentChoice = { hue: 0, mono: false };
+export const DEFAULT_ACCENT: AccentChoice = { hue: 250, mono: false };
 
 /** Lightness and highest chroma of each calculated shade. */
 const SHADES = {
@@ -19,6 +23,8 @@ const SHADES = {
   "--ac-d": [0.713, 0.205],
   "--ac-strong-d": [0.751, 0.174],
   "--ac-soft-d": [0.262, 0.066],
+  "--ac-logo-shadow": [0.707, 0.106],
+  "--ac-logo-edge": [0.196, 0.105],
 } as const;
 
 /** Monochrome: ink on paper in the light theme, paper on ink in the dark one. */
@@ -31,6 +37,8 @@ const MONO: Record<string, string> = {
   "--ac-strong-d": "#ffffff",
   "--ac-soft-d": "#2e2e33",
   "--ac-on-d": "#0b0b0c",
+  "--ac-logo-shadow": "#a3a3a3",
+  "--ac-logo-edge": "#0c0c0c",
 };
 
 const ON_ACCENT = "#0c0c0c";
