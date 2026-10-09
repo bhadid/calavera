@@ -9,13 +9,14 @@
 // allows for its hue, up to a cap.
 //
 // The logo is tinted the same way: its lines are one more shade of the chosen
-// hue, on white bone. Lightness and chroma of that shade come from the first
+// hue, on white bone unless the fill is switched off. Lightness and chroma of that shade come from the first
 // artwork (drawn in violet).
 
-export type AccentChoice = { hue: number; depth: number; mono: boolean };
+/** `fill`: whether the logo has its white bone; monochrome never has it. */
+export type AccentChoice = { hue: number; depth: number; mono: boolean; fill: boolean };
 
 // The default: a red.
-export const DEFAULT_ACCENT: AccentChoice = { hue: 21, depth: 5, mono: false };
+export const DEFAULT_ACCENT: AccentChoice = { hue: 21, depth: 5, mono: false, fill: true };
 
 /** The depth slider: each step makes the accent fills this much darker. */
 export const DEPTH = { min: -5, max: 7, step: 0.011 };
@@ -99,7 +100,7 @@ export function shade(lightness: number, cap: number, hue: number): string {
 export function accentTokens(choice: AccentChoice): Record<string, string> {
   if (choice.mono) return { ...MONO };
   const tokens: Record<string, string> = { "--ac-on-l": ON_ACCENT, "--ac-on-d": ON_ACCENT };
-  tokens["--ac-logo-bone-l"] = tokens["--ac-logo-bone-d"] = "#fdfdfd";
+  tokens["--ac-logo-bone-l"] = tokens["--ac-logo-bone-d"] = choice.fill ? "#fdfdfd" : "#fdfdfd00";
   for (const [name, [lightness, cap]] of Object.entries(SHADES)) {
     const moved = FILLS.includes(name) ? Math.max(FLOOR, lightness - choice.depth * DEPTH.step) : lightness;
     tokens[name] = shade(moved, cap, choice.hue);
@@ -110,13 +111,13 @@ export function accentTokens(choice: AccentChoice): Record<string, string> {
 /** The hue slider track: the light-theme accent of this depth at evenly spaced hues. */
 export function hueTrack(depth: number): string {
   const stops: string[] = [];
-  for (let hue = 0; hue <= 360; hue += 15) stops.push(accentTokens({ hue, depth, mono: false })["--ac-l"]);
+  for (let hue = 0; hue <= 360; hue += 15) stops.push(accentTokens({ hue, depth, mono: false, fill: true })["--ac-l"]);
   return `linear-gradient(to right, ${stops.join(", ")})`;
 }
 
 /** The depth slider track: the light-theme accent of this hue from lightest to deepest. */
 export function depthTrack(hue: number): string {
-  const ends = [DEPTH.min, 0, DEPTH.max].map((depth) => accentTokens({ hue, depth, mono: false })["--ac-l"]);
+  const ends = [DEPTH.min, 0, DEPTH.max].map((depth) => accentTokens({ hue, depth, mono: false, fill: true })["--ac-l"]);
   return `linear-gradient(to right, ${ends.join(", ")})`;
 }
 

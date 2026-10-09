@@ -772,6 +772,14 @@ textarea {
   transform: translateX(24px);
 }
 
+.switch input:disabled {
+  cursor: default;
+}
+
+.switch input:disabled + .switch-track {
+  opacity: 0.45;
+}
+
 .switch input:focus-visible + .switch-track {
   outline: 3px solid var(--accent-strong);
   outline-offset: 2px;

@@ -7,7 +7,7 @@ import { accentTokens, DEFAULT_ACCENT, DEPTH, type AccentChoice } from "./accent
 const KEY = "calavera-accent";
 
 const isDefault = (choice: AccentChoice) =>
-  !choice.mono && choice.hue === DEFAULT_ACCENT.hue && choice.depth === DEFAULT_ACCENT.depth;
+  !choice.mono && choice.fill && choice.hue === DEFAULT_ACCENT.hue && choice.depth === DEFAULT_ACCENT.depth;
 
 const DEFAULT_TOKENS = accentTokens(DEFAULT_ACCENT);
 let favicon = 0;
@@ -39,7 +39,7 @@ function read(): AccentChoice {
     if (stored && Number.isInteger(stored.hue) && stored.hue >= 0 && stored.hue < 360) {
       // A choice saved before there was a depth slider keeps the look it had.
       const depth = Number.isInteger(stored.depth) && stored.depth >= DEPTH.min && stored.depth <= DEPTH.max ? stored.depth : 0;
-      return { hue: stored.hue, depth, mono: stored.mono === true };
+      return { hue: stored.hue, depth, mono: stored.mono === true, fill: stored.fill !== false };
     }
   } catch {
     // Storage unavailable or damaged: use the default.

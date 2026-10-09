@@ -14,10 +14,12 @@ const fail = (message) => {
 
 let worstText = Infinity;
 let worstEdge = Infinity;
-const choices = [{ hue: 0, depth: 0, mono: true }];
+const choices = [{ hue: 0, depth: 0, mono: true, fill: true }];
 for (let depth = DEPTH.min; depth <= DEPTH.max; depth++) {
-  for (let hue = 0; hue < 360; hue++) choices.push({ hue, depth, mono: false });
+  for (let hue = 0; hue < 360; hue++) choices.push({ hue, depth, mono: false, fill: true });
 }
+// The logo without its fill; depth does not change the logo.
+for (let hue = 0; hue < 360; hue++) choices.push({ hue, depth: 0, mono: false, fill: false });
 for (const choice of choices) {
   const t = accentTokens(choice);
   const label = choice.mono ? "mono" : `hue ${choice.hue} depth ${choice.depth}`;
@@ -44,10 +46,10 @@ const BONE = "#fdfdfd";
 let worstLogo = Infinity;
 for (const choice of choices) {
   const t = accentTokens(choice);
-  const label = choice.mono ? "mono" : `hue ${choice.hue}`;
+  const label = choice.mono ? "mono" : `hue ${choice.hue}${choice.fill ? "" : " without fill"}`;
   for (const theme of ["l", "d"]) {
     const lines = t[`--ac-logo-${theme}`];
-    // Monochrome has no bone: only the lines on the page count.
+    // Without bone (monochrome, or the fill switched off) only the lines on the page count.
     const boneless = t[`--ac-logo-bone-${theme}`].endsWith("00");
     const onBone = boneless ? Infinity : contrast(lines, BONE);
     const onPage = boneless ? contrast(lines, PAGE[theme]) : Math.max(contrast(lines, PAGE[theme]), contrast(BONE, PAGE[theme]));

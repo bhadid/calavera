@@ -238,6 +238,23 @@ export function SettingsPage() {
             />
           </div>
         </div>
+        <div className="setting setting-inline">
+          <div className="setting-text">
+            <strong id="fill-label">Logo fill</strong>
+            <span className="small muted" id="fill-help">
+              White fill behind the logo's lines. Off shows the lines only. Monochrome never has it.
+            </span>
+          </div>
+          <div className="setting-control">
+            <Switch
+              checked={accent.fill && !accent.mono}
+              disabled={accent.mono}
+              onChange={(fill) => setAccent({ ...accent, fill })}
+              labelledBy="fill-label"
+              describedBy="fill-help"
+            />
+          </div>
+        </div>
         <div className="setting setting-accent">
           <label className="setting-text" htmlFor="accent-hue">
             <strong>Accent colour</strong>
