@@ -159,6 +159,20 @@ on first start in the `control` volume, which only these two containers mount.
 The password exists in the supervisor only until the sign-in process has been
 started, and it is masked in any wrapper output that echoes it.
 
+## Going easy on Apple's catalogue
+
+One page costs few requests: a search or an album one, an artist one plus
+one per 100 releases. `catalog.py` holds two safeguards:
+
+- If Apple answers "too many requests" (HTTP 429), nothing more is sent
+  until the pause it names is over (at least one minute, at most fifteen).
+  Requests in that time fail at once with a message saying so.
+- An artist page stops at 300 releases (`ARTIST_ALBUMS`) and says when Apple
+  lists more.
+
+Unrelated to Apple, the queue page shows its history 50 jobs at a time
+(`HISTORY_STEP` in `pages/Queue.tsx`).
+
 ## Artist links
 
 Apple prints who made an album or song as one line of text (`artist`, e.g.

@@ -938,6 +938,14 @@ textarea {
   overflow-wrap: anywhere;
 }
 
+/* The end of a list shown in steps: how much is visible, and a button for more. */
+.more {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  margin-top: 16px;
+}
+
 .job-actions {
   display: flex;
   flex-wrap: wrap;

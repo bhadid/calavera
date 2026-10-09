@@ -1,4 +1,4 @@
-import type { Album, AlbumDetail, Artist, Job, LogLine, SearchResults, Settings, Status } from "./types";
+import type { AlbumDetail, ArtistDetail, Job, LogLine, SearchResults, Settings, Status } from "./types";
 
 /** An error whose message is safe to show to the user. */
 export class ApiError extends Error {
@@ -68,5 +68,5 @@ export const api = {
   search: (q: string) => request<SearchResults>("GET", `/catalog/search?q=${encodeURIComponent(q)}`),
   album: (id: string, storefront?: string) =>
     request<AlbumDetail>("GET", `/catalog/albums/${encodeURIComponent(id)}${storefront ? `?sf=${storefront}` : ""}`),
-  artist: (id: string) => request<Artist & { albums: Album[] }>("GET", `/catalog/artists/${encodeURIComponent(id)}`),
+  artist: (id: string) => request<ArtistDetail>("GET", `/catalog/artists/${encodeURIComponent(id)}`),
 };

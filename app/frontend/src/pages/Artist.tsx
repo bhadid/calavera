@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { api, ApiError } from "../lib/api";
-import type { Album, Artist } from "../lib/types";
+import type { ArtistDetail } from "../lib/types";
 import { AlbumGrid } from "../components/AlbumGrid";
 import { Cover } from "../components/Cover";
 import { Icon } from "../components/Icon";
 
 export function ArtistPage() {
   const { id = "" } = useParams();
-  const [artist, setArtist] = useState<(Artist & { albums: Album[] }) | null>(null);
+  const [artist, setArtist] = useState<ArtistDetail | null>(null);
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
@@ -66,6 +66,9 @@ export function ArtistPage() {
             <p className="muted">
               {albums.length} albums · {singles.length} singles and EPs
             </p>
+            {artist.more && (
+              <p className="small muted">Apple Music lists more than these {artist.albums.length}. Search for a title to find the others.</p>
+            )}
           </div>
         </div>
       </div>

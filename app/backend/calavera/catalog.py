@@ -21,6 +21,13 @@ _JWT_RE = re.compile(r"eyJ[A-Za-z0-9_=-]+\.[A-Za-z0-9_=-]+\.[A-Za-z0-9_=-]+")
 _UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
 
 
+# An artist page shows at most this many releases.
+ARTIST_ALBUMS = 300
+# How long to leave Apple alone after it asks for a pause, in seconds: its
+# own figure (Retry-After) within these bounds, the first one without it.
+_PAUSE = (60, 900)
+
+
 class CatalogError(Exception):
     pass
 
@@ -81,11 +88,17 @@ def _artist(item: dict) -> dict:
     return {"id": item.get("id", ""), "name": a.get("name", ""), "artwork": _artwork(a), "url": a.get("url", "")}
 
 
+def _wait_text(seconds: float) -> str:
+    minutes = round(seconds / 60)
+    return "a minute" if minutes <= 1 else f"{minutes} minutes"
+
+
 class Catalog:
     def __init__(self) -> None:
         self._http = httpx.AsyncClient(timeout=10.0, headers={"User-Agent": _UA}, follow_redirects=True)
         self._token = ""
         self._token_expires = 0.0
+        self._paused_until = 0.0
 
     async def close(self) -> None:
         await self._http.aclose()
@@ -113,7 +126,19 @@ class Catalog:
             self._token_expires = (exp - 86400) if exp else time.time() + 3600
         return self._token
 
+    def _pause(self, retry_after: str | None) -> None:
+        try:
+            wanted = float(retry_after or _PAUSE[0])
+        except ValueError:  # a date instead of seconds
+            wanted = _PAUSE[0]
+        self._paused_until = time.monotonic() + min(max(wanted, _PAUSE[0]), _PAUSE[1])
+
     async def _get(self, path: str, params: dict) -> dict:
+        # After Apple asked for a pause nothing is sent until it is over, so
+        # that impatient clicking cannot turn a pause into a block.
+        wait = self._paused_until - time.monotonic()
+        if wait > 0:
+            raise CatalogError(f"Apple Music asked for a pause. Try again in {_wait_text(wait)}.")
         try:
             for attempt in (0, 1):
                 token = await self._get_token(force=bool(attempt))
@@ -124,6 +149,10 @@ class Catalog:
                 )
                 if resp.status_code == 401 and attempt == 0:
                     continue  # token rejected: fetch a new one once
+                if resp.status_code == 429:
+                    self._pause(resp.headers.get("Retry-After"))
+                    wait = self._paused_until - time.monotonic()
+                    raise CatalogError(f"Apple Music asked for a pause: too many requests. Try again in {_wait_text(wait)}.")
                 if resp.status_code == 404:
                     raise CatalogError("Not found in the Apple Music catalogue.")
                 resp.raise_for_status()
@@ -156,7 +185,8 @@ class Catalog:
             raise CatalogError("Artist not found.")
         albums: list[dict] = []
         offset = 0
-        while len(albums) < 300:
+        more = False
+        while True:
             page = await self._get(
                 f"{storefront}/artists/{artist_id}/albums",
                 {"l": language, "limit": 100, "offset": offset, "include": "artists"},
@@ -165,9 +195,12 @@ class Catalog:
             albums += [_album(a) for a in batch]
             if not page.get("next") or not batch:
                 break
+            if len(albums) >= ARTIST_ALBUMS:
+                more = True  # Apple has further pages; they are not fetched
+                break
             offset += len(batch)
         albums.sort(key=lambda a: a["release_date"], reverse=True)
-        return {**_artist(items[0]), "albums": albums}
+        return {**_artist(items[0]), "albums": albums, "more": more}
 
     async def search(self, storefront: str, term: str, language: str = "", limit: int = 20) -> dict:
         data = await self._get(

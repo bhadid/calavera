@@ -7,6 +7,9 @@ import { useConfirm } from "../components/Confirm";
 import { JobCard } from "../components/JobCard";
 import { Icon } from "../components/Icon";
 
+// History is shown this many jobs at a time, newest first.
+const HISTORY_STEP = 50;
+
 export function QueuePage() {
   const { jobs, jobsLoaded, status, notify } = useStore();
   const confirm = useConfirm();
@@ -18,6 +21,8 @@ export function QueuePage() {
   // Running first, then queued in the order they will run (oldest first).
   active.sort((a, b) => Number(b.status === "running") - Number(a.status === "running") || a.created_at - b.created_at);
   const finished = jobs.filter((j) => !active.includes(j));
+  const [shown, setShown] = useState(HISTORY_STEP);
+  const hidden = Math.max(0, finished.length - shown);
 
   async function add() {
     const urls = text.split(/\s+/).filter(Boolean);
@@ -180,10 +185,20 @@ export function QueuePage() {
             </button>
           </div>
           <div className="stack">
-            {finished.map((job) => (
+            {finished.slice(0, shown).map((job) => (
               <JobCard key={job.id} job={job} />
             ))}
           </div>
+          {hidden > 0 && (
+            <div className="more">
+              <p className="small muted" role="status">
+                Showing {shown} of {finished.length}
+              </p>
+              <button className="button" onClick={() => setShown(shown + HISTORY_STEP)}>
+                Show {Math.min(HISTORY_STEP, hidden)} more
+              </button>
+            </div>
+          )}
         </section>
       )}
     </>

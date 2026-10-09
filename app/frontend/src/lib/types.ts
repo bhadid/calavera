@@ -145,6 +145,12 @@ export interface Artist {
   url: string;
 }
 
+export interface ArtistDetail extends Artist {
+  albums: Album[];
+  /** Apple lists more releases than the page shows. */
+  more: boolean;
+}
+
 export interface SearchResults {
   albums: Album[];
   songs: Song[];
