@@ -45,9 +45,10 @@ const MONO: Record<string, string> = {
   "--ac-strong-d": "#ffffff",
   "--ac-soft-d": "#2e2e33",
   "--ac-on-d": "#0b0b0c",
+  // Lines only, no bone: black in the light theme, white in the dark one.
   "--ac-logo-l": "#0c0c0c",
-  // The dark theme has white lines and no bone: a negative of the light one.
   "--ac-logo-d": "#f4f1ea",
+  "--ac-logo-bone-l": "#fdfdfd00",
   "--ac-logo-bone-d": "#fdfdfd00",
 };
 
@@ -97,7 +98,8 @@ export function shade(lightness: number, cap: number, hue: number): string {
 /** The CSS variables for a choice: light (`-l`) and dark (`-d`) theme shades. */
 export function accentTokens(choice: AccentChoice): Record<string, string> {
   if (choice.mono) return { ...MONO };
-  const tokens: Record<string, string> = { "--ac-on-l": ON_ACCENT, "--ac-on-d": ON_ACCENT, "--ac-logo-bone-d": "#fdfdfd" };
+  const tokens: Record<string, string> = { "--ac-on-l": ON_ACCENT, "--ac-on-d": ON_ACCENT };
+  tokens["--ac-logo-bone-l"] = tokens["--ac-logo-bone-d"] = "#fdfdfd";
   for (const [name, [lightness, cap]] of Object.entries(SHADES)) {
     const moved = FILLS.includes(name) ? Math.max(FLOOR, lightness - choice.depth * DEPTH.step) : lightness;
     tokens[name] = shade(moved, cap, choice.hue);

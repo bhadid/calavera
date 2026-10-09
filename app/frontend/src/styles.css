@@ -31,7 +31,7 @@
   --accent-soft: var(--ac-soft-l, #ffd9d7);
   --on-accent: var(--ac-on-l, #0c0c0c);
   --logo: var(--ac-logo-l, #dd404c);
-  --logo-bone: #fdfdfd;
+  --logo-bone: var(--ac-logo-bone-l, #fdfdfd);
   /* status fills carry black text in both themes */
   --ok: #58e3a4;
   --warn: #ffd23f;

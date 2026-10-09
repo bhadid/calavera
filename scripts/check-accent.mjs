@@ -47,8 +47,8 @@ for (const choice of choices) {
   const label = choice.mono ? "mono" : `hue ${choice.hue}`;
   for (const theme of ["l", "d"]) {
     const lines = t[`--ac-logo-${theme}`];
-    // Monochrome in the dark theme has no bone: only the lines on the page count.
-    const boneless = theme === "d" && t["--ac-logo-bone-d"].endsWith("00");
+    // Monochrome has no bone: only the lines on the page count.
+    const boneless = t[`--ac-logo-bone-${theme}`].endsWith("00");
     const onBone = boneless ? Infinity : contrast(lines, BONE);
     const onPage = boneless ? contrast(lines, PAGE[theme]) : Math.max(contrast(lines, PAGE[theme]), contrast(BONE, PAGE[theme]));
     worstLogo = Math.min(worstLogo, onBone, onPage);
