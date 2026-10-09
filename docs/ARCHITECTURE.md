@@ -197,7 +197,7 @@ The look combines three things, all implemented in `styles.css`:
 
 Symbols follow one rule. Actions and notices use drawn icons from
 `components/Icon.tsx` (one rounded stroke style), so they look the same on
-every device. Status tags are words only. A few marks are typed characters
+every device. Status tags are words; the queue's "in library" tag also carries the drawn check mark. A few marks are typed characters
 on purpose, because they should look like terminal output: the status-line
 marks, the prompt before page titles, the log toggle and the text progress
 bar.

@@ -154,7 +154,10 @@ export function JobCard({ job }: { job: Job }) {
           </div>
           <span className="job-tags">
             {job.status === "done" && job.result.some((r) => (r.unavailable ?? 0) > 0) && <span className="tag tag-warn">partial</span>}
-            <span className={`tag ${status.tone}`}>{status.label}</span>
+            <span className={`tag ${status.tone}`}>
+              {job.status === "done" && <Icon name="check" size={13} />}
+              {status.label}
+            </span>
           </span>
         </div>
         {selection > 0 && active && <p className="small muted">{plural(selection, "selected song")}</p>}
