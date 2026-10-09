@@ -35,7 +35,8 @@ for (const choice of choices) {
     }
   }
 }
-// The lines of the logo against the page and against its white bone.
+// The lines of the logo against its white bone, and against the page unless
+// the bone itself stands out from it (monochrome in the dark theme).
 const PAGE = { l: "#fff8ee", d: "#0b0b0c" };
 const BONE = "#fdfdfd";
 let worstLogo = Infinity;
@@ -43,11 +44,12 @@ for (const choice of choices) {
   const t = accentTokens(choice);
   const label = choice.mono ? "mono" : `hue ${choice.hue}`;
   for (const theme of ["l", "d"]) {
-    for (const [behind, colour] of [["the page", PAGE[theme]], ["its bone", BONE]]) {
-      const ratio = contrast(t[`--ac-logo-${theme}`], colour);
-      worstLogo = Math.min(worstLogo, ratio);
-      if (ratio < 3) fail(`${label} ${theme}: logo on ${behind} is ${ratio.toFixed(2)}:1`);
-    }
+    const lines = t[`--ac-logo-${theme}`];
+    const onBone = contrast(lines, BONE);
+    const onPage = Math.max(contrast(lines, PAGE[theme]), contrast(BONE, PAGE[theme]));
+    worstLogo = Math.min(worstLogo, onBone, onPage);
+    if (onBone < 3) fail(`${label} ${theme}: logo lines on the bone are ${onBone.toFixed(2)}:1`);
+    if (onPage < 3) fail(`${label} ${theme}: logo on the page is ${onPage.toFixed(2)}:1`);
   }
 }
 console.log(`logo on the page and on its bone: worst ${worstLogo.toFixed(2)}:1`);

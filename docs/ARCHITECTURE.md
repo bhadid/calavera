@@ -208,8 +208,8 @@ monochrome, and that the fallbacks in `styles.css` match the calculation.
 The logo (`components/Skull.tsx`) is a skull with headphones: white bone,
 and lines in a further shade of the chosen hue calculated like the others.
 The areas outside the outer contour are see-through. With monochrome the
-lines are black in the light theme and grey in the dark one, so they show on
-the bone and on the page. `public/favicon.svg` is the same drawing in the
+lines are black in both themes; in the dark one the white bone carries the
+shape. `public/favicon.svg` is the same drawing in the
 default colour. When another accent is chosen, `lib/accent.ts` recolours
 that file and sets the result as the
 browser-tab icon; a browser that ignores the change keeps the default one.

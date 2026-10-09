@@ -38,8 +38,8 @@ const MONO: Record<string, string> = {
   "--ac-soft-d": "#2e2e33",
   "--ac-on-d": "#0b0b0c",
   "--ac-logo-l": "#0c0c0c",
-  // Grey: the lines must show on the white bone and on the dark page.
-  "--ac-logo-d": "#808080",
+  // Black in the dark theme too: the lines must show on the white bone.
+  "--ac-logo-d": "#0c0c0c",
 };
 
 const ON_ACCENT = "#0c0c0c";
