@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { api, ApiError } from "../lib/api";
 import { plural, timeOfDay } from "../lib/format";
 import { useStore } from "../lib/store";
@@ -149,7 +150,12 @@ export function JobCard({ job }: { job: Job }) {
       <div className="job-body">
         <div className="job-head">
           <div className="job-titles">
-            <h3 title={job.title || job.url}>{job.title || (job.kind === "album" ? "Album" : "Song")}</h3>
+            <h3 title={job.title || job.url}>
+              {/* The album's page; for a song, the page of the album it is on. */}
+              <Link to={`/${job.kind}/${job.apple_id}?sf=${job.storefront}`} className="quiet-link">
+                {job.title || (job.kind === "album" ? "Album" : "Song")}
+              </Link>
+            </h3>
             <p className="muted">{job.artist ? <ArtistNames name={job.artist} artists={job.artists} /> : job.url}</p>
           </div>
           <span className="job-tags">

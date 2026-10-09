@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { api, ApiError } from "../lib/api";
-import { duration } from "../lib/format";
+import { duration, songAlbumPath } from "../lib/format";
 import type { SearchResults } from "../lib/types";
 import { AlbumGrid, QueueButton } from "../components/AlbumGrid";
 import { ArtistNames } from "../components/ArtistNames";
@@ -127,22 +127,32 @@ export function SearchPage() {
             </h2>
           </div>
           <div className="card rows">
-            {results.songs.map((song, index) => (
-              <div key={song.id} className="row">
-                <span className="row-index small row-meta" aria-hidden="true">
-                  {String(index + 1).padStart(2, "0")}
-                </span>
-                <Cover src={song.artwork} size={44} />
-                <div className="row-text">
-                  <strong title={song.name}>{song.name}</strong>
-                  <span className="muted small">
-                    <ArtistNames name={song.artist} artists={song.artists} /> · {song.album}
+            {results.songs.map((song, index) => {
+              const albumPage = songAlbumPath(song.url);
+              return (
+                <div key={song.id} className="row">
+                  <span className="row-index small row-meta" aria-hidden="true">
+                    {String(index + 1).padStart(2, "0")}
                   </span>
+                  <Cover src={song.artwork} size={44} />
+                  <div className="row-text">
+                    <strong title={song.name}>{song.name}</strong>
+                    <span className="muted small">
+                      <ArtistNames name={song.artist} artists={song.artists} /> ·{" "}
+                      {albumPage ? (
+                        <Link to={albumPage} className="quiet-link">
+                          {song.album}
+                        </Link>
+                      ) : (
+                        song.album
+                      )}
+                    </span>
+                  </div>
+                  <span className="muted small row-meta">{duration(song.duration_ms)}</span>
+                  <QueueButton url={song.url} appleId={song.id} />
                 </div>
-                <span className="muted small row-meta">{duration(song.duration_ms)}</span>
-                <QueueButton url={song.url} appleId={song.id} />
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
       )}

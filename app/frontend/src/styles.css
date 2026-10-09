@@ -1567,12 +1567,12 @@ textarea {
 }
 
 .album-text h3 a,
-.artist-link {
+.quiet-link {
   text-decoration: none;
 }
 
 .album-text h3 a:hover,
-.artist-link:hover {
+.quiet-link:hover {
   text-decoration: underline;
   text-decoration-color: var(--accent);
   background: none;

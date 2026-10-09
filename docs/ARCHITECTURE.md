@@ -168,6 +168,12 @@ line to `/artist/<id>`. A job stores the artists with its title (`jobs.artists`,
 JSON); `db.py` adds that column to a database made before it existed. Where
 Apple names no artist (compilations) the line stays plain text.
 
+Album names link to `/album/<id>` the same way. A song has no page: its
+album's ID is read from the song's Apple Music link (`songAlbumPath` in
+`lib/format.ts`). A queue card of a song job knows the song's ID only and
+links to `/song/<id>`, where `pages/Song.tsx` looks the album up and goes on
+to it.
+
 ## Security model
 
 - No user accounts. Protection is network placement (`BIND_ADDRESS`).

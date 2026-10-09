@@ -12,7 +12,7 @@ export function ArtistNames({ name, artists = [], except }: { name: string; arti
     artist.id === except ? (
       text
     ) : (
-      <Link to={`/artist/${artist.id}`} className="artist-link">
+      <Link to={`/artist/${artist.id}`} className="quiet-link">
         {text}
       </Link>
     );

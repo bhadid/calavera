@@ -6,6 +6,7 @@ import { ArtistPage } from "./pages/Artist";
 import { QueuePage } from "./pages/Queue";
 import { SearchPage } from "./pages/Search";
 import { SettingsPage } from "./pages/Settings";
+import { SongPage } from "./pages/Song";
 
 // To add a page: create it in pages/, add a <Route> here and, if it belongs
 // in the main navigation, an entry in NAV in components/Layout.tsx.
@@ -16,6 +17,7 @@ export function App() {
         <Route index element={<QueuePage />} />
         <Route path="search" element={<SearchPage />} />
         <Route path="album/:id" element={<AlbumPage />} />
+        <Route path="song/:id" element={<SongPage />} />
         <Route path="artist/:id" element={<ArtistPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="account" element={<AccountPage />} />

@@ -30,6 +30,16 @@ export function albumPath(url: string): string | null {
   return `/album/${match[2]}?sf=${match[1]}`;
 }
 
+/**
+ * The page for the album a song is on, from the song's Apple Music link, e.g.
+ * https://music.apple.com/de/album/some-name/123?i=456 -> /album/123?sf=de.
+ * Returns null for a link that does not name the album.
+ */
+export function songAlbumPath(url: string): string | null {
+  const match = /music\.apple\.com\/([a-z]{2})\/album\/(?:[^/?#]+\/)?(\d+)\?(?:.*&)?i=\d/.exec(url.trim());
+  return match ? `/album/${match[2]}?sf=${match[1]}` : null;
+}
+
 export function plural(count: number, noun: string): string {
   return `${count} ${noun}${count === 1 ? "" : "s"}`;
 }
