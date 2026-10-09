@@ -137,6 +137,7 @@ export function AccountPage() {
         <ol className="steps" aria-label="Sign-in steps">
           {["Apple ID", "Code", "Done"].map((label, index) => (
             <li key={label} className={`tag ${index === step ? "tag-accent" : index < step ? "tag-ok" : "tag-ghost"}`} aria-current={index === step ? "step" : undefined}>
+              {index < step && <Icon name="check" size={13} />}
               {String(index + 1).padStart(2, "0")} {label}
             </li>
           ))}

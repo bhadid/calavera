@@ -30,7 +30,7 @@ export function QueueButton({
   if (inLibrary || job?.status === "done") {
     return (
       <span className="owned owned-ok" title={inLibrary ?? undefined}>
-        in library
+        <Icon name="check" size={14} /> in library
       </span>
     );
   }

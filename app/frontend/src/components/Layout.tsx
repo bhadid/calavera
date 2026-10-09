@@ -124,6 +124,7 @@ export function Layout() {
         {toasts.map((t) => (
           <button key={t.id} className="toast" onClick={() => dismiss(t.id)} aria-label={`${t.message} Dismiss.`}>
             <span className={`tag ${t.kind === "error" ? "tag-bad" : t.kind === "success" ? "tag-ok" : "tag-info"}`}>
+              {t.kind === "success" && <Icon name="check" size={13} />}
               {t.kind === "error" ? "error" : t.kind === "success" ? "ok" : "info"}
             </span>
             <span>{t.message}</span>

@@ -129,7 +129,11 @@ export function AlbumPage() {
             <div className="album-tags">
               {quality && <span className={`tag ${quality.startsWith("Hi-Res") ? "tag-accent" : ""}`}>{quality}</span>}
               {album.explicit && <span className="tag tag-ghost">Explicit</span>}
-              {album.in_library && <span className="tag tag-ok">folder in library</span>}
+              {album.in_library && (
+                <span className="tag tag-ok">
+                  <Icon name="check" size={13} /> folder in library
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -200,7 +204,10 @@ export function AlbumPage() {
                     )}
                   </span>
                   {reason ? (
-                    <span className={`tag ${track.available ? "tag-ok" : "tag-ghost"}`}>{reason}</span>
+                    <span className={`tag ${track.available ? "tag-ok" : "tag-ghost"}`}>
+                      {track.available && <Icon name="check" size={13} />}
+                      {reason}
+                    </span>
                   ) : (
                     <span className="small muted track-duration">{duration(track.duration_ms)}</span>
                   )}

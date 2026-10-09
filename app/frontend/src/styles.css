@@ -511,7 +511,8 @@ textarea {
 }
 
 /* An icon in a tag is small, so its stroke is heavier to match the bold text. */
-.tag .icon {
+.tag .icon,
+.owned .icon {
   stroke-width: 3;
 }
 
