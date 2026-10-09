@@ -11,7 +11,7 @@ const isDefault = (choice: AccentChoice) => !choice.mono && choice.hue === DEFAU
 const DEFAULT_TOKENS = accentTokens(DEFAULT_ACCENT);
 let favicon = 0;
 
-/** Recolour the browser-tab icon: public/favicon.svg with the logo shades swapped. */
+/** Recolour the browser-tab icon: public/favicon.svg with the logo shade swapped. */
 async function paintFavicon(tokens: Record<string, string>, standard: boolean) {
   const link = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
   if (!link) return;
@@ -22,7 +22,8 @@ async function paintFavicon(tokens: Record<string, string>, standard: boolean) {
   }
   try {
     let svg = await (await fetch("/favicon.svg")).text();
-    for (const name of ["--ac-logo-shadow", "--ac-logo-edge"]) svg = svg.replaceAll(DEFAULT_TOKENS[name], tokens[name]);
+    // The dark-theme shade: with monochrome it shows on light and dark tab bars.
+    svg = svg.replaceAll(DEFAULT_TOKENS["--ac-logo-d"], tokens["--ac-logo-d"]);
     // A slower, older request must not overwrite a newer colour.
     if (turn === favicon) link.href = `data:image/svg+xml,${encodeURIComponent(svg)}`;
   } catch {

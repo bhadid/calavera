@@ -199,19 +199,19 @@ calculates every shade from it in the OKLCH colour model, where a fixed
 lightness looks equally light at every hue, so text on an accent fill stays
 readable wherever the slider is; each shade is as vivid as sRGB allows for
 that hue. The result is set as `--ac-*` variables on the root element, which
-the tokens in `styles.css` read, with the default (violet, hue 287) as their
+the tokens in `styles.css` read, with the default (red, hue 22) as their
 fallback. The choice is kept in the browser's local storage together with the
 calculated shades, so `public/theme.js` can apply them before first paint.
 `scripts/check-accent.mjs` checks the contrast of all 360 hues and
 monochrome, and that the fallbacks in `styles.css` match the calculation.
 
-The logo (`components/Skull.tsx`) is a skull in one colour, a further shade
-of the chosen hue calculated like the others; eyes, nose and tooth gaps are
-cut out, so the page shows through. With monochrome it is black in the light
-theme and white in the dark one. `public/favicon.svg` is a different drawing
-of the same skull for the browser tab: white, with a shadow and dark eyes in
-two more shades of the hue, in the default colours. When another accent is
-chosen, `lib/accent.ts` recolours that file and sets the result as the
+The logo (`components/Skull.tsx`) is a skull with headphones: white bone,
+and lines in a further shade of the chosen hue calculated like the others.
+The areas outside the outer contour are see-through. With monochrome the
+lines are black in the light theme and grey in the dark one, so they show on
+the bone and on the page. `public/favicon.svg` is the same drawing in the
+default colour. When another accent is chosen, `lib/accent.ts` recolours
+that file and sets the result as the
 browser-tab icon; a browser that ignores the change keeps the default one.
 
 ## Extending
