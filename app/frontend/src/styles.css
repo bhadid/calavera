@@ -936,12 +936,6 @@ textarea {
   overflow-wrap: anywhere;
 }
 
-.job-result .mark {
-  display: inline-flex;
-  vertical-align: -2px;
-  color: var(--ok-text);
-}
-
 .job-actions {
   display: flex;
   flex-wrap: wrap;

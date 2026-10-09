@@ -93,6 +93,9 @@ function JobLog({ job }: { job: Job }) {
   );
 }
 
+/** A folder in the library, written the way a terminal would: ./Artist/Album/ */
+const folder = (path: string) => `./${path}/`;
+
 export function JobCard({ job }: { job: Job }) {
   const { notify } = useStore();
   const confirm = useConfirm();
@@ -184,17 +187,14 @@ export function JobCard({ job }: { job: Job }) {
           <p key={i} className="small job-result">
             {r.status === "imported" && (
               <>
-                <span className="mark">
-                  <Icon name="arrow-right" size={14} />
-                </span>{" "}
-                {r.path}
+                {folder(r.path)}
                 {r.tracks ? ` · ${plural(r.tracks, "track")}` : ""}
                 {r.tracks && r.album_tracks && !selection && r.tracks < r.album_tracks ? ` of ${r.album_tracks}` : ""}
                 {r.format ? ` · ${r.format.toUpperCase()}` : ""}
                 {r.quality?.length ? ` · ${r.quality.join(", ")}` : ""}
               </>
             )}
-            {r.status === "exists" && <>existing folder: {r.path}</>}
+            {r.status === "exists" && <>existing folder: {folder(r.path)}</>}
           </p>
         ))}
 
