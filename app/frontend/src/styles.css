@@ -26,13 +26,11 @@
   --muted: #5a544c;
   --line: #0c0c0c;
   --shadow: #0c0c0c;
-  --accent: var(--ac-l, #39a1ff);
-  --accent-strong: var(--ac-strong-l, #0996ff);
-  --accent-soft: var(--ac-soft-l, #cfe6ff);
+  --accent: var(--ac-l, #9888ff);
+  --accent-strong: var(--ac-strong-l, #8f7bff);
+  --accent-soft: var(--ac-soft-l, #e1e0ff);
   --on-accent: var(--ac-on-l, #0c0c0c);
-  --logo-shadow: var(--ac-logo-shadow, #6ca5e0);
-  --logo-edge: var(--ac-logo-edge, #00162f);
-  --logo-line: 1;
+  --logo: var(--ac-logo-l, #7e67ed);
   /* status fills carry black text in both themes */
   --ok: #58e3a4;
   --warn: #ffd23f;
@@ -47,7 +45,7 @@
   --term-bg: #0c0c0c;
   --term-fg: #f4f1ea;
   --term-dim: #9a958c;
-  --term-accent: var(--ac-strong-d, #68b4ff);
+  --term-accent: var(--ac-strong-d, #a9a0ff);
 
   /* shape */
   --border: 2px;
@@ -74,12 +72,12 @@
     --ink: #f4f1ea;
     --muted: #aaa49a;
     --line: #f4f1ea;
-    --shadow: var(--ac-d, #4ba7ff);
-    --accent: var(--ac-d, #4ba7ff);
-    --accent-strong: var(--ac-strong-d, #68b4ff);
-    --accent-soft: var(--ac-soft-d, #052643);
+    --shadow: var(--ac-d, #9d90ff);
+    --accent: var(--ac-d, #9d90ff);
+    --accent-strong: var(--ac-strong-d, #a9a0ff);
+    --accent-soft: var(--ac-soft-d, #231e42);
     --on-accent: var(--ac-on-d, #0c0c0c);
-    --logo-line: 1.5;
+    --logo: var(--ac-logo-d, #7e67ed);
     --ok-text: #58e3a4;
     --warn-text: #ffd23f;
     --bad-text: #ff8a80;
@@ -95,12 +93,12 @@
   --ink: #f4f1ea;
   --muted: #aaa49a;
   --line: #f4f1ea;
-  --shadow: var(--ac-d, #4ba7ff);
-  --accent: var(--ac-d, #4ba7ff);
-  --accent-strong: var(--ac-strong-d, #68b4ff);
-  --accent-soft: var(--ac-soft-d, #052643);
+  --shadow: var(--ac-d, #9d90ff);
+  --accent: var(--ac-d, #9d90ff);
+  --accent-strong: var(--ac-strong-d, #a9a0ff);
+  --accent-soft: var(--ac-soft-d, #231e42);
   --on-accent: var(--ac-on-d, #0c0c0c);
-  --logo-line: 1.5;
+  --logo: var(--ac-logo-d, #7e67ed);
   --ok-text: #58e3a4;
   --warn-text: #ffd23f;
   --bad-text: #ff8a80;
@@ -256,12 +254,6 @@ textarea {
 
 .skull {
   flex: none;
-}
-
-/* The outline is thin in the light theme and heavier in the dark one, where
- * it merges with the page. */
-.skull-line {
-  stroke-width: var(--logo-line);
 }
 
 .cursor {

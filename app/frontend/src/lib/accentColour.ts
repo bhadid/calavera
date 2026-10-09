@@ -7,13 +7,14 @@
 // readable wherever the slider is. Each shade is made as vivid as sRGB allows
 // for its hue, up to a cap taken from the original pink.
 //
-// The logo is tinted the same way: its shadow and its outline are two more
-// shades of the chosen hue, with lightness and chroma taken from the artwork
-// (drawn in violet). Its bone stays white.
+// The logo is tinted the same way: it is drawn in one shade of the chosen
+// hue. The browser-tab icon is a white skull with a shadow and dark eyes,
+// which are two more shades. Lightness and chroma of all three come from
+// the artwork (drawn in violet).
 
 export type AccentChoice = { hue: number; mono: boolean };
 
-export const DEFAULT_ACCENT: AccentChoice = { hue: 250, mono: false };
+export const DEFAULT_ACCENT: AccentChoice = { hue: 287, mono: false };
 
 /** Lightness and highest chroma of each calculated shade. */
 const SHADES = {
@@ -23,6 +24,8 @@ const SHADES = {
   "--ac-d": [0.713, 0.205],
   "--ac-strong-d": [0.751, 0.174],
   "--ac-soft-d": [0.262, 0.066],
+  "--ac-logo-l": [0.605, 0.193],
+  "--ac-logo-d": [0.605, 0.193],
   "--ac-logo-shadow": [0.707, 0.106],
   "--ac-logo-edge": [0.196, 0.105],
 } as const;
@@ -37,6 +40,8 @@ const MONO: Record<string, string> = {
   "--ac-strong-d": "#ffffff",
   "--ac-soft-d": "#2e2e33",
   "--ac-on-d": "#0b0b0c",
+  "--ac-logo-l": "#0c0c0c",
+  "--ac-logo-d": "#f4f1ea",
   "--ac-logo-shadow": "#a3a3a3",
   "--ac-logo-edge": "#0c0c0c",
 };

@@ -35,36 +35,42 @@ for (const choice of choices) {
     }
   }
 }
-// The logo: its outline against its shadow, and its shadow against the bone.
+// The logo against the page, and in the browser-tab icon the eyes against the shadow.
+const PAGE = { l: "#fff8ee", d: "#0b0b0c" };
 let worstLogo = Infinity;
 for (const choice of choices) {
   const t = accentTokens(choice);
-  const ratio = contrast(t["--ac-logo-edge"], t["--ac-logo-shadow"]);
-  worstLogo = Math.min(worstLogo, ratio);
-  if (ratio < 4.5) fail(`${choice.mono ? "mono" : `hue ${choice.hue}`}: logo outline on its shadow is ${ratio.toFixed(2)}:1`);
-  if (contrast("#fdfdfd", t["--ac-logo-shadow"]) < 2) fail(`hue ${choice.hue}: logo shadow is too close to the bone`);
+  const label = choice.mono ? "mono" : `hue ${choice.hue}`;
+  for (const theme of ["l", "d"]) {
+    const ratio = contrast(t[`--ac-logo-${theme}`], PAGE[theme]);
+    worstLogo = Math.min(worstLogo, ratio);
+    if (ratio < 3) fail(`${label} ${theme}: logo on the page is ${ratio.toFixed(2)}:1`);
+  }
+  if (contrast(t["--ac-logo-edge"], t["--ac-logo-shadow"]) < 4.5) fail(`${label}: icon eyes are too close to its shadow`);
+  if (contrast("#fdfdfd", t["--ac-logo-shadow"]) < 2) fail(`${label}: icon shadow is too close to its white`);
 }
-console.log(`logo outline on its shadow: worst ${worstLogo.toFixed(2)}:1`);
+console.log(`logo on the page: worst ${worstLogo.toFixed(2)}:1`);
 console.log(`text on accent: worst ${worstText.toFixed(2)}:1 over ${choices.length} choices`);
 console.log(`outline on dark surfaces: worst ${worstEdge.toFixed(2)}:1`);
 
+// The shades used only by the browser-tab icon have their defaults in favicon.svg.
+const ICON_ONLY = ["--ac-logo-shadow", "--ac-logo-edge"];
+const defaults = accentTokens(DEFAULT_ACCENT);
 const css = readFileSync(new URL("../app/frontend/src/styles.css", import.meta.url), "utf8");
-for (const [name, value] of Object.entries(accentTokens(DEFAULT_ACCENT))) {
-  if (!css.includes(`var(${name}, ${value})`)) fail(`styles.css default for ${name} should be ${value}`);
+for (const [name, value] of Object.entries(defaults)) {
+  if (!ICON_ONLY.includes(name) && !css.includes(`var(${name}, ${value})`)) fail(`styles.css default for ${name} should be ${value}`);
 }
 
-// The favicon is the logo in the default colours, with the same drawing as the app's.
+// The favicon is in the default colours and has the same outline as the logo.
 const favicon = readFileSync(new URL("../app/frontend/public/favicon.svg", import.meta.url), "utf8");
 const logo = readFileSync(new URL("../app/frontend/src/components/Skull.tsx", import.meta.url), "utf8");
-const defaults = accentTokens(DEFAULT_ACCENT);
 const colours = new Set(favicon.match(/#[0-9a-fA-F]{6}\b/g));
-const expected = new Set(["#fdfdfd", defaults["--ac-logo-shadow"], defaults["--ac-logo-edge"]]);
+const expected = new Set(["#fdfdfd", ...ICON_ONLY.map((name) => defaults[name])]);
 if (colours.size !== 3 || [...expected].some((c) => !colours.has(c))) {
   fail(`favicon.svg colours are ${[...colours]}, expected ${[...expected]}`);
 }
-for (const [, d] of favicon.matchAll(/ d="([^"]+)"/g)) {
-  if (!logo.includes(`"${d}"`)) fail(`favicon.svg and Skull.tsx differ: ${d.slice(0, 30)}...`);
-}
+const silhouette = favicon.match(/id="silhouette" d="([^"]+)"/);
+if (!silhouette || !logo.includes(`"${silhouette[1]}"`)) fail("favicon.svg and Skull.tsx have different outlines");
 console.log("default", defaults);
 console.log(failed ? "FAILED" : "ALL PASS");
 process.exit(failed ? 1 : 0);
