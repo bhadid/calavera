@@ -4,6 +4,7 @@ import { api, ApiError } from "../lib/api";
 import { albumPath, plural, qualityLabel, year } from "../lib/format";
 import { useStore } from "../lib/store";
 import type { Album } from "../lib/types";
+import { ArtistNames } from "./ArtistNames";
 import { Cover } from "./Cover";
 import { Icon } from "./Icon";
 
@@ -51,7 +52,8 @@ export function QueueButton({
   );
 }
 
-export function AlbumGrid({ albums }: { albums: Album[] }) {
+/** `artistId`: the artist whose page the grid is on, who is then not linked. */
+export function AlbumGrid({ albums, artistId }: { albums: Album[]; artistId?: string }) {
   return (
     <div className="grid">
       {albums.map((album) => {
@@ -67,7 +69,7 @@ export function AlbumGrid({ albums }: { albums: Album[] }) {
                 <Link to={albumPath(album.url) ?? `/album/${album.id}`}>{album.name}</Link>
               </h3>
               <p className="artist muted" title={album.artist}>
-                {album.artist}
+                <ArtistNames name={album.artist} artists={album.artists} except={artistId} />
               </p>
               <p className="small muted">
                 {[year(album.release_date), plural(album.track_count, "track")]

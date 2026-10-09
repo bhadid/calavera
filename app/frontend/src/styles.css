@@ -1561,11 +1561,13 @@ textarea {
   box-shadow: 3px 3px 0 var(--accent);
 }
 
-.album-text h3 a {
+.album-text h3 a,
+.artist-link {
   text-decoration: none;
 }
 
-.album-text h3 a:hover {
+.album-text h3 a:hover,
+.artist-link:hover {
   text-decoration: underline;
   text-decoration-color: var(--accent);
   background: none;

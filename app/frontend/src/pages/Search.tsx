@@ -4,6 +4,7 @@ import { api, ApiError } from "../lib/api";
 import { duration } from "../lib/format";
 import type { SearchResults } from "../lib/types";
 import { AlbumGrid, QueueButton } from "../components/AlbumGrid";
+import { ArtistNames } from "../components/ArtistNames";
 import { Cover } from "../components/Cover";
 import { Icon } from "../components/Icon";
 
@@ -135,7 +136,7 @@ export function SearchPage() {
                 <div className="row-text">
                   <strong title={song.name}>{song.name}</strong>
                   <span className="muted small">
-                    {song.artist} · {song.album}
+                    <ArtistNames name={song.artist} artists={song.artists} /> · {song.album}
                   </span>
                 </div>
                 <span className="muted small row-meta">{duration(song.duration_ms)}</span>

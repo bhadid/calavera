@@ -212,7 +212,7 @@ class JobManager:
         except CatalogError:
             return
         if self._db.get_job(job["id"]):
-            self._update(job["id"], title=item["name"], artist=item["artist"], artwork_url=item["artwork"])
+            self._update(job["id"], title=item["name"], artist=item["artist"], artists=item["artists"], artwork_url=item["artwork"])
 
     def cancel(self, job_id: str) -> None:
         job = self._db.get_job(job_id)
@@ -403,7 +403,9 @@ class JobManager:
             self._log(job_id, "The catalogue could not be asked which songs are available; downloading the whole album.")
             return None
         if not job["title"]:
-            self._update(job_id, title=album["name"], artist=album["artist"], artwork_url=album["artwork"])
+            self._update(
+                job_id, title=album["name"], artist=album["artist"], artists=album["artists"], artwork_url=album["artwork"]
+            )
 
         existing = await asyncio.to_thread(library.find_album, self._config.library_dir, album["artist"], album["name"])
         merge = bool(options.get("merge"))

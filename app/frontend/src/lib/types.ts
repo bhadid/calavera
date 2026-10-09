@@ -22,6 +22,12 @@ export interface JobOptions {
   resume?: boolean;
 }
 
+/** One of the artists behind an album or song: enough to link to their page. */
+export interface ArtistRef {
+  id: string;
+  name: string;
+}
+
 export interface Job {
   id: string;
   url: string;
@@ -30,6 +36,7 @@ export interface Job {
   apple_id: string;
   title: string;
   artist: string;
+  artists: ArtistRef[];
   artwork_url: string;
   status: JobStatus;
   stage: string;
@@ -92,7 +99,9 @@ export interface Settings {
 export interface Album {
   id: string;
   name: string;
+  /** The name as Apple prints it, e.g. "A & B"; `artists` are the people in it. */
   artist: string;
+  artists: ArtistRef[];
   artwork: string;
   url: string;
   track_count: number;
@@ -120,6 +129,7 @@ export interface Song {
   id: string;
   name: string;
   artist: string;
+  artists: ArtistRef[];
   album: string;
   artwork: string;
   url: string;

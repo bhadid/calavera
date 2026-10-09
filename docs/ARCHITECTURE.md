@@ -159,6 +159,15 @@ on first start in the `control` volume, which only these two containers mount.
 The password exists in the supervisor only until the sign-in process has been
 started, and it is masked in any wrapper output that echoes it.
 
+## Artist links
+
+Apple prints who made an album or song as one line of text (`artist`, e.g.
+"A & B"). `catalog.py` also asks for the artists behind it (`artists`: ID and
+name of each), and `components/ArtistNames.tsx` links each name found in the
+line to `/artist/<id>`. A job stores the artists with its title (`jobs.artists`,
+JSON); `db.py` adds that column to a database made before it existed. Where
+Apple names no artist (compilations) the line stays plain text.
+
 ## Security model
 
 - No user accounts. Protection is network placement (`BIND_ADDRESS`).

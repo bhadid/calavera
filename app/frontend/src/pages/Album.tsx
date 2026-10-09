@@ -4,6 +4,7 @@ import { api, ApiError } from "../lib/api";
 import { duration, plural, qualityLabel, year } from "../lib/format";
 import { useStore } from "../lib/store";
 import type { AlbumDetail, Track } from "../lib/types";
+import { ArtistNames } from "../components/ArtistNames";
 import { Cover } from "../components/Cover";
 import { Icon } from "../components/Icon";
 
@@ -121,7 +122,9 @@ export function AlbumPage() {
           <Cover src={album.artwork} size={160} />
           <div className="album-head-text">
             <h1>{album.name}</h1>
-            <p>{album.artist}</p>
+            <p>
+              <ArtistNames name={album.artist} artists={album.artists} />
+            </p>
             <p className="small muted">{[year(album.release_date), plural(album.tracks.length, "song")].filter(Boolean).join(" · ")}</p>
             <div className="album-tags">
               {quality && <span className={`tag ${quality.startsWith("Hi-Res") ? "tag-accent" : ""}`}>{quality}</span>}
@@ -190,7 +193,11 @@ export function AlbumPage() {
                   </span>
                   <span className="track-text">
                     <span className="track-name">{track.name}</span>
-                    {track.artist !== album.artist && <span className="small muted">{track.artist}</span>}
+                    {track.artist !== album.artist && (
+                      <span className="small muted">
+                        <ArtistNames name={track.artist} artists={track.artists} />
+                      </span>
+                    )}
                   </span>
                   {reason ? (
                     <span className={`tag ${track.available ? "tag-ok" : "tag-ghost"}`}>{reason}</span>

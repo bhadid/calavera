@@ -3,6 +3,7 @@ import { api, ApiError } from "../lib/api";
 import { plural, timeOfDay } from "../lib/format";
 import { useStore } from "../lib/store";
 import type { Job, JobStatus, LogLine } from "../lib/types";
+import { ArtistNames } from "./ArtistNames";
 import { useConfirm } from "./Confirm";
 import { Cover } from "./Cover";
 import { Icon } from "./Icon";
@@ -149,7 +150,7 @@ export function JobCard({ job }: { job: Job }) {
         <div className="job-head">
           <div className="job-titles">
             <h3 title={job.title || job.url}>{job.title || (job.kind === "album" ? "Album" : "Song")}</h3>
-            <p className="muted">{job.artist || job.url}</p>
+            <p className="muted">{job.artist ? <ArtistNames name={job.artist} artists={job.artists} /> : job.url}</p>
           </div>
           <span className="job-tags">
             {job.status === "done" && job.result.some((r) => (r.unavailable ?? 0) > 0) && <span className="tag tag-warn">partial</span>}

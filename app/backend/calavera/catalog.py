@@ -30,12 +30,21 @@ def _artwork(attrs: dict, size: int = 600) -> str:
     return url.replace("{w}", str(size)).replace("{h}", str(size))
 
 
+def _artists(item: dict) -> list[dict]:
+    """Who made an album or song, for linking to artist pages. Apple sends
+    this only when asked (`include`); `artistName` is the text to display."""
+    related = ((item.get("relationships") or {}).get("artists") or {}).get("data") or []
+    named = [{"id": r.get("id", ""), "name": (r.get("attributes") or {}).get("name", "")} for r in related]
+    return [artist for artist in named if artist["id"] and artist["name"]]
+
+
 def _album(item: dict) -> dict:
     a = item.get("attributes") or {}
     return {
         "id": item.get("id", ""),
         "name": a.get("name", ""),
         "artist": a.get("artistName", ""),
+        "artists": _artists(item),
         "artwork": _artwork(a),
         "url": a.get("url", ""),
         "track_count": a.get("trackCount", 0),
@@ -52,6 +61,7 @@ def _song(item: dict) -> dict:
         "id": item.get("id", ""),
         "name": a.get("name", ""),
         "artist": a.get("artistName", ""),
+        "artists": _artists(item),
         "album": a.get("albumName", ""),
         "artwork": _artwork(a),
         "url": a.get("url", ""),
@@ -123,7 +133,7 @@ class Catalog:
         raise CatalogError("The Apple Music catalogue rejected the request.")
 
     async def album(self, storefront: str, album_id: str, language: str = "") -> dict:
-        data = await self._get(f"{storefront}/albums/{album_id}", {"l": language})
+        data = await self._get(f"{storefront}/albums/{album_id}", {"l": language, "include": "artists", "include[songs]": "artists"})
         items = data.get("data") or []
         if not items:
             raise CatalogError("Album not found.")
@@ -133,7 +143,7 @@ class Catalog:
         return album
 
     async def song(self, storefront: str, song_id: str, language: str = "") -> dict:
-        data = await self._get(f"{storefront}/songs/{song_id}", {"l": language})
+        data = await self._get(f"{storefront}/songs/{song_id}", {"l": language, "include": "artists"})
         items = data.get("data") or []
         if not items:
             raise CatalogError("Song not found.")
@@ -147,7 +157,10 @@ class Catalog:
         albums: list[dict] = []
         offset = 0
         while len(albums) < 300:
-            page = await self._get(f"{storefront}/artists/{artist_id}/albums", {"l": language, "limit": 100, "offset": offset})
+            page = await self._get(
+                f"{storefront}/artists/{artist_id}/albums",
+                {"l": language, "limit": 100, "offset": offset, "include": "artists"},
+            )
             batch = page.get("data") or []
             albums += [_album(a) for a in batch]
             if not page.get("next") or not batch:
@@ -159,7 +172,14 @@ class Catalog:
     async def search(self, storefront: str, term: str, language: str = "", limit: int = 20) -> dict:
         data = await self._get(
             f"{storefront}/search",
-            {"term": term, "types": "albums,songs,artists", "limit": limit, "l": language},
+            {
+                "term": term,
+                "types": "albums,songs,artists",
+                "limit": limit,
+                "l": language,
+                "include[albums]": "artists",
+                "include[songs]": "artists",
+            },
         )
         results = data.get("results") or {}
         pick = lambda key: (results.get(key) or {}).get("data") or []  # noqa: E731

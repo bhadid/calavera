@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { api, ApiError } from "../lib/api";
 import type { Album, Artist } from "../lib/types";
 import { AlbumGrid } from "../components/AlbumGrid";
@@ -10,6 +10,7 @@ export function ArtistPage() {
   const { id = "" } = useParams();
   const [artist, setArtist] = useState<(Artist & { albums: Album[] }) | null>(null);
   const [error, setError] = useState("");
+  const navigate = useNavigate();
 
   useEffect(() => {
     let alive = true;
@@ -24,10 +25,11 @@ export function ArtistPage() {
     };
   }, [id]);
 
+  // Go back to where the user came from; a directly opened link has no history.
   const back = (
-    <Link to="/search" className="backlink">
-      <Icon name="back" size={16} /> Search
-    </Link>
+    <button className="button button-plain backlink" onClick={() => (window.history.length > 1 ? navigate(-1) : navigate("/search"))}>
+      <Icon name="back" size={16} /> Back
+    </button>
   );
   if (error) {
     return (
@@ -74,7 +76,7 @@ export function ArtistPage() {
               Albums <span className="muted">[{albums.length}]</span>
             </h2>
           </div>
-          <AlbumGrid albums={albums} />
+          <AlbumGrid albums={albums} artistId={artist.id} />
         </section>
       )}
       {singles.length > 0 && (
@@ -84,7 +86,7 @@ export function ArtistPage() {
               Singles and EPs <span className="muted">[{singles.length}]</span>
             </h2>
           </div>
-          <AlbumGrid albums={singles} />
+          <AlbumGrid albums={singles} artistId={artist.id} />
         </section>
       )}
     </>
