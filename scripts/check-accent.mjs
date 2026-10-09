@@ -3,7 +3,7 @@
 //
 //   docker run --rm -v "$PWD":/w -w /w node:22-alpine node scripts/check-accent.mjs
 import { readFileSync } from "node:fs";
-import { accentTokens, contrast, DEFAULT_ACCENT } from "../app/frontend/src/lib/accentColour.ts";
+import { accentTokens, contrast, DEFAULT_ACCENT, DEPTH } from "../app/frontend/src/lib/accentColour.ts";
 
 const SURFACES = { l: ["#fff8ee", "#ffffff", "#f6ecdd"], d: ["#0b0b0c", "#17171a", "#222226"] };
 let failed = false;
@@ -14,10 +14,13 @@ const fail = (message) => {
 
 let worstText = Infinity;
 let worstEdge = Infinity;
-const choices = [...Array(360).keys()].map((hue) => ({ hue, mono: false })).concat({ hue: 0, mono: true });
+const choices = [{ hue: 0, depth: 0, mono: true }];
+for (let depth = DEPTH.min; depth <= DEPTH.max; depth++) {
+  for (let hue = 0; hue < 360; hue++) choices.push({ hue, depth, mono: false });
+}
 for (const choice of choices) {
   const t = accentTokens(choice);
-  const label = choice.mono ? "mono" : `hue ${choice.hue}`;
+  const label = choice.mono ? "mono" : `hue ${choice.hue} depth ${choice.depth}`;
   for (const theme of ["l", "d"]) {
     // Text on accent fills (buttons, tags) and on their hover shade.
     for (const fill of [t[`--ac-${theme}`], t[`--ac-strong-${theme}`]]) {

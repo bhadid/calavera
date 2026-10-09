@@ -4,7 +4,7 @@ import { bytes } from "../lib/format";
 import { useStore } from "../lib/store";
 import type { Settings } from "../lib/types";
 import { useAccent } from "../lib/accent";
-import { DEFAULT_ACCENT, hueName, hueTrack } from "../lib/accentColour";
+import { DEFAULT_ACCENT, DEPTH, depthTrack, hueName, hueTrack } from "../lib/accentColour";
 import { Segmented, Switch } from "../components/Controls";
 import { Icon } from "../components/Icon";
 
@@ -26,7 +26,6 @@ const COVERS: { value: Settings["cover_size"]; label: string }[] = [
   { value: 5000, label: "5000 px" },
 ];
 
-const HUE_TRACK = hueTrack();
 
 export function SettingsPage() {
   const { status, notify } = useStore();
@@ -243,7 +242,7 @@ export function SettingsPage() {
           <label className="setting-text" htmlFor="accent-hue">
             <strong>Accent colour</strong>
             <span className="small muted">
-              Every shade is worked out from this one choice, for both themes. Saved in this browser.
+              Colour on the upper slider, depth on the lower one. Every shade is worked out from these, for both themes. Saved in this browser.
             </span>
           </label>
           <div className="setting-control">
@@ -258,13 +257,26 @@ export function SettingsPage() {
                 value={accent.hue}
                 disabled={accent.mono}
                 aria-valuetext={`${hueName(accent.hue)}, ${accent.hue} degrees`}
-                style={{ "--hue-track": HUE_TRACK } as CSSProperties}
+                style={{ "--hue-track": hueTrack(accent.depth) } as CSSProperties}
                 onChange={(e) => setAccent({ ...accent, hue: Number(e.target.value) })}
+              />
+              <input
+                className="hue"
+                type="range"
+                min={DEPTH.min}
+                max={DEPTH.max}
+                step={1}
+                value={accent.depth}
+                disabled={accent.mono}
+                aria-label="Depth of the accent colour"
+                aria-valuetext={`depth ${accent.depth}`}
+                style={{ "--hue-track": depthTrack(accent.hue) } as CSSProperties}
+                onChange={(e) => setAccent({ ...accent, depth: Number(e.target.value) })}
               />
               <div className="accent-foot">
                 <span className="accent-value small">
                   <span className="accent-swatch" aria-hidden="true" />
-                  {accent.mono ? "mono" : `${hueName(accent.hue)} · ${accent.hue}°`}
+                  {accent.mono ? "mono" : `${hueName(accent.hue)} · ${accent.hue}° · depth ${accent.depth}`}
                 </span>
                 <button
                   type="button"

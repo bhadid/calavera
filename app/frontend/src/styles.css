@@ -15,7 +15,7 @@
  * The accent is the user's choice (Settings). Its shades arrive as the
  * --ac-* variables, calculated in src/lib/accentColour.ts and set on the
  * root element; the values after the commas are the same calculation for
- * the default hue, and scripts/check-accent.mjs fails if they drift apart.
+ * the default accent, and scripts/check-accent.mjs fails if they drift apart.
  */
 :root {
   /* colour */
@@ -26,11 +26,11 @@
   --muted: #5a544c;
   --line: #0c0c0c;
   --shadow: #0c0c0c;
-  --accent: var(--ac-l, #ff5e63);
-  --accent-strong: var(--ac-strong-l, #ff4251);
-  --accent-soft: var(--ac-soft-l, #ffd9d6);
+  --accent: var(--ac-l, #fa2e49);
+  --accent-strong: var(--ac-strong-l, #f5053d);
+  --accent-soft: var(--ac-soft-l, #ffd9d7);
   --on-accent: var(--ac-on-l, #0c0c0c);
-  --logo: var(--ac-logo-l, #dd414a);
+  --logo: var(--ac-logo-l, #dd404c);
   --logo-bone: #fdfdfd;
   /* status fills carry black text in both themes */
   --ok: #58e3a4;
@@ -46,7 +46,7 @@
   --term-bg: #0c0c0c;
   --term-fg: #f4f1ea;
   --term-dim: #9a958c;
-  --term-accent: var(--ac-strong-d, #ff8483);
+  --term-accent: var(--ac-strong-d, #f6696d);
 
   /* shape */
   --border: 2px;
@@ -73,12 +73,12 @@
     --ink: #f4f1ea;
     --muted: #aaa49a;
     --line: #f4f1ea;
-    --shadow: var(--ac-d, #ff6c6e);
-    --accent: var(--ac-d, #ff6c6e);
-    --accent-strong: var(--ac-strong-d, #ff8483);
-    --accent-soft: var(--ac-soft-d, #3f1515);
+    --shadow: var(--ac-d, #ff3b50);
+    --accent: var(--ac-d, #ff3b50);
+    --accent-strong: var(--ac-strong-d, #f6696d);
+    --accent-soft: var(--ac-soft-d, #3f1516);
     --on-accent: var(--ac-on-d, #0c0c0c);
-    --logo: var(--ac-logo-d, #dd414a);
+    --logo: var(--ac-logo-d, #dd404c);
     --logo-bone: var(--ac-logo-bone-d, #fdfdfd);
     --ok-text: #58e3a4;
     --warn-text: #ffd23f;
@@ -95,12 +95,12 @@
   --ink: #f4f1ea;
   --muted: #aaa49a;
   --line: #f4f1ea;
-  --shadow: var(--ac-d, #ff6c6e);
-  --accent: var(--ac-d, #ff6c6e);
-  --accent-strong: var(--ac-strong-d, #ff8483);
-  --accent-soft: var(--ac-soft-d, #3f1515);
+  --shadow: var(--ac-d, #ff3b50);
+  --accent: var(--ac-d, #ff3b50);
+  --accent-strong: var(--ac-strong-d, #f6696d);
+  --accent-soft: var(--ac-soft-d, #3f1516);
   --on-accent: var(--ac-on-d, #0c0c0c);
-  --logo: var(--ac-logo-d, #dd414a);
+  --logo: var(--ac-logo-d, #dd404c);
   --logo-bone: var(--ac-logo-bone-d, #fdfdfd);
   --ok-text: #58e3a4;
   --warn-text: #ffd23f;
@@ -1206,8 +1206,8 @@ textarea {
   width: 14ch;
 }
 
-/* Accent colour: a hue slider. The track shows the colours it selects; the
- * thumb is the usual bordered knob. */
+/* Accent colour: a hue slider and a depth slider. Each track shows the
+ * colours it selects; the thumb is the usual bordered knob. */
 .accent-control {
   display: grid;
   gap: 8px;

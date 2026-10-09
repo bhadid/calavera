@@ -194,16 +194,20 @@ marks, the prompt before page titles, the log toggle and the text progress
 bar.
 
 The accent colour is the user's choice (Settings → Appearance): a hue
-slider, or monochrome. Only the hue is chosen. `lib/accentColour.ts`
-calculates every shade from it in the OKLCH colour model, where a fixed
-lightness looks equally light at every hue, so text on an accent fill stays
-readable wherever the slider is; each shade is as vivid as sRGB allows for
-that hue. The result is set as `--ac-*` variables on the root element, which
-the tokens in `styles.css` read, with the default (red, hue 22) as their
-fallback. The choice is kept in the browser's local storage together with the
-calculated shades, so `public/theme.js` can apply them before first paint.
-`scripts/check-accent.mjs` checks the contrast of all 360 hues and
-monochrome, and that the fallbacks in `styles.css` match the calculation.
+slider and a depth slider, or monochrome. `lib/accentColour.ts` calculates
+every shade from them in the OKLCH colour model, where a fixed lightness
+looks equally light at every hue. Each shade has its own lightness; the depth
+slider moves that of the accent fills, down to a floor below which black
+text on them would be too faint, so text on an accent fill stays readable
+wherever the sliders are. Each shade is as vivid as sRGB allows for its hue,
+up to a cap. The result is set as `--ac-*` variables on the root element,
+which the tokens in `styles.css` read, with the default (hue 21, depth 5: a
+red) as their fallback. The choice is kept in
+the browser's local storage together with the calculated shades, so
+`public/theme.js` can apply them before first paint.
+`scripts/check-accent.mjs` checks the contrast of all 360 hues at every
+depth and of monochrome, and that the fallbacks in `styles.css` match the
+calculation.
 
 The logo (`components/Skull.tsx`) is a skull with headphones: white bone,
 and lines in a further shade of the chosen hue calculated like the others.

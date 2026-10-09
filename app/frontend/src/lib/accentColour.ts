@@ -1,26 +1,34 @@
 // Accent colour maths. Pure functions, no browser APIs, so they can be checked
 // from Node (scripts/check-accent.mjs).
 //
-// The accent is chosen as a hue only. Every shade is then calculated in the
-// OKLCH colour model, where lightness means the same to the eye at every hue:
-// holding it fixed is what guarantees that the text on an accent fill stays
-// readable wherever the slider is. Each shade is made as vivid as sRGB allows
-// for its hue, up to a cap taken from the original pink.
+// The accent is chosen as a hue and a depth. Every shade is then calculated
+// in the OKLCH colour model, where lightness means the same to the eye at
+// every hue: the hue slider leaves it alone, the depth slider moves it within
+// limits, and that is what guarantees that the text on an accent fill stays
+// readable wherever the sliders are. Each shade is made as vivid as sRGB
+// allows for its hue, up to a cap.
 //
 // The logo is tinted the same way: its lines are one more shade of the chosen
 // hue, on white bone. Lightness and chroma of that shade come from the first
 // artwork (drawn in violet).
 
-export type AccentChoice = { hue: number; mono: boolean };
+export type AccentChoice = { hue: number; depth: number; mono: boolean };
 
-export const DEFAULT_ACCENT: AccentChoice = { hue: 22, mono: false };
+// The default: a red.
+export const DEFAULT_ACCENT: AccentChoice = { hue: 21, depth: 5, mono: false };
+
+/** The depth slider: each step makes the accent fills this much darker. */
+export const DEPTH = { min: -5, max: 7, step: 0.011 };
+// Fills are never darker than this: below it, black text on them is too faint.
+const FLOOR = 0.615;
+const FILLS = ["--ac-l", "--ac-strong-l", "--ac-d", "--ac-strong-d"];
 
 /** Lightness and highest chroma of each calculated shade. */
 const SHADES = {
-  "--ac-l": [0.694, 0.222],
+  "--ac-l": [0.694, 0.234],
   "--ac-strong-l": [0.664, 0.246],
   "--ac-soft-l": [0.916, 0.052],
-  "--ac-d": [0.713, 0.205],
+  "--ac-d": [0.713, 0.234],
   "--ac-strong-d": [0.751, 0.174],
   "--ac-soft-d": [0.262, 0.066],
   "--ac-logo-l": [0.605, 0.193],
@@ -90,15 +98,24 @@ export function shade(lightness: number, cap: number, hue: number): string {
 export function accentTokens(choice: AccentChoice): Record<string, string> {
   if (choice.mono) return { ...MONO };
   const tokens: Record<string, string> = { "--ac-on-l": ON_ACCENT, "--ac-on-d": ON_ACCENT, "--ac-logo-bone-d": "#fdfdfd" };
-  for (const [name, [lightness, cap]] of Object.entries(SHADES)) tokens[name] = shade(lightness, cap, choice.hue);
+  for (const [name, [lightness, cap]] of Object.entries(SHADES)) {
+    const moved = FILLS.includes(name) ? Math.max(FLOOR, lightness - choice.depth * DEPTH.step) : lightness;
+    tokens[name] = shade(moved, cap, choice.hue);
+  }
   return tokens;
 }
 
-/** The slider track: the light-theme accent at evenly spaced hues. */
-export function hueTrack(): string {
+/** The hue slider track: the light-theme accent of this depth at evenly spaced hues. */
+export function hueTrack(depth: number): string {
   const stops: string[] = [];
-  for (let hue = 0; hue <= 360; hue += 15) stops.push(shade(...SHADES["--ac-l"], hue));
+  for (let hue = 0; hue <= 360; hue += 15) stops.push(accentTokens({ hue, depth, mono: false })["--ac-l"]);
   return `linear-gradient(to right, ${stops.join(", ")})`;
+}
+
+/** The depth slider track: the light-theme accent of this hue from lightest to deepest. */
+export function depthTrack(hue: number): string {
+  const ends = [DEPTH.min, 0, DEPTH.max].map((depth) => accentTokens({ hue, depth, mono: false })["--ac-l"]);
+  return `linear-gradient(to right, ${ends.join(", ")})`;
 }
 
 const NAMES: [number, string][] = [

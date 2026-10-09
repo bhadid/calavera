@@ -1,12 +1,13 @@
 import { useCallback, useState } from "react";
-import { accentTokens, DEFAULT_ACCENT, type AccentChoice } from "./accentColour";
+import { accentTokens, DEFAULT_ACCENT, DEPTH, type AccentChoice } from "./accentColour";
 
 // The accent choice is kept per browser, like the theme. The calculated
 // shades are stored with it so that public/theme.js can apply them before
 // first paint without repeating the colour maths.
 const KEY = "calavera-accent";
 
-const isDefault = (choice: AccentChoice) => !choice.mono && choice.hue === DEFAULT_ACCENT.hue;
+const isDefault = (choice: AccentChoice) =>
+  !choice.mono && choice.hue === DEFAULT_ACCENT.hue && choice.depth === DEFAULT_ACCENT.depth;
 
 const DEFAULT_TOKENS = accentTokens(DEFAULT_ACCENT);
 let favicon = 0;
@@ -35,7 +36,9 @@ function read(): AccentChoice {
   try {
     const stored = JSON.parse(localStorage.getItem(KEY) ?? "null");
     if (stored && Number.isInteger(stored.hue) && stored.hue >= 0 && stored.hue < 360) {
-      return { hue: stored.hue, mono: stored.mono === true };
+      // A choice saved before there was a depth slider keeps the look it had.
+      const depth = Number.isInteger(stored.depth) && stored.depth >= DEPTH.min && stored.depth <= DEPTH.max ? stored.depth : 0;
+      return { hue: stored.hue, depth, mono: stored.mono === true };
     }
   } catch {
     // Storage unavailable or damaged: use the default.
