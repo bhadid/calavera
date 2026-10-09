@@ -11,7 +11,7 @@ try {
   // the browser-tab icon once the app has loaded.
   var tokens = (JSON.parse(localStorage.getItem("calavera-accent")) || {}).tokens || {};
   for (var name in tokens) {
-    if (/^--ac-[a-z-]+$/.test(name) && /^#[0-9a-f]{6}$/.test(tokens[name])) {
+    if (/^--ac-[a-z-]+$/.test(name) && /^#[0-9a-f]{6}([0-9a-f]{2})?$/.test(tokens[name])) {
       document.documentElement.style.setProperty(name, tokens[name]);
     }
   }

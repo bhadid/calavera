@@ -31,6 +31,7 @@
   --accent-soft: var(--ac-soft-l, #ffd9d6);
   --on-accent: var(--ac-on-l, #0c0c0c);
   --logo: var(--ac-logo-l, #dd414a);
+  --logo-bone: #fdfdfd;
   /* status fills carry black text in both themes */
   --ok: #58e3a4;
   --warn: #ffd23f;
@@ -78,6 +79,7 @@
     --accent-soft: var(--ac-soft-d, #3f1515);
     --on-accent: var(--ac-on-d, #0c0c0c);
     --logo: var(--ac-logo-d, #dd414a);
+    --logo-bone: var(--ac-logo-bone-d, #fdfdfd);
     --ok-text: #58e3a4;
     --warn-text: #ffd23f;
     --bad-text: #ff8a80;
@@ -99,6 +101,7 @@
   --accent-soft: var(--ac-soft-d, #3f1515);
   --on-accent: var(--ac-on-d, #0c0c0c);
   --logo: var(--ac-logo-d, #dd414a);
+  --logo-bone: var(--ac-logo-bone-d, #fdfdfd);
   --ok-text: #58e3a4;
   --warn-text: #ffd23f;
   --bad-text: #ff8a80;

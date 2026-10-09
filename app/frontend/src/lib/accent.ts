@@ -22,8 +22,8 @@ async function paintFavicon(tokens: Record<string, string>, standard: boolean) {
   }
   try {
     let svg = await (await fetch("/favicon.svg")).text();
-    // The dark-theme shade: with monochrome it shows on light and dark tab bars.
-    svg = svg.replaceAll(DEFAULT_TOKENS["--ac-logo-d"], tokens["--ac-logo-d"]);
+    // The light-theme shade: with monochrome that is black lines on the white bone.
+    svg = svg.replaceAll(DEFAULT_TOKENS["--ac-logo-l"], tokens["--ac-logo-l"]);
     // A slower, older request must not overwrite a newer colour.
     if (turn === favicon) link.href = `data:image/svg+xml,${encodeURIComponent(svg)}`;
   } catch {

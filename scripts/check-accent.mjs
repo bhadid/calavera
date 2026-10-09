@@ -35,8 +35,7 @@ for (const choice of choices) {
     }
   }
 }
-// The lines of the logo against its white bone, and against the page unless
-// the bone itself stands out from it (monochrome in the dark theme).
+// The lines of the logo against its white bone and against the page.
 const PAGE = { l: "#fff8ee", d: "#0b0b0c" };
 const BONE = "#fdfdfd";
 let worstLogo = Infinity;
@@ -45,8 +44,10 @@ for (const choice of choices) {
   const label = choice.mono ? "mono" : `hue ${choice.hue}`;
   for (const theme of ["l", "d"]) {
     const lines = t[`--ac-logo-${theme}`];
-    const onBone = contrast(lines, BONE);
-    const onPage = Math.max(contrast(lines, PAGE[theme]), contrast(BONE, PAGE[theme]));
+    // Monochrome in the dark theme has no bone: only the lines on the page count.
+    const boneless = theme === "d" && t["--ac-logo-bone-d"].endsWith("00");
+    const onBone = boneless ? Infinity : contrast(lines, BONE);
+    const onPage = boneless ? contrast(lines, PAGE[theme]) : Math.max(contrast(lines, PAGE[theme]), contrast(BONE, PAGE[theme]));
     worstLogo = Math.min(worstLogo, onBone, onPage);
     if (onBone < 3) fail(`${label} ${theme}: logo lines on the bone are ${onBone.toFixed(2)}:1`);
     if (onPage < 3) fail(`${label} ${theme}: logo on the page is ${onPage.toFixed(2)}:1`);
@@ -66,7 +67,7 @@ for (const [name, value] of Object.entries(defaults)) {
 const favicon = readFileSync(new URL("../app/frontend/public/favicon.svg", import.meta.url), "utf8");
 const logo = readFileSync(new URL("../app/frontend/src/components/Skull.tsx", import.meta.url), "utf8");
 const colours = [...new Set(favicon.match(/#[0-9a-fA-F]{6}\b/g))].sort();
-const expected = [BONE, defaults["--ac-logo-d"]].sort();
+const expected = [BONE, defaults["--ac-logo-l"]].sort();
 if (colours.join() !== expected.join()) fail(`favicon.svg colours are ${colours}, expected ${expected}`);
 for (const part of ["bone", "lines"]) {
   const path = favicon.match(new RegExp(`id="${part}" fill="[^"]+" d="([^"]+)"`));

@@ -38,8 +38,9 @@ const MONO: Record<string, string> = {
   "--ac-soft-d": "#2e2e33",
   "--ac-on-d": "#0b0b0c",
   "--ac-logo-l": "#0c0c0c",
-  // Black in the dark theme too: the lines must show on the white bone.
-  "--ac-logo-d": "#0c0c0c",
+  // The dark theme has white lines and no bone: a negative of the light one.
+  "--ac-logo-d": "#f4f1ea",
+  "--ac-logo-bone-d": "#fdfdfd00",
 };
 
 const ON_ACCENT = "#0c0c0c";
@@ -88,7 +89,7 @@ export function shade(lightness: number, cap: number, hue: number): string {
 /** The CSS variables for a choice: light (`-l`) and dark (`-d`) theme shades. */
 export function accentTokens(choice: AccentChoice): Record<string, string> {
   if (choice.mono) return { ...MONO };
-  const tokens: Record<string, string> = { "--ac-on-l": ON_ACCENT, "--ac-on-d": ON_ACCENT };
+  const tokens: Record<string, string> = { "--ac-on-l": ON_ACCENT, "--ac-on-d": ON_ACCENT, "--ac-logo-bone-d": "#fdfdfd" };
   for (const [name, [lightness, cap]] of Object.entries(SHADES)) tokens[name] = shade(lightness, cap, choice.hue);
   return tokens;
 }

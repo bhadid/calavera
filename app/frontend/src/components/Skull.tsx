@@ -1,5 +1,5 @@
-// The logo: a skull with headphones. White bone, and lines in one shade of
-// the accent hue (--logo). Both shapes were traced from a bitmap, so their
+// The logo: a skull with headphones. White bone (--logo-bone), and lines in
+// one shade of the accent hue (--logo). Both shapes were traced from a bitmap, so their
 // y axis points up. The same drawing is in public/favicon.svg in the default
 // colour; scripts/check-accent.mjs fails if the two drift apart.
 const WIDTH = 1671;
@@ -16,7 +16,7 @@ export function Skull({ size = 32 }: { size?: number }) {
   return (
     <svg className="skull" width={(size * WIDTH) / HEIGHT} height={size} viewBox={`0 0 ${WIDTH} ${HEIGHT}`} aria-hidden="true">
       <g transform={`translate(0 ${HEIGHT}) scale(1 -1)`}>
-        <path fill="#fdfdfd" d={BONE} />
+        <path fill="var(--logo-bone)" d={BONE} />
         <path fill="var(--logo)" d={LINES} />
       </g>
     </svg>
