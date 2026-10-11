@@ -259,14 +259,16 @@ textarea {
   flex: none;
 }
 
+/* One character cell, like a terminal's block cursor: the background of an
+   inline space reaches from the font's highest point to its lowest. */
 .cursor {
-  display: inline-block;
-  width: 0.6em;
-  height: 1.1em;
   margin-left: 2px;
   background: var(--accent);
-  vertical-align: text-bottom;
   animation: blink 1.1s steps(1) infinite;
+}
+
+.cursor::before {
+  content: "\00a0";
 }
 
 @keyframes blink {
