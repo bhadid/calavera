@@ -9,7 +9,7 @@ original, and files it under `Artist/Album/` in your library without ever
 overwriting what is already there.
 
 <p>
-  <img src="docs/screenshots/search-light.png" alt="Calavera's search page in the light theme: artists and albums found for a search, each album with its quality and a download button" width="560">
+  <img src="docs/screenshots/artist-light.png" alt="Calavera's artist page in the light theme: an artist's albums, each with its quality and a download button, one marked as in the library" width="560">
   <img src="docs/screenshots/album-dark.png" alt="Calavera's album page on a phone in the dark theme: the songs of an album with checkboxes and a download button" width="200">
 </p>
 
