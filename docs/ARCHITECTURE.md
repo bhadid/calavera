@@ -26,6 +26,7 @@ the app container only.
 ```
 compose.yaml              both services and every version pin
 .github/
+  workflows/ci.yml               tests, image build and colour check on every push
   workflows/upstream-check.yml   weekly check of the amdl and wrapper-lite pins
   scripts/check-upstream.sh      the check itself; opens issues, changes nothing
   dependabot.yml                 dependency update pull requests

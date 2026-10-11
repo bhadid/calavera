@@ -14,6 +14,13 @@ docker compose logs -f app
 
 Use a scratch library while developing, never a real one.
 
+## Continuous integration
+
+`.github/workflows/ci.yml` runs on every push to `main` and every pull
+request: the backend tests, a build of the app image (which type-checks and
+builds the frontend) and the accent colour check, with the commands given
+below. It does not build the wrapper image and does not talk to Apple.
+
 ## Backend tests
 
 ```bash

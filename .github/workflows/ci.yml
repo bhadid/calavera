@@ -1,0 +1,40 @@
+# On every push to main and every pull request: run the backend tests, build
+# the app image (which type-checks and builds the frontend) and check the
+# accent colours. The same commands as in docs/DEVELOPMENT.md.
+#
+# The wrapper image is not built here: it compiles wrapper-lite from source,
+# which downloads about 1 GB and takes several minutes.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Read the amdl pin from compose.yaml
+        run: |
+          version=$(sed -n 's/^ *AMDL_VERSION: *//p' compose.yaml)
+          sha256=$(sed -n 's/^ *AMDL_SHA256: *//p' compose.yaml)
+          test -n "$version" && test -n "$sha256"
+          echo "AMDL_VERSION=$version" >> "$GITHUB_ENV"
+          echo "AMDL_SHA256=$sha256" >> "$GITHUB_ENV"
+      - name: Backend tests
+        run: >
+          docker build --target test
+          --build-arg AMDL_VERSION --build-arg AMDL_SHA256
+          app
+      - name: App image, with frontend type check and build
+        run: >
+          docker build
+          --build-arg AMDL_VERSION --build-arg AMDL_SHA256
+          app
+      - name: Accent colour check
+        run: docker run --rm -v "$PWD":/w -w /w node:22-alpine node scripts/check-accent.mjs
