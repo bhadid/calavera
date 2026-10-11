@@ -250,7 +250,9 @@ things in it watch for updates:
 
 ## Development
 
-See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
+See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md). For bug reports and pull requests see
+[CONTRIBUTING.md](CONTRIBUTING.md); for security problems,
+[SECURITY.md](SECURITY.md).
 
 ## Credits
 
