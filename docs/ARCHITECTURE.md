@@ -61,10 +61,11 @@ app/
       lib/                api client, types, store (jobs, status, toasts), theme,
                           accent colour
       components/         Layout (top bar, tab bar, status line), JobCard,
-                          AlbumGrid, Cover, Icon, Controls (switch, segmented
-                          control), Confirm (confirmation dialog)
+                          AlbumGrid, ArtistNames, Cover, Icon, Skull (logo),
+                          Controls (switch, segmented control), Confirm
+                          (confirmation dialog)
       pages/              Queue, Search, Album (song selection), Artist,
-                          Settings, Account
+                          Song (forwards to the album), Settings, Account
       styles.css          design tokens and all styles
 ```
 

@@ -25,7 +25,8 @@ docker build --target test \
 
 The build fails if a test fails. The tests cover link parsing, the amdl output
 parser, settings validation, FLAC conversion and verification (real ffmpeg on
-generated audio) and the library import rules.
+generated audio), the library import rules, the download plan, the catalogue
+client (against canned answers, never Apple) and the database upgrade.
 
 Not covered by automated tests: the API routes, the job pipeline as a whole
 and the supervisor. They were exercised by hand; see "Manual checks" below.

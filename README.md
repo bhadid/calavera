@@ -8,19 +8,37 @@ version, converts it to FLAC, checks that the FLAC is bit-identical to the
 original, and files it under `Artist/Album/` in your library without ever
 overwriting what is already there.
 
-You need an Apple ID with an active Apple Music subscription. Whether using
-this is permitted for you depends on Apple's terms and the law where you live;
-that is yours to check.
+<p>
+  <img src="docs/screenshots/search-light.png" alt="Calavera's search page in the light theme: artists and albums found for a search, each album with its quality and a download button" width="560">
+  <img src="docs/screenshots/album-dark.png" alt="Calavera's album page on a phone in the dark theme: the songs of an album with checkboxes and a download button" width="200">
+</p>
 
-> **Status:** early (0.2.0). Verified on one Debian 12 host. See
+> **Status:** early (0.2.0), a personal project shared as it is. It runs
+> daily on one Debian 12 host and has not been tested elsewhere. See
 > [Known limits](#known-limits).
+
+## Before you use it
+
+- You need an Apple ID with an active Apple Music subscription. Calavera
+  downloads only what that subscription lets you play.
+- Calavera is not affiliated with or endorsed by Apple. Apple Music is a
+  trademark of Apple Inc.
+- Whether using this is permitted for you depends on Apple's terms and the
+  law where you live. That is yours to check, and the use is at your own
+  risk.
+- Calavera is a front end. The downloading and decryption are done by two
+  separate projects, [amdl](https://github.com/zhaarey/apple-music-downloader)
+  and [wrapper-lite](https://github.com/WorldObservationLog/wrapper/tree/lite),
+  which are fetched when you build the images. Nothing of theirs is in this
+  repository, and no ready-made images are published.
 
 ## What it does
 
 - **Queue** album and song links, one at a time, with live progress and a
   per-job log. The queue survives restarts.
 - **Search** the Apple Music catalogue, browse an artist's albums, and see
-  which albums you already have.
+  which albums you already have. Artist and album names link to their pages
+  everywhere, including the download history.
 - **Choose songs.** Open an album to pick individual songs. Songs Apple lists
   but does not offer (greyed out in its own apps) are shown as such and left
   out automatically.
@@ -35,6 +53,8 @@ that is yours to check.
 - **Sign in from the UI**, with two-factor code. The password is not stored.
 - A neo-brutalist, terminal-flavoured interface with light and dark themes,
   a phone layout and an accent colour you choose (or none).
+- **Considerate towards Apple's servers.** A page costs one or two catalogue
+  requests, and if Apple asks for a pause, Calavera keeps it.
 
 ## How it works
 
@@ -58,6 +78,8 @@ the library. More in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 ## Install
 
 ```bash
+git clone https://github.com/killparty/calavera.git
+cd calavera
 cp .env.example .env      # then edit it, see below
 mkdir -p data/staging
 docker compose build
@@ -114,9 +136,9 @@ the 6-digit code.
   selected; untick what you do not want. Songs that are not available or are
   already in your library cannot be ticked and say why.
 - **Settings:** FLAC on/off, highest sample rate, lyrics, cover size, metadata
-  language, store for search. Under *Appearance*, the accent colour: a slider, a
-  monochrome switch and a reset. That choice is kept in your browser, not on
-  the server.
+  language, store for search. Under *Appearance*, the accent colour (a hue
+  and a depth slider, or monochrome), whether the logo has its white fill,
+  and a reset. These choices are kept in your browser, not on the server.
 
 Job outcomes:
 
@@ -191,7 +213,8 @@ want a new feature.
 
 #### Finding out about updates
 
-On GitHub, two things watch for you:
+If you keep your copy as a repository on GitHub (a fork, for example), two
+things in it watch for updates:
 
 - **`.github/workflows/upstream-check.yml`** runs every Monday and compares
   the amdl and wrapper-lite pins with upstream. If either is behind it opens
@@ -237,6 +260,8 @@ Calavera is a front end. The hard parts are done by
 downloads at build time and does not redistribute.
 
 ## Licence
+
+Copyright © 2026 killparty.
 
 Calavera is free software, licensed under the GNU Affero General Public
 License, version 3 (`AGPL-3.0-only`). See [LICENSE](LICENSE).

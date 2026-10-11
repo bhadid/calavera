@@ -1,4 +1,4 @@
-# Weekly: tell me when amdl or wrapper-lite has something newer than the
+# Weekly: report when amdl or wrapper-lite has something newer than the
 # versions pinned in compose.yaml, by opening an issue. Nothing is updated
 # automatically.
 name: Upstream check
