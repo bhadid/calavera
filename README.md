@@ -13,7 +13,7 @@ overwriting what is already there.
   <img src="docs/screenshots/album-dark.png" alt="Calavera's album page on a phone in the dark theme: the songs of an album with checkboxes and a download button" width="200">
 </p>
 
-> **Status:** early (0.2.0), a personal project shared as it is. It runs
+> **Status:** early (0.3.0), a personal project shared as it is. It runs
 > daily on one Debian 12 host and has not been tested elsewhere. See
 > [Known limits](#known-limits).
 
