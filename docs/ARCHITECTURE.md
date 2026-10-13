@@ -186,9 +186,10 @@ The public file is right for lossless albums but can leave out an album's
 hi-res versions. Those are listed in full only in the description Apple
 gives a signed-in device, which the downloader gets through the wrapper.
 Calavera does not ask for that one while browsing, so that browsing stays
-anonymous. A hi-res album therefore reads "24-bit / at least 192 kHz" when
+anonymous. A hi-res album therefore reads "24-bit / at least 96 kHz" when
 the public file names a hi-res rate, and "24-bit / above 48 kHz" (what the
-tag guarantees) when it does not.
+tag guarantees) when it does not. Only 192 kHz, the highest rate Apple
+offers, is shown without "at least".
 
 Unrelated to Apple, the queue page shows its history 50 jobs at a time
 (`HISTORY_STEP` in `pages/Queue.tsx`).

@@ -30,6 +30,8 @@ _PAUSE = (60, 900)
 _ALAC_RE = re.compile(r"audio-alac-stereo-(\d+)-(\d+)")
 # Apple's "lossless" ends at this sample rate; "hi-res lossless" is above it.
 _LOSSLESS_MAX = 48000
+# The highest sample rate Apple offers.
+_HIRES_MAX = 192000
 # For how many albums the address of a stream description is remembered.
 _STREAMS_KEPT = 200
 
@@ -219,8 +221,9 @@ class Catalog:
         versions, which only the description given to a signed-in device
         lists in full. Calavera does not ask for that one, so that browsing
         stays anonymous. A hi-res album is therefore reported as "at least"
-        the hi-res rate the file names, or else by what Apple's hi-res tag
-        guarantees: 24-bit, above 48 kHz."""
+        the hi-res rate the file names (exactly that rate if it is Apple's
+        highest, 192 kHz), or else by what Apple's hi-res tag guarantees:
+        24-bit, above 48 kHz."""
         if (storefront, album_id) not in self._streams:
             await self.album(storefront, album_id)
         url, hires = self._streams[(storefront, album_id)]
@@ -228,7 +231,8 @@ class Catalog:
         if not hires:
             return {**listed, "rate": "exact"} if listed else None
         if listed and listed["sample_rate"] > _LOSSLESS_MAX:
-            return {**listed, "rate": "at_least"}
+            # Nothing is above the top rate, so there it is the whole answer.
+            return {**listed, "rate": "exact" if listed["sample_rate"] >= _HIRES_MAX else "at_least"}
         return {"sample_rate": _LOSSLESS_MAX, "bit_depth": 24, "rate": "above"}
 
     async def _listed_quality(self, stream_url: str) -> dict | None:

@@ -130,9 +130,15 @@ def test_a_lossless_albums_quality_is_read_exactly():
 
 def test_a_hires_album_is_at_least_the_hires_rate_its_public_playlist_names():
     # The song asked about is one with the album's best trait, not the bonus track.
-    quality, asked = quality_of([(LOSSLESS, f"{APPLE}/bonus.m3u8"), (HIRES, f"{APPLE}/hires.m3u8")])
-    assert quality == {"sample_rate": 192000, "bit_depth": 24, "rate": "at_least"}
+    tracks = [(LOSSLESS, f"{APPLE}/bonus.m3u8"), (HIRES, f"{APPLE}/hires.m3u8")]
+    quality, asked = quality_of(tracks, "audio-alac-stereo-48000-24\naudio-alac-stereo-96000-24")
+    assert quality == {"sample_rate": 96000, "bit_depth": 24, "rate": "at_least"}
     assert asked[-1] == "aod.itunes.apple.com/hires.m3u8"
+
+
+def test_the_highest_rate_apple_offers_is_exact():
+    quality, _ = quality_of([(HIRES, f"{APPLE}/hires.m3u8")])
+    assert quality == {"sample_rate": 192000, "bit_depth": 24, "rate": "exact"}
 
 
 @pytest.mark.parametrize(

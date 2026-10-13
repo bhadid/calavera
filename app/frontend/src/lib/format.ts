@@ -51,7 +51,7 @@ export function year(date: string): string {
 }
 
 /** "24-bit / 44.1 kHz" as in the queue's results; for a hi-res album
- *  "24-bit / at least 192 kHz" or "24-bit / above 48 kHz". */
+ *  "24-bit / at least 96 kHz" or "24-bit / above 48 kHz". */
 export function qualityNumbers(quality: AlbumQuality): string {
   const khz = `${quality.sample_rate / 1000} kHz`;
   // The doubt is about the rate only: 24-bit is the most Apple offers.
