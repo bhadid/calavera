@@ -37,7 +37,7 @@ export function AlbumPage() {
       .then((loaded) => {
         if (!alive) return;
         setAlbum(loaded);
-        // The exact quality takes one more download from Apple, so it is
+        // The quality in numbers takes one more download from Apple, so it is
         // asked for after the page is there; without it the tag stands alone.
         if (qualityLabel(loaded.traits)) {
           api
@@ -135,7 +135,7 @@ export function AlbumPage() {
             <p>
               <ArtistNames name={album.artist} artists={album.artists} />
             </p>
-            <p className="small muted">{[year(album.release_date), plural(album.tracks.length, "song"), numbers && `up to ${numbers}`].filter(Boolean).join(" · ")}</p>
+            <p className="small muted">{[year(album.release_date), plural(album.tracks.length, "song"), numbers].filter(Boolean).join(" · ")}</p>
             <div className="album-tags">
               {quality && <span className={`tag ${quality.startsWith("Hi-Res") ? "tag-accent" : ""}`}>{quality}</span>}
               {album.explicit && <span className="tag tag-ghost">Explicit</span>}

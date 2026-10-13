@@ -6,7 +6,7 @@ from calavera.settings import Settings
 
 def test_defaults():
     s = Settings()
-    assert s.flac is True and s.max_sample_rate == 192000 and s.language == "" and s.storefront == ""
+    assert s.flac is True and s.max_sample_rate == 96000 and s.language == "" and s.storefront == ""
 
 
 def test_unknown_stored_keys_are_ignored():

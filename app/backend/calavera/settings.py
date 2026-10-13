@@ -18,7 +18,7 @@ class Settings(BaseModel):
     # has been verified to decode to identical audio.
     flac: bool = True
     # Highest sample rate to download (Hz). The best version at or below it is used.
-    max_sample_rate: Literal[44100, 48000, 96000, 192000] = 192000
+    max_sample_rate: Literal[44100, 48000, 96000, 192000] = 96000
     # Metadata language, e.g. "en-GB". Empty: the store's default language.
     language: str = Field(default="", max_length=16, pattern=r"^([a-z]{2,3}(-[A-Za-z]{2,4}){0,2})?$")
     # Store used for search. Empty: the store of the signed-in account.

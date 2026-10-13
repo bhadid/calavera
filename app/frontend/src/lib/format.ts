@@ -1,3 +1,5 @@
+import type { AlbumQuality } from "./types";
+
 export function bytes(n: number | null | undefined): string {
   if (n == null) return "unknown";
   const units = ["B", "KB", "MB", "GB", "TB"];
@@ -48,9 +50,12 @@ export function year(date: string): string {
   return date.slice(0, 4);
 }
 
-/** "24-bit / 192 kHz", written as in the queue's results. */
-export function qualityNumbers(quality: { sample_rate: number; bit_depth: number }): string {
-  return `${quality.bit_depth}-bit / ${quality.sample_rate / 1000} kHz`;
+/** "24-bit / 44.1 kHz" as in the queue's results; for a hi-res album
+ *  "at least 24-bit / 192 kHz" or "24-bit / above 48 kHz". */
+export function qualityNumbers(quality: AlbumQuality): string {
+  const khz = `${quality.sample_rate / 1000} kHz`;
+  if (quality.rate === "above") return `${quality.bit_depth}-bit / above ${khz}`;
+  return `${quality.rate === "at_least" ? "at least " : ""}${quality.bit_depth}-bit / ${khz}`;
 }
 
 /** "Lossless", "Hi-Res Lossless" or "" from Apple's audioTraits. */

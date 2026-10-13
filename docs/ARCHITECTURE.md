@@ -172,14 +172,23 @@ one per 100 releases. `catalog.py` holds two safeguards:
 - An artist page stops at 300 releases (`ARTIST_ALBUMS`) and says when Apple
   lists more.
 
-An album page also shows the best quality on offer in numbers ("up to
-24-bit / 192 kHz"). Apple's catalogue only says "lossless" or "hi-res
-lossless"; the numbers are in a song's stream description, a small playlist
-file on Apple's download servers. The album request already returns its
-address, so `Catalog.album_quality` costs one download of that file for one
-song (the first with the album's best quality) and no further catalogue
-request. The page asks for it after it has appeared, and shows the tag alone
-if the answer does not come. Other songs of the album are assumed to match.
+An album page also shows the quality on offer in numbers. Apple's
+catalogue only says "lossless" (up to 24-bit / 48 kHz) or "hi-res lossless"
+(24-bit, above 48 kHz); the numbers are in a song's stream description, a
+small playlist file on Apple's download servers. The album request already
+returns the address of the public one, so `Catalog.album_quality` costs one
+download of that file for one song (the first with the album's best quality)
+and no further catalogue request. The page asks for it after it has appeared,
+and shows the tag alone if no answer comes. Other songs of the album are
+assumed to match.
+
+The public file is right for lossless albums but can leave out an album's
+hi-res versions. Those are listed in full only in the description Apple
+gives a signed-in device, which the downloader gets through the wrapper.
+Calavera does not ask for that one while browsing, so that browsing stays
+anonymous. A hi-res album therefore reads "at least 24-bit / 192 kHz" when
+the public file names a hi-res rate, and "24-bit / above 48 kHz" (what the
+tag guarantees) when it does not.
 
 Unrelated to Apple, the queue page shows its history 50 jobs at a time
 (`HISTORY_STEP` in `pages/Queue.tsx`).

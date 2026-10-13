@@ -326,8 +326,10 @@ def create_app(config: Config | None = None) -> FastAPI:
 
     @app.get("/api/catalog/albums/{album_id}/quality")
     async def catalog_album_quality(album_id: str, sf: str = ""):
-        """The best lossless quality the album is offered in:
-        `{"quality": {"sample_rate", "bit_depth"}}`, or null if unknown."""
+        """The lossless quality the album is offered in:
+        `{"quality": {"sample_rate", "bit_depth", "rate"}}`, or null if
+        unknown. `rate` says how to read the sample rate: "exact",
+        "at_least", or "above" (hi-res, the rate itself not known)."""
         if not album_id.isdigit() or (sf and not (len(sf) == 2 and sf.isalpha())):
             raise HTTPException(422, "Not a valid album reference.")
         try:

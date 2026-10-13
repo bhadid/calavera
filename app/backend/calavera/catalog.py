@@ -28,6 +28,8 @@ ARTIST_ALBUMS = 300
 _PAUSE = (60, 900)
 # The lossless variants in a song's stream description: sample rate, bit depth.
 _ALAC_RE = re.compile(r"audio-alac-stereo-(\d+)-(\d+)")
+# Apple's "lossless" ends at this sample rate; "hi-res lossless" is above it.
+_LOSSLESS_MAX = 48000
 # For how many albums the address of a stream description is remembered.
 _STREAMS_KEPT = 200
 
@@ -124,7 +126,7 @@ class Catalog:
         self._http = httpx.AsyncClient(timeout=10.0, headers={"User-Agent": _UA}, follow_redirects=True)
         self._token = ""
         self._token_expires = 0.0
-        self._streams: dict[tuple[str, str], str] = {}
+        self._streams: dict[tuple[str, str], tuple[str, bool]] = {}
         self._paused_until = 0.0
 
     async def close(self) -> None:
@@ -201,19 +203,36 @@ class Catalog:
         album["tracks"] = [_song(t) for t in tracks if t.get("type") == "songs"]
         # Kept for album_quality, so that it needs no second catalogue request.
         self._streams.pop((storefront, album_id), None)
-        self._streams[(storefront, album_id)] = _stream_url(album, tracks)
+        self._streams[(storefront, album_id)] = (_stream_url(album, tracks), "hi-res-lossless" in album["traits"])
         while len(self._streams) > _STREAMS_KEPT:
             del self._streams[next(iter(self._streams))]
         return album
 
     async def album_quality(self, storefront: str, album_id: str) -> dict | None:
-        """The best lossless quality an album is offered in, as sample rate
-        and bit depth, read from one song's stream description: one small
-        download, no catalogue request if the album was just looked up.
-        None if it cannot be told."""
+        """The lossless quality an album is offered in: `sample_rate`,
+        `bit_depth` and how to read the rate (`rate`: "exact", "at_least" or
+        "above"). None if it cannot be told.
+
+        The numbers come from one song's public stream description: one small
+        download, no catalogue request if the album was just looked up. That
+        file is right for lossless albums but can leave out the hi-res
+        versions, which only the description given to a signed-in device
+        lists in full. Calavera does not ask for that one, so that browsing
+        stays anonymous. A hi-res album is therefore reported as "at least"
+        the hi-res rate the file names, or else by what Apple's hi-res tag
+        guarantees: 24-bit, above 48 kHz."""
         if (storefront, album_id) not in self._streams:
             await self.album(storefront, album_id)
-        url = httpx.URL(self._streams[(storefront, album_id)])
+        url, hires = self._streams[(storefront, album_id)]
+        listed = await self._listed_quality(url)
+        if not hires:
+            return {**listed, "rate": "exact"} if listed else None
+        if listed and listed["sample_rate"] > _LOSSLESS_MAX:
+            return {**listed, "rate": "at_least"}
+        return {"sample_rate": _LOSSLESS_MAX, "bit_depth": 24, "rate": "above"}
+
+    async def _listed_quality(self, stream_url: str) -> dict | None:
+        url = httpx.URL(stream_url)
         if url.scheme != "https" or not url.host.endswith(".apple.com"):
             return None
         if self._paused_until > time.monotonic():

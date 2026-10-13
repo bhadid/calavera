@@ -120,10 +120,12 @@ export interface Track extends Song {
   in_library: boolean;
 }
 
-/** The best lossless quality an album is offered in. */
+/** The lossless quality an album is offered in. `rate` says how to read the
+ *  sample rate: "above" is a hi-res album whose rate itself is not known. */
 export interface AlbumQuality {
   sample_rate: number;
   bit_depth: number;
+  rate: "exact" | "at_least" | "above";
 }
 
 export interface AlbumDetail extends Album {
