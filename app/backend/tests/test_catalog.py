@@ -123,22 +123,22 @@ APPLE = "https://aod.itunes.apple.com"
 
 def test_a_lossless_albums_quality_is_read_exactly():
     quality, asked = quality_of([(LOSSLESS, f"{APPLE}/a.m3u8")], "audio-alac-stereo-44100-16\naudio-alac-stereo-44100-24")
-    assert quality == {"sample_rate": 44100, "bit_depth": 24, "rate": "exact"}
+    assert quality == {"bit_depth": 24, "sample_rate_min": 44100, "sample_rate_max": 44100}
     # One catalogue request for the album and its quality, and one download.
     assert asked == ["amp-api.music.apple.com/v1/catalog/de/albums/1", "aod.itunes.apple.com/a.m3u8"]
 
 
-def test_a_hires_album_is_at_least_the_hires_rate_its_public_playlist_names():
+def test_a_hires_albums_rate_starts_at_the_hires_rate_its_public_playlist_names():
     # The song asked about is one with the album's best trait, not the bonus track.
     tracks = [(LOSSLESS, f"{APPLE}/bonus.m3u8"), (HIRES, f"{APPLE}/hires.m3u8")]
     quality, asked = quality_of(tracks, "audio-alac-stereo-48000-24\naudio-alac-stereo-96000-24")
-    assert quality == {"sample_rate": 96000, "bit_depth": 24, "rate": "at_least"}
+    assert quality == {"bit_depth": 24, "sample_rate_min": 96000, "sample_rate_max": 192000}
     assert asked[-1] == "aod.itunes.apple.com/hires.m3u8"
 
 
-def test_the_highest_rate_apple_offers_is_exact():
+def test_the_highest_rate_apple_offers_is_no_range():
     quality, _ = quality_of([(HIRES, f"{APPLE}/hires.m3u8")])
-    assert quality == {"sample_rate": 192000, "bit_depth": 24, "rate": "exact"}
+    assert quality == {"bit_depth": 24, "sample_rate_min": 192000, "sample_rate_max": 192000}
 
 
 @pytest.mark.parametrize(
@@ -149,9 +149,9 @@ def test_the_highest_rate_apple_offers_is_exact():
         ("", PLAYLIST, 200),
     ],
 )
-def test_a_hires_album_is_never_reported_below_what_its_tag_guarantees(url, playlist, status):
+def test_a_hires_album_of_unknown_rate_spans_all_hires_rates(url, playlist, status):
     quality, _ = quality_of([(HIRES, url)], playlist, status)
-    assert quality == {"sample_rate": 48000, "bit_depth": 24, "rate": "above"}
+    assert quality == {"bit_depth": 24, "sample_rate_min": 88200, "sample_rate_max": 192000}
 
 
 @pytest.mark.parametrize(

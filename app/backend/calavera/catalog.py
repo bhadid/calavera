@@ -28,10 +28,10 @@ ARTIST_ALBUMS = 300
 _PAUSE = (60, 900)
 # The lossless variants in a song's stream description: sample rate, bit depth.
 _ALAC_RE = re.compile(r"audio-alac-stereo-(\d+)-(\d+)")
-# Apple's "lossless" ends at this sample rate; "hi-res lossless" is above it.
+# Apple's "lossless" ends at this sample rate. "Hi-res lossless" is 24-bit
+# at one of 88.2, 96, 176.4 or 192 kHz: the lowest and the highest.
 _LOSSLESS_MAX = 48000
-# The highest sample rate Apple offers.
-_HIRES_MAX = 192000
+_HIRES = (88200, 192000)
 # For how many albums the address of a stream description is remembered.
 _STREAMS_KEPT = 200
 
@@ -211,29 +211,28 @@ class Catalog:
         return album
 
     async def album_quality(self, storefront: str, album_id: str) -> dict | None:
-        """The lossless quality an album is offered in: `sample_rate`,
-        `bit_depth` and how to read the rate (`rate`: "exact", "at_least" or
-        "above"). None if it cannot be told.
+        """The lossless quality an album is offered in: `bit_depth` and the
+        sample rate as a range, `sample_rate_min` to `sample_rate_max`, which
+        are equal when the rate is known. None if nothing can be told.
 
         The numbers come from one song's public stream description: one small
         download, no catalogue request if the album was just looked up. That
         file is right for lossless albums but can leave out the hi-res
         versions, which only the description given to a signed-in device
         lists in full. Calavera does not ask for that one, so that browsing
-        stays anonymous. A hi-res album is therefore reported as "at least"
-        the hi-res rate the file names (exactly that rate if it is Apple's
-        highest, 192 kHz), or else by what Apple's hi-res tag guarantees:
-        24-bit, above 48 kHz."""
+        stays anonymous. A hi-res album's rate is therefore a range: from
+        the hi-res rate the file names, or else the lowest one there is, up
+        to the highest Apple offers."""
         if (storefront, album_id) not in self._streams:
             await self.album(storefront, album_id)
         url, hires = self._streams[(storefront, album_id)]
         listed = await self._listed_quality(url)
         if not hires:
-            return {**listed, "rate": "exact"} if listed else None
-        if listed and listed["sample_rate"] > _LOSSLESS_MAX:
-            # Nothing is above the top rate, so there it is the whole answer.
-            return {**listed, "rate": "exact" if listed["sample_rate"] >= _HIRES_MAX else "at_least"}
-        return {"sample_rate": _LOSSLESS_MAX, "bit_depth": 24, "rate": "above"}
+            if not listed:
+                return None
+            return {"bit_depth": listed["bit_depth"], "sample_rate_min": listed["sample_rate"], "sample_rate_max": listed["sample_rate"]}
+        lowest = listed["sample_rate"] if listed and listed["sample_rate"] > _LOSSLESS_MAX else _HIRES[0]
+        return {"bit_depth": 24, "sample_rate_min": lowest, "sample_rate_max": _HIRES[1]}
 
     async def _listed_quality(self, stream_url: str) -> dict | None:
         url = httpx.URL(stream_url)
