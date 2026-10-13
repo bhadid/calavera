@@ -126,6 +126,7 @@ Interactive reference while the app runs: `http://<host>:<port>/api/docs`.
 | `GET` · `PUT /api/settings` | Read · change settings (partial updates accepted). |
 | `POST /api/account/login` · `/api/account/code` | Start a sign-in · submit the 2FA code. |
 | `GET /api/catalog/search?q=` · `/api/catalog/artists/{id}` · `/api/catalog/albums/{id}?sf=` | Catalogue. The album response lists tracks with `available` and `in_library`. |
+| `GET /api/catalog/albums/{id}/quality?sf=` | The best lossless quality the album is offered in: `{"quality": {"sample_rate", "bit_depth"}}`, or `null` if it cannot be told. |
 
 Errors are `{"error": "<message>"}` with a fitting status code.
 

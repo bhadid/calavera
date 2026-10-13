@@ -87,3 +87,62 @@ def test_an_artists_albums_stop_at_the_limit_and_say_so(total, shown, more):
     assert catalog_module.ARTIST_ALBUMS == 300
     artist = asyncio.run(catalog_answering(artist_pages(total)).artist_albums("de", "9"))
     assert (len(artist["albums"]), artist["more"]) == (shown, more)
+
+
+def album_answer(*tracks: tuple[list[str], str]) -> dict:
+    songs = [
+        {"type": "songs", "id": str(n), "attributes": {"audioTraits": traits, "extendedAssetUrls": {"enhancedHls": url} if url else {}}}
+        for n, (traits, url) in enumerate(tracks)
+    ]
+    best = sorted({t for traits, _ in tracks for t in traits})
+    return {"data": [{"id": "1", "attributes": {"audioTraits": best}, "relationships": {"tracks": {"data": songs}}}]}
+
+
+PLAYLIST = "audio-alac-stereo-48000-24\naudio-alac-stereo-192000-24\naudio-atmos-2768\naudio-alac-stereo-48000-24"
+
+
+def test_album_quality_is_the_best_lossless_variant_of_a_song_with_the_albums_best_trait():
+    asked: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        asked.append(request.url.host + request.url.path)
+        if request.url.host == "amp-api.music.apple.com":
+            return httpx.Response(200, json=album_answer(
+                (["lossless"], "https://aod.itunes.apple.com/bonus.m3u8"),
+                (["lossless", "hi-res-lossless"], "https://aod.itunes.apple.com/hires.m3u8"),
+            ))
+        return httpx.Response(200, text=PLAYLIST)
+
+    catalog = catalog_answering(handler)
+    asyncio.run(catalog.album("de", "1"))
+    assert asyncio.run(catalog.album_quality("de", "1")) == {"sample_rate": 192000, "bit_depth": 24}
+    # One catalogue request for both calls, and one download of the right song's playlist.
+    assert asked == ["amp-api.music.apple.com/v1/catalog/de/albums/1", "aod.itunes.apple.com/hires.m3u8"]
+
+
+@pytest.mark.parametrize(
+    "url, playlist",
+    [
+        ("", PLAYLIST),  # Apple names no playlist
+        ("https://example.com/x.m3u8", PLAYLIST),  # not Apple's server: not fetched
+        ("http://aod.itunes.apple.com/x.m3u8", PLAYLIST),
+        ("https://aod.itunes.apple.com/x.m3u8", "audio-atmos-2768"),  # no lossless variant
+    ],
+)
+def test_album_quality_is_unknown_rather_than_wrong(url, playlist):
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.host == "amp-api.music.apple.com":
+            return httpx.Response(200, json=album_answer((["lossless"], url)))
+        assert request.url.host.endswith(".apple.com") and request.url.scheme == "https"
+        return httpx.Response(200, text=playlist)
+
+    assert asyncio.run(catalog_answering(handler).album_quality("de", "1")) is None
+
+
+def test_album_quality_survives_a_failed_download():
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.host == "amp-api.music.apple.com":
+            return httpx.Response(200, json=album_answer((["lossless"], "https://aod.itunes.apple.com/x.m3u8")))
+        return httpx.Response(503)
+
+    assert asyncio.run(catalog_answering(handler).album_quality("de", "1")) is None

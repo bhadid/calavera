@@ -48,6 +48,11 @@ export function year(date: string): string {
   return date.slice(0, 4);
 }
 
+/** "24-bit / 192 kHz", written as in the queue's results. */
+export function qualityNumbers(quality: { sample_rate: number; bit_depth: number }): string {
+  return `${quality.bit_depth}-bit / ${quality.sample_rate / 1000} kHz`;
+}
+
 /** "Lossless", "Hi-Res Lossless" or "" from Apple's audioTraits. */
 export function qualityLabel(traits: string[]): string {
   if (traits.includes("hi-res-lossless")) return "Hi-Res Lossless";

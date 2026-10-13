@@ -120,6 +120,12 @@ export interface Track extends Song {
   in_library: boolean;
 }
 
+/** The best lossless quality an album is offered in. */
+export interface AlbumQuality {
+  sample_rate: number;
+  bit_depth: number;
+}
+
 export interface AlbumDetail extends Album {
   storefront: string;
   tracks: Track[];

@@ -45,7 +45,8 @@ overwriting what is already there.
 - **FLAC by default.** Each track is converted from Apple Lossless and
   verified to decode to identical audio before the original is deleted. Can be
   switched off to keep Apple Lossless (`.m4a`).
-- **Hi-Res** up to 24-bit / 192 kHz, with a configurable cap.
+- **Hi-Res** up to 24-bit / 192 kHz, with a configurable cap. An album's
+  page says which quality Apple offers it in.
 - **Synced lyrics, cover art and tags** embedded, using standard FLAC tag
   names.
 - **Careful with your library.** Nothing existing is overwritten, renamed or

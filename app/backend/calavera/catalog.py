@@ -26,6 +26,10 @@ ARTIST_ALBUMS = 300
 # How long to leave Apple alone after it asks for a pause, in seconds: its
 # own figure (Retry-After) within these bounds, the first one without it.
 _PAUSE = (60, 900)
+# The lossless variants in a song's stream description: sample rate, bit depth.
+_ALAC_RE = re.compile(r"audio-alac-stereo-(\d+)-(\d+)")
+# For how many albums the address of a stream description is remembered.
+_STREAMS_KEPT = 200
 
 
 class CatalogError(Exception):
@@ -83,6 +87,28 @@ def _song(item: dict) -> dict:
     }
 
 
+def _stream_url(album: dict, tracks: list[dict]) -> str:
+    """The address of one song's stream description (an HLS playlist on
+    Apple's download servers), which lists the qualities on offer. The song is
+    the first one with the album's best quality, so that a lossless-only
+    bonus track does not speak for a hi-res album."""
+    best = next((t for t in ("hi-res-lossless", "lossless") if t in album["traits"]), "")
+    urls = [
+        (best in ((t.get("attributes") or {}).get("audioTraits") or []), url)
+        for t in tracks
+        if (url := ((t.get("attributes") or {}).get("extendedAssetUrls") or {}).get("enhancedHls"))
+    ]
+    return next((url for fits, url in urls if fits), urls[0][1] if urls else "")
+
+
+def _best_lossless(playlist: str) -> dict | None:
+    found = [(int(rate), int(depth)) for rate, depth in _ALAC_RE.findall(playlist)]
+    if not found:
+        return None
+    rate, depth = max(found)
+    return {"sample_rate": rate, "bit_depth": depth}
+
+
 def _artist(item: dict) -> dict:
     a = item.get("attributes") or {}
     return {"id": item.get("id", ""), "name": a.get("name", ""), "artwork": _artwork(a), "url": a.get("url", "")}
@@ -98,6 +124,7 @@ class Catalog:
         self._http = httpx.AsyncClient(timeout=10.0, headers={"User-Agent": _UA}, follow_redirects=True)
         self._token = ""
         self._token_expires = 0.0
+        self._streams: dict[tuple[str, str], str] = {}
         self._paused_until = 0.0
 
     async def close(self) -> None:
@@ -162,14 +189,41 @@ class Catalog:
         raise CatalogError("The Apple Music catalogue rejected the request.")
 
     async def album(self, storefront: str, album_id: str, language: str = "") -> dict:
-        data = await self._get(f"{storefront}/albums/{album_id}", {"l": language, "include": "artists", "include[songs]": "artists"})
+        data = await self._get(
+            f"{storefront}/albums/{album_id}",
+            {"l": language, "include": "artists", "include[songs]": "artists", "extend[songs]": "extendedAssetUrls"},
+        )
         items = data.get("data") or []
         if not items:
             raise CatalogError("Album not found.")
         album = _album(items[0])
         tracks = ((items[0].get("relationships") or {}).get("tracks") or {}).get("data") or []
         album["tracks"] = [_song(t) for t in tracks if t.get("type") == "songs"]
+        # Kept for album_quality, so that it needs no second catalogue request.
+        self._streams.pop((storefront, album_id), None)
+        self._streams[(storefront, album_id)] = _stream_url(album, tracks)
+        while len(self._streams) > _STREAMS_KEPT:
+            del self._streams[next(iter(self._streams))]
         return album
+
+    async def album_quality(self, storefront: str, album_id: str) -> dict | None:
+        """The best lossless quality an album is offered in, as sample rate
+        and bit depth, read from one song's stream description: one small
+        download, no catalogue request if the album was just looked up.
+        None if it cannot be told."""
+        if (storefront, album_id) not in self._streams:
+            await self.album(storefront, album_id)
+        url = httpx.URL(self._streams[(storefront, album_id)])
+        if url.scheme != "https" or not url.host.endswith(".apple.com"):
+            return None
+        if self._paused_until > time.monotonic():
+            return None
+        try:
+            resp = await self._http.get(url)
+            resp.raise_for_status()
+        except httpx.HTTPError:
+            return None
+        return _best_lossless(resp.text)
 
     async def song(self, storefront: str, song_id: str, language: str = "") -> dict:
         data = await self._get(f"{storefront}/songs/{song_id}", {"l": language, "include": "artists"})

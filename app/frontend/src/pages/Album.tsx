@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { api, ApiError } from "../lib/api";
-import { duration, plural, qualityLabel, year } from "../lib/format";
+import { duration, plural, qualityLabel, qualityNumbers, year } from "../lib/format";
 import { useStore } from "../lib/store";
 import type { AlbumDetail, Track } from "../lib/types";
 import { ArtistNames } from "../components/ArtistNames";
@@ -23,6 +23,7 @@ export function AlbumPage() {
   const { jobs, notify } = useStore();
   const [album, setAlbum] = useState<AlbumDetail | null>(null);
   const [error, setError] = useState("");
+  const [numbers, setNumbers] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
 
@@ -30,11 +31,20 @@ export function AlbumPage() {
     let alive = true;
     setAlbum(null);
     setError("");
+    setNumbers("");
     api
       .album(id, storefront)
       .then((loaded) => {
         if (!alive) return;
         setAlbum(loaded);
+        // The exact quality takes one more download from Apple, so it is
+        // asked for after the page is there; without it the tag stands alone.
+        if (qualityLabel(loaded.traits)) {
+          api
+            .albumQuality(id, storefront)
+            .then(({ quality }) => alive && quality && setNumbers(qualityNumbers(quality)))
+            .catch(() => undefined);
+        }
         // Start with everything that can be downloaded selected: the common
         // case is "the album", and unticking is quicker than ticking.
         setSelected(new Set(loaded.tracks.filter((t) => !blocked(t)).map((t) => t.id)));
@@ -125,7 +135,7 @@ export function AlbumPage() {
             <p>
               <ArtistNames name={album.artist} artists={album.artists} />
             </p>
-            <p className="small muted">{[year(album.release_date), plural(album.tracks.length, "song")].filter(Boolean).join(" · ")}</p>
+            <p className="small muted">{[year(album.release_date), plural(album.tracks.length, "song"), numbers && `up to ${numbers}`].filter(Boolean).join(" · ")}</p>
             <div className="album-tags">
               {quality && <span className={`tag ${quality.startsWith("Hi-Res") ? "tag-accent" : ""}`}>{quality}</span>}
               {album.explicit && <span className="tag tag-ghost">Explicit</span>}

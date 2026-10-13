@@ -324,6 +324,17 @@ def create_app(config: Config | None = None) -> FastAPI:
         await asyncio.to_thread(mark_owned_tracks, album)
         return album
 
+    @app.get("/api/catalog/albums/{album_id}/quality")
+    async def catalog_album_quality(album_id: str, sf: str = ""):
+        """The best lossless quality the album is offered in:
+        `{"quality": {"sample_rate", "bit_depth"}}`, or null if unknown."""
+        if not album_id.isdigit() or (sf and not (len(sf) == 2 and sf.isalpha())):
+            raise HTTPException(422, "Not a valid album reference.")
+        try:
+            return {"quality": await catalog.album_quality(sf.lower() or await storefront(), album_id)}
+        except CatalogError as e:
+            raise HTTPException(502, str(e)) from e
+
     @app.get("/api/catalog/artists/{artist_id}")
     async def catalog_artist(artist_id: str):
         try:
