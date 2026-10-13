@@ -5,7 +5,7 @@
 #
 # requirements.txt is generated from this file and pins every package,
 # including sub-dependencies, to versions that fit together.
-fastapi==0.142.2
+fastapi==0.143.0
 uvicorn==0.54.0
 httpx==0.28.1
 PyYAML==6.0.3
