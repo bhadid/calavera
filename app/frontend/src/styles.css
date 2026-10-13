@@ -645,7 +645,8 @@ textarea {
 
 /* Fingers need bigger targets than pointers. */
 @media (pointer: coarse) {
-  .button-small {
+  .button-small,
+  .segmented label {
     min-height: var(--tap);
   }
 }

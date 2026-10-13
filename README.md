@@ -1,5 +1,9 @@
 # Calavera
 
+[![CI](https://github.com/killparty/calavera/actions/workflows/ci.yml/badge.svg)](https://github.com/killparty/calavera/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/killparty/calavera)](https://github.com/killparty/calavera/releases/latest)
+[![Licence](https://img.shields.io/github/license/killparty/calavera)](LICENSE)
+
 A small, self-hosted web UI that downloads albums and songs from Apple Music
 into your own music library as FLAC.
 
@@ -9,13 +13,9 @@ original, and files it under `Artist/Album/` in your library without ever
 overwriting what is already there.
 
 <p>
-  <img src="docs/screenshots/artist-light.png" alt="Calavera's artist page in the light theme: an artist's albums, each with its quality and a download button, one marked as in the library" width="560">
-  <img src="docs/screenshots/album-dark.png" alt="Calavera's album page on a phone in the dark theme: the songs of an album with checkboxes and a download button" width="200">
+  <img src="docs/screenshots/artist-light.png" alt="Calavera's artist page in the light theme: an artist's albums, with a switch to the singles and EPs; each album has its quality and a download button, one is marked as in the library" width="560">
+  <img src="docs/screenshots/album-dark.png" alt="Calavera's album page on a phone in the dark theme: an album with its quality in numbers, its songs with checkboxes, and a download button" width="200">
 </p>
-
-> **Status:** early (0.3.0), a personal project shared as it is. It runs
-> daily on one Debian 12 host and has not been tested elsewhere. See
-> [Known limits](#known-limits).
 
 ## Before you use it
 
@@ -133,7 +133,12 @@ the 6-digit code.
   instead.
 - **Search:** type an artist, album or song, or paste a link. *In library*
   marks albums whose folder already exists. Tap a cover or title to open the
-  album.
+  album, an artist's name to open the artist's page. There, a switch shows
+  either the albums or the singles and EPs.
+- **Getting the latest from Apple:** pages you return to are remembered for
+  a while (a search or an artist page for 15 minutes, an album for an hour)
+  instead of asked for again. Reloading the page in your browser, or
+  pressing *Search*, asks Apple afresh.
 - **Album page:** every song with a checkbox. Everything downloadable starts
   selected; untick what you do not want. Songs that are not available or are
   already in your library cannot be ticked and say why.
@@ -193,7 +198,24 @@ volume), the queue, history and settings (`data/calavera.db`).
 `docker compose down -v` deletes the Apple session (you would have to sign in
 again).
 
-### Updating
+### Updating Calavera
+
+New versions are listed under
+[Releases](https://github.com/killparty/calavera/releases). In the folder
+you cloned:
+
+```bash
+git pull
+docker compose build
+docker compose up -d
+```
+
+Your `.env`, the Apple session, the queue, history and settings are kept.
+A download that is running is interrupted by the restart; *Retry* runs it
+again. To stay on a particular version instead of the latest state, use
+`git checkout v0.4.0` (for example) in place of `git pull`.
+
+### Updating the pinned components
 
 Versions are pinned in `compose.yaml` and `app/Dockerfile`:
 
@@ -248,7 +270,9 @@ things in it watch for updates:
   `app/backend/calavera/catalog.py` is updated; downloads by link keep working.
 - wrapper-lite needs three relaxed Docker security options (see
   `compose.yaml`). It does not run privileged.
-- Not tested: rootless Docker, Podman, SELinux hosts, ARM.
+- Developed and in daily use on Debian 12 with Docker Engine. Other Linux
+  distributions should work but are untested, as are rootless Docker,
+  Podman, SELinux hosts and ARM.
 
 ## Development
 
