@@ -28,16 +28,20 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 
 // Reloading a page is a request for the latest: the catalogue calls of the
 // reloaded page ask Apple afresh instead of using Calavera's short memory.
-// It ends with the first move to another page (see Layout).
+// It ends with the first move to another page: Layout reports that, but only
+// after the new page has made its first calls, hence the address check too.
+const reloadedAt = location.pathname + location.search;
 let reloaded = (performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined)?.type === "reload";
 
 export function leftReloadedPage(): void {
   reloaded = false;
 }
 
+const onReloadedPage = () => reloaded && location.pathname + location.search === reloadedAt;
+
 /** The query string of a catalogue call. `fresh` asks Apple even if the answer is remembered. */
 function query(params: Record<string, string | undefined>, fresh?: boolean): string {
-  const all = { ...params, fresh: fresh || reloaded ? "1" : undefined };
+  const all = { ...params, fresh: fresh || onReloadedPage() ? "1" : undefined };
   const pairs = Object.entries(all).filter((pair): pair is [string, string] => Boolean(pair[1]));
   return pairs.length ? `?${new URLSearchParams(pairs)}` : "";
 }
