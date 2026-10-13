@@ -1,3 +1,3 @@
 # Test dependencies on top of the runtime ones. See requirements.in.
 -r requirements.in
-pytest==9.0.3
+pytest==9.1.1
