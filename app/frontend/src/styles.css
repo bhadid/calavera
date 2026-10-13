@@ -790,6 +790,7 @@ textarea {
 /* Segmented control: a small set of mutually exclusive choices. */
 .segmented {
   display: inline-flex;
+  justify-self: start; /* as wide as its segments, also as a grid item */
   flex-wrap: wrap;
   border: var(--border) solid var(--line);
   border-radius: var(--radius);
