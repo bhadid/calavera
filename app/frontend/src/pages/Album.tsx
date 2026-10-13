@@ -7,6 +7,7 @@ import type { AlbumDetail, Track } from "../lib/types";
 import { ArtistNames } from "../components/ArtistNames";
 import { Cover } from "../components/Cover";
 import { Icon } from "../components/Icon";
+import { StaleNote } from "../components/StaleNote";
 
 /** Why a song cannot be chosen, in words; null if it can. */
 function blocked(track: Track): string | null {
@@ -128,6 +129,7 @@ export function AlbumPage() {
     <>
       <div className="section">
         {back}
+        <StaleNote since={album.stale_since} />
         <div className="album-head">
           <Cover src={album.artwork} size={160} />
           <div className="album-head-text">

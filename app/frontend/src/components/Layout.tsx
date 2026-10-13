@@ -1,4 +1,6 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { useEffect, useRef } from "react";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { leftReloadedPage } from "../lib/api";
 import { bytes } from "../lib/format";
 import { useStore } from "../lib/store";
 import { useTheme } from "../lib/theme";
@@ -78,6 +80,13 @@ export function Layout() {
   const [theme, cycleTheme] = useTheme();
   const active = jobs.filter((j) => j.status === "queued" || j.status === "running").length;
   const account = accountState(status);
+  // A reloaded page asks Apple afresh (lib/api.ts); that ends on leaving it.
+  const location = useLocation();
+  const arrived = useRef(true);
+  useEffect(() => {
+    if (arrived.current) arrived.current = false;
+    else leftReloadedPage();
+  }, [location.key]);
   return (
     <>
       <header className="topbar">

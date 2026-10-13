@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { api, ApiError } from "../lib/api";
 import { duration, songAlbumPath } from "../lib/format";
@@ -7,6 +7,7 @@ import { AlbumGrid, QueueButton } from "../components/AlbumGrid";
 import { ArtistNames } from "../components/ArtistNames";
 import { Cover } from "../components/Cover";
 import { Icon } from "../components/Icon";
+import { StaleNote } from "../components/StaleNote";
 
 export function SearchPage() {
   // The query lives in the URL so results survive reloads and the back button.
@@ -16,6 +17,10 @@ export function SearchPage() {
   const [results, setResults] = useState<SearchResults | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  // Pressing Search asks Apple afresh, also for the same words again; coming
+  // back to this page uses what Calavera remembers.
+  const [presses, setPresses] = useState(0);
+  const pressed = useRef(false);
 
   useEffect(() => {
     setText(query);
@@ -26,18 +31,22 @@ export function SearchPage() {
     let alive = true;
     setLoading(true);
     setError("");
+    const fresh = pressed.current;
+    pressed.current = false;
     api
-      .search(query)
+      .search(query, fresh)
       .then((r) => alive && setResults(r))
       .catch((e) => alive && setError(e instanceof ApiError ? e.message : "The search failed."))
       .finally(() => alive && setLoading(false));
     return () => {
       alive = false;
     };
-  }, [query]);
+  }, [query, presses]);
 
   function submit(event: FormEvent) {
     event.preventDefault();
+    pressed.current = true;
+    setPresses((n) => n + 1);
     setParams(text.trim() ? { q: text.trim() } : {});
   }
 
@@ -86,6 +95,7 @@ export function SearchPage() {
           <div>{error}</div>
         </div>
       )}
+      {!loading && <StaleNote since={results?.stale_since} />}
       {loading && <p className="empty">Searching…</p>}
       {!loading && !error && !results && <p className="empty">Search the Apple Music catalogue to queue albums and songs.</p>}
       {!loading && empty && <p className="empty">Nothing found for “{query}”.</p>}

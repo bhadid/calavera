@@ -129,6 +129,8 @@ export interface AlbumQuality {
 }
 
 export interface AlbumDetail extends Album {
+  /** Set when Apple could not be reached and this is an older answer: when it is from (Unix seconds). */
+  stale_since?: number | null;
   storefront: string;
   tracks: Track[];
 }
@@ -154,12 +156,16 @@ export interface Artist {
 }
 
 export interface ArtistDetail extends Artist {
+  /** Set when Apple could not be reached and this is an older answer: when it is from (Unix seconds). */
+  stale_since?: number | null;
   albums: Album[];
   /** Apple lists more releases than the page shows. */
   more: boolean;
 }
 
 export interface SearchResults {
+  /** Set when Apple could not be reached and this is an older answer: when it is from (Unix seconds). */
+  stale_since?: number | null;
   albums: Album[];
   songs: Song[];
   artists: Artist[];

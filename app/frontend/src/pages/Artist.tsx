@@ -5,6 +5,7 @@ import type { ArtistDetail } from "../lib/types";
 import { AlbumGrid } from "../components/AlbumGrid";
 import { Cover } from "../components/Cover";
 import { Icon } from "../components/Icon";
+import { StaleNote } from "../components/StaleNote";
 
 export function ArtistPage() {
   const { id = "" } = useParams();
@@ -59,6 +60,7 @@ export function ArtistPage() {
     <>
       <div className="section">
         {back}
+        <StaleNote since={artist.stale_since} />
         <div className="artist-head">
           <Cover src={artist.artwork} size={96} round />
           <div>

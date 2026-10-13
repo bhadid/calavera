@@ -48,6 +48,7 @@ app/
       db.py               SQLite: jobs, job logs, key/value
       urls.py             Apple Music link parsing
       catalog.py          catalogue search and lookup
+      memory.py           short memory for catalogue answers
       wrapper.py          client for wrapper-lite and the supervisor
       amdl.py             amdl config, process runner, output parser
       audio.py            probing, FLAC conversion and verification, tag clean-up
@@ -62,7 +63,7 @@ app/
       lib/                api client, types, store (jobs, status, toasts), theme,
                           accent colour
       components/         Layout (top bar, tab bar, status line), JobCard,
-                          AlbumGrid, ArtistNames, Cover, Icon, Skull (logo),
+                          AlbumGrid, ArtistNames, StaleNote, Cover, Icon, Skull (logo),
                           Controls (switch, segmented control), Confirm
                           (confirmation dialog)
       pages/              Queue, Search, Album (song selection), Artist,
@@ -171,6 +172,24 @@ one per 100 releases. `catalog.py` holds two safeguards:
   Requests in that time fail at once with a message saying so.
 - An artist page stops at 300 releases (`ARTIST_ALBUMS`) and says when Apple
   lists more.
+
+`memory.py` keeps Apple's answers for a while, so that going back to a page
+does not ask again: searches and artist pages for 15 minutes, albums for an
+hour, an album's quality for a day, at most 300 answers. They are held in the
+process only; a restart forgets them.
+
+- Reloading a page in the browser, or pressing the Search button, asks Apple
+  afresh (`fresh=1` on the catalogue routes; `lib/api.ts` adds it for the
+  page that was reloaded).
+- If Apple cannot be reached, or has asked for a pause, an answer up to a
+  day old is shown with a line saying when it is from (`stale_since`,
+  `components/StaleNote.tsx`). Something Apple says no longer exists is
+  forgotten instead.
+- "In library" is not remembered: it is worked out from the library folder
+  on every request.
+- A download never plans from memory. `jobs.py` asks the catalogue directly,
+  so during a pause a new job fails with the pause message and can be
+  retried afterwards.
 
 An album page also shows the quality on offer in numbers. Apple's
 catalogue only says "lossless" (up to 24-bit / 48 kHz) or "hi-res lossless"

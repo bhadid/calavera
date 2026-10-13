@@ -33,11 +33,15 @@ _ALAC_RE = re.compile(r"audio-alac-stereo-(\d+)-(\d+)")
 _LOSSLESS_MAX = 48000
 _HIRES = (88200, 192000)
 # For how many albums the address of a stream description is remembered.
-_STREAMS_KEPT = 200
+_STREAMS_KEPT = 300
 
 
 class CatalogError(Exception):
     pass
+
+
+class NotInCatalog(CatalogError):
+    """Apple answered, and what was asked for does not exist."""
 
 
 def _artwork(attrs: dict, size: int = 600) -> str:
@@ -185,7 +189,7 @@ class Catalog:
                     wait = self._paused_until - time.monotonic()
                     raise CatalogError(f"Apple Music asked for a pause: too many requests. Try again in {_wait_text(wait)}.")
                 if resp.status_code == 404:
-                    raise CatalogError("Not found in the Apple Music catalogue.")
+                    raise NotInCatalog("Not found in the Apple Music catalogue.")
                 resp.raise_for_status()
                 return resp.json()
         except httpx.HTTPError as e:
@@ -199,7 +203,7 @@ class Catalog:
         )
         items = data.get("data") or []
         if not items:
-            raise CatalogError("Album not found.")
+            raise NotInCatalog("Album not found.")
         album = _album(items[0])
         tracks = ((items[0].get("relationships") or {}).get("tracks") or {}).get("data") or []
         album["tracks"] = [_song(t) for t in tracks if t.get("type") == "songs"]
@@ -251,14 +255,14 @@ class Catalog:
         data = await self._get(f"{storefront}/songs/{song_id}", {"l": language, "include": "artists"})
         items = data.get("data") or []
         if not items:
-            raise CatalogError("Song not found.")
+            raise NotInCatalog("Song not found.")
         return _song(items[0])
 
     async def artist_albums(self, storefront: str, artist_id: str, language: str = "") -> dict:
         info = await self._get(f"{storefront}/artists/{artist_id}", {"l": language})
         items = info.get("data") or []
         if not items:
-            raise CatalogError("Artist not found.")
+            raise NotInCatalog("Artist not found.")
         albums: list[dict] = []
         offset = 0
         more = False

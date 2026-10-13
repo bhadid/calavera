@@ -26,6 +26,22 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   return data as T;
 }
 
+// Reloading a page is a request for the latest: the catalogue calls of the
+// reloaded page ask Apple afresh instead of using Calavera's short memory.
+// It ends with the first move to another page (see Layout).
+let reloaded = (performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined)?.type === "reload";
+
+export function leftReloadedPage(): void {
+  reloaded = false;
+}
+
+/** The query string of a catalogue call. `fresh` asks Apple even if the answer is remembered. */
+function query(params: Record<string, string | undefined>, fresh?: boolean): string {
+  const all = { ...params, fresh: fresh || reloaded ? "1" : undefined };
+  const pairs = Object.entries(all).filter((pair): pair is [string, string] => Boolean(pair[1]));
+  return pairs.length ? `?${new URLSearchParams(pairs)}` : "";
+}
+
 export interface AddJobsResponse {
   added: Job[];
   rejected: { url: string; error: string }[];
@@ -65,10 +81,10 @@ export const api = {
   login: (email: string, password: string) => request<unknown>("POST", "/account/login", { email, password }),
   submitCode: (code: string) => request<unknown>("POST", "/account/code", { code }),
 
-  search: (q: string) => request<SearchResults>("GET", `/catalog/search?q=${encodeURIComponent(q)}`),
+  search: (q: string, fresh?: boolean) => request<SearchResults>("GET", `/catalog/search${query({ q }, fresh)}`),
   album: (id: string, storefront?: string) =>
-    request<AlbumDetail>("GET", `/catalog/albums/${encodeURIComponent(id)}${storefront ? `?sf=${storefront}` : ""}`),
+    request<AlbumDetail>("GET", `/catalog/albums/${encodeURIComponent(id)}${query({ sf: storefront })}`),
   albumQuality: (id: string, storefront?: string) =>
-    request<{ quality: AlbumQuality | null }>("GET", `/catalog/albums/${encodeURIComponent(id)}/quality${storefront ? `?sf=${storefront}` : ""}`),
-  artist: (id: string) => request<ArtistDetail>("GET", `/catalog/artists/${encodeURIComponent(id)}`),
+    request<{ quality: AlbumQuality | null }>("GET", `/catalog/albums/${encodeURIComponent(id)}/quality${query({ sf: storefront })}`),
+  artist: (id: string) => request<ArtistDetail>("GET", `/catalog/artists/${encodeURIComponent(id)}${query({})}`),
 };

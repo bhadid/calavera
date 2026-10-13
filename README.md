@@ -55,7 +55,8 @@ overwriting what is already there.
 - A neo-brutalist, terminal-flavoured interface with light and dark themes,
   a phone layout and an accent colour you choose (or none).
 - **Considerate towards Apple's servers.** A page costs one or two catalogue
-  requests, and if Apple asks for a pause, Calavera keeps it.
+  requests, pages you return to are remembered for a while instead of asked
+  for again, and if Apple asks for a pause, Calavera keeps it.
 
 ## How it works
 

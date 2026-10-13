@@ -24,6 +24,7 @@ from .config import Config
 from .config import load as load_config
 from .db import Database
 from .jobs import JobError, JobManager
+from .memory import ALBUM, ARTIST, QUALITY, SEARCH, Memory
 from .plan import track_file_stem
 from .settings import Settings
 from .wrapper import WrapperClient
@@ -69,6 +70,7 @@ def create_app(config: Config | None = None) -> FastAPI:
     config = config or load_config()
     db = Database(config.db_path)
     catalog = Catalog()
+    memory = Memory()
     wrapper = WrapperClient(config.wrapper_url, config.supervisor_url, config.control_token_file)
 
     def get_settings() -> Settings:
@@ -280,26 +282,33 @@ def create_app(config: Config | None = None) -> FastAPI:
         for album in albums:
             album["in_library"] = library.find_album(config.library_dir, album["artist"], album["name"])
 
+    async def remembered(key: tuple, lifetime: float, fetch, fresh: bool) -> tuple:
+        """A catalogue answer from the memory or from Apple; see memory.py.
+        Also returns since when the answer is old, if Apple could not be
+        reached, else None."""
+        try:
+            return await memory.get(key, lifetime, fetch, fresh)
+        except CatalogError as e:
+            raise HTTPException(502, str(e)) from e
+
     @app.get("/api/catalog/search")
-    async def catalog_search(q: str):
+    async def catalog_search(q: str, fresh: bool = False):
         term = q.strip()
         if len(term) < 2:
             raise HTTPException(422, "Type at least two characters.")
-        try:
+        language = get_settings().language
+
+        async def find() -> dict:
             # A pasted Apple Music link is resolved instead of searched for.
             try:
                 parsed = urls.parse(term)
             except urls.UnsupportedUrl:
-                results = await catalog.search(await storefront(), term, get_settings().language)
-            else:
-                if parsed.kind == "album":
-                    album = await catalog.album(parsed.storefront, parsed.apple_id, get_settings().language)
-                    results = {"albums": [album], "songs": [], "artists": []}
-                else:
-                    song = await catalog.song(parsed.storefront, parsed.apple_id, get_settings().language)
-                    results = {"albums": [], "songs": [song], "artists": []}
-        except CatalogError as e:
-            raise HTTPException(502, str(e)) from e
+                return await catalog.search(await storefront(), term, language)
+            if parsed.kind == "album":
+                return {"albums": [await catalog.album(parsed.storefront, parsed.apple_id, language)], "songs": [], "artists": []}
+            return {"albums": [], "songs": [await catalog.song(parsed.storefront, parsed.apple_id, language)], "artists": []}
+
+        results, results["stale_since"] = await remembered(("search", await storefront(), language, term), SEARCH, find, fresh)
         await asyncio.to_thread(mark_owned, results["albums"])
         return results
 
@@ -310,39 +319,38 @@ def create_app(config: Config | None = None) -> FastAPI:
             track["in_library"] = library.stem_key(track_file_stem(track)) in present
 
     @app.get("/api/catalog/albums/{album_id}")
-    async def catalog_album(album_id: str, sf: str = ""):
+    async def catalog_album(album_id: str, sf: str = "", fresh: bool = False):
         """An album with its tracks, each marked as available or not and as
         already in the library or not. `sf` is the store code of the link."""
         if not album_id.isdigit() or (sf and not (len(sf) == 2 and sf.isalpha())):
             raise HTTPException(422, "Not a valid album reference.")
-        try:
-            album = await catalog.album(sf.lower() or await storefront(), album_id, get_settings().language)
-        except CatalogError as e:
-            raise HTTPException(502, str(e)) from e
-        album["storefront"] = sf.lower() or await storefront()
+        store, language = sf.lower() or await storefront(), get_settings().language
+        album, album["stale_since"] = await remembered(
+            ("album", store, language, album_id), ALBUM, lambda: catalog.album(store, album_id, language), fresh
+        )
+        album["storefront"] = store
         await asyncio.to_thread(mark_owned, [album])
         await asyncio.to_thread(mark_owned_tracks, album)
         return album
 
     @app.get("/api/catalog/albums/{album_id}/quality")
-    async def catalog_album_quality(album_id: str, sf: str = ""):
+    async def catalog_album_quality(album_id: str, sf: str = "", fresh: bool = False):
         """The lossless quality the album is offered in:
         `{"quality": {"bit_depth", "sample_rate_min", "sample_rate_max"}}`,
         or null if unknown. The two rates differ for a hi-res album whose
         exact rate is not known."""
         if not album_id.isdigit() or (sf and not (len(sf) == 2 and sf.isalpha())):
             raise HTTPException(422, "Not a valid album reference.")
-        try:
-            return {"quality": await catalog.album_quality(sf.lower() or await storefront(), album_id)}
-        except CatalogError as e:
-            raise HTTPException(502, str(e)) from e
+        store = sf.lower() or await storefront()
+        quality, _ = await remembered(("quality", store, album_id), QUALITY, lambda: catalog.album_quality(store, album_id), fresh)
+        return {"quality": quality}
 
     @app.get("/api/catalog/artists/{artist_id}")
-    async def catalog_artist(artist_id: str):
-        try:
-            artist = await catalog.artist_albums(await storefront(), artist_id, get_settings().language)
-        except CatalogError as e:
-            raise HTTPException(502, str(e)) from e
+    async def catalog_artist(artist_id: str, fresh: bool = False):
+        store, language = await storefront(), get_settings().language
+        artist, artist["stale_since"] = await remembered(
+            ("artist", store, language, artist_id), ARTIST, lambda: catalog.artist_albums(store, artist_id, language), fresh
+        )
         await asyncio.to_thread(mark_owned, artist["albums"])
         return artist
 

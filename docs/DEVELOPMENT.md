@@ -33,10 +33,12 @@ docker build --target test \
 The build fails if a test fails. The tests cover link parsing, the amdl output
 parser, settings validation, FLAC conversion and verification (real ffmpeg on
 generated audio), the library import rules, the download plan, the catalogue
-client (against canned answers, never Apple) and the database upgrade.
+client and its memory (against canned answers, never Apple) and the
+database upgrade.
 
-Not covered by automated tests: the API routes, the job pipeline as a whole
-and the supervisor. They were exercised by hand; see "Manual checks" below.
+Of the API routes only the catalogue ones are tested (with their memory,
+against a stand-in for Apple). Not covered by automated tests: the other
+routes, the job pipeline as a whole and the supervisor. They were exercised by hand; see "Manual checks" below.
 
 ## Browser smoke test
 
@@ -127,6 +129,10 @@ Interactive reference while the app runs: `http://<host>:<port>/api/docs`.
 | `POST /api/account/login` · `/api/account/code` | Start a sign-in · submit the 2FA code. |
 | `GET /api/catalog/search?q=` · `/api/catalog/artists/{id}` · `/api/catalog/albums/{id}?sf=` | Catalogue. The album response lists tracks with `available` and `in_library`. |
 | `GET /api/catalog/albums/{id}/quality?sf=` | The lossless quality the album is offered in: `{"quality": {"bit_depth", "sample_rate_min", "sample_rate_max"}}`, or `null` if it cannot be told. The two rates differ for a hi-res album whose exact rate is not known. |
+
+The catalogue routes answer from a short memory (see ARCHITECTURE.md).
+`fresh=1` asks Apple regardless; `stale_since` (Unix seconds) in an answer
+means Apple could not be reached and the answer is that old.
 
 Errors are `{"error": "<message>"}` with a fitting status code.
 

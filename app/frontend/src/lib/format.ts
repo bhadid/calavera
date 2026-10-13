@@ -21,6 +21,13 @@ export function timeOfDay(seconds: number): string {
   return new Date(seconds * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 }
 
+/** "at 14:05", or "yesterday at 23:50" for a time before today. */
+export function atTime(seconds: number): string {
+  const then = new Date(seconds * 1000);
+  const time = then.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return `${then.toDateString() === new Date().toDateString() ? "" : "yesterday "}at ${time}`;
+}
+
 /**
  * The page for an album, from its Apple Music link, e.g.
  * https://music.apple.com/de/album/some-name/123 -> /album/123?sf=de.
