@@ -93,8 +93,8 @@ function JobLog({ job }: { job: Job }) {
   );
 }
 
-/** A folder in the library, written the way a terminal would: ./Artist/Album/ */
-const folder = (path: string) => `./${path}/`;
+/** A folder in the library, with a trailing slash to show it is one: Artist/Album/ */
+const folder = (path: string) => `${path}/`;
 
 export function JobCard({ job }: { job: Job }) {
   const { notify } = useStore();
