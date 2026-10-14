@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, ApiError } from "../lib/api";
 import { albumPath, plural, qualityLabel, year } from "../lib/format";
@@ -83,18 +83,10 @@ export function AlbumCard({ album, artistId }: { album: Album; artistId?: string
             .filter(Boolean)
             .join(" · ")}
         </p>
-        {album.same_title && album.label && (
-          <p className="small muted" title="Apple Music lists another release under this title.">
-            Label · {album.label}
-          </p>
-        )}
-        {album.other_release && (
-          <p className="small muted" title="Apple Music lists another release under this title; this is a further one.">
-            {["Other release", album.label].filter(Boolean).join(" · ")}
-          </p>
-        )}
+        {album.same_title && album.label && <p className="small muted">Label · {album.label}</p>}
         <div className="album-tags">
           {quality && <span className={`tag ${quality.startsWith("Hi-Res") ? "tag-accent" : ""}`}>{quality}</span>}
+          {album.other_release && <OtherReleaseTag />}
           {album.explicit && (
             <span className="tag tag-ghost" title="Explicit">
               E<span className="sr-only">xplicit</span>
@@ -104,5 +96,36 @@ export function AlbumCard({ album, artistId }: { album: Album; artistId?: string
       </div>
       <QueueButton url={album.url} appleId={album.id} inLibrary={album.in_library} block />
     </article>
+  );
+}
+
+// React 18 does not know the popover attribute yet; it is passed through as is.
+const POPOVER = { popover: "auto" } as Record<string, string>;
+
+/**
+ * Marks a release Apple's grouping leaves out. Tapping it explains why, in a
+ * small card over the page that a tap elsewhere or Escape closes.
+ */
+function OtherReleaseTag() {
+  const id = useId();
+  const card = useRef<HTMLDivElement>(null);
+  const explanation =
+    "Apple Music lists this release too, but leaves it out of its own grouping of the artist's releases, usually because " +
+    "another release has the same title. It can be a different version, such as a radio edit.";
+  return (
+    <>
+      <button
+        type="button"
+        className="tag tag-button"
+        aria-controls={id}
+        title={explanation}
+        onClick={() => card.current?.togglePopover?.()}
+      >
+        Other release <Icon name="info" size={12} />
+      </button>
+      <div id={id} ref={card} className="popover" role="note" {...POPOVER}>
+        {explanation}
+      </div>
+    </>
   );
 }

@@ -543,6 +543,34 @@ textarea {
   color: var(--on-status);
 }
 
+.tag-button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.tag-button:hover {
+  border-color: var(--accent);
+}
+
+/* A short explanation over the page (the popover attribute): centred, which
+   on a phone is also how iOS shows such a note. */
+.popover {
+  max-width: min(360px, calc(100vw - 32px));
+  margin: auto;
+  padding: 14px 16px;
+  border: var(--border) solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--lift) var(--lift) 0 var(--shadow);
+  font-size: var(--fs-small);
+  line-height: 1.5;
+}
+
+.popover::backdrop {
+  background: rgb(0 0 0 / 0.3);
+}
+
 .tag-ghost {
   border-style: dashed;
   background: transparent;

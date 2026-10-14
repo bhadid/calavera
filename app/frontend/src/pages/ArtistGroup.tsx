@@ -116,7 +116,7 @@ export function ArtistGroupPage() {
   }, [state.next, busy, state.items.length]);
 
   // The releases outside Apple's grouping take a few requests; they are
-  // fetched alongside and shown once the list has reached its end.
+  // fetched alongside and mixed in by date (see below).
   useEffect(() => {
     if (state.others !== null || !isGroup(group) || group === "all") return;
     let alive = true;
@@ -129,14 +129,25 @@ export function ArtistGroupPage() {
     };
   }, [id, group, state.others]);
 
-  // Releases under the same title usually share their date, so they arrive
-  // on the same page; their labels tell them apart.
+  // A release outside Apple's grouping joins the list next to the release
+  // with its title, or else at its date, but only once the list has loaded
+  // down to that date: it then lands below what is being read, and nothing
+  // jumps. Releases under the same title (usually of the same date, so they
+  // arrive together) show their label to tell them apart.
   const items = useMemo(() => {
-    if (group !== "all") return state.items;
+    const list = [...state.items];
+    const reached = state.next === null ? "" : (list[list.length - 1]?.release_date ?? "\uffff");
+    for (const other of state.others ?? []) {
+      if (other.release_date < reached || list.some((a) => a.id === other.id)) continue;
+      const twin = list.findIndex((a) => a.name.toLowerCase() === other.name.toLowerCase());
+      const later = list.findIndex((a) => a.release_date < other.release_date);
+      const at = twin >= 0 ? twin + 1 : later >= 0 ? later : list.length;
+      list.splice(at, 0, { ...other, other_release: true });
+    }
     const count = new Map<string, number>();
-    for (const a of state.items) count.set(a.name.toLowerCase(), (count.get(a.name.toLowerCase()) ?? 0) + 1);
-    return state.items.map((a) => ((count.get(a.name.toLowerCase()) ?? 0) > 1 ? { ...a, same_title: true } : a));
-  }, [group, state.items]);
+    for (const a of list) count.set(a.name.toLowerCase(), (count.get(a.name.toLowerCase()) ?? 0) + 1);
+    return list.map((a) => ((count.get(a.name.toLowerCase()) ?? 0) > 1 ? { ...a, same_title: true } : a));
+  }, [state.items, state.next, state.others]);
 
   if (!isGroup(group)) return <Navigate to={`/artist/${id}`} replace />;
   if (error && state.items.length === 0) return <LoadError message={error} fallback={`/artist/${id}`} />;
@@ -172,17 +183,6 @@ export function ArtistGroupPage() {
           </p>
         )}
       </section>
-      {finished && group !== "all" && state.others && state.others.length > 0 && (
-        <section className="section">
-          <div className="section-head">
-            <h2>
-              Other releases <span className="muted">[{state.others.length}]</span>
-            </h2>
-          </div>
-          <p className="small muted">Apple Music lists these too, outside its own grouping of this artist's releases.</p>
-          <AlbumGrid albums={state.others} artistId={id} />
-        </section>
-      )}
     </>
   );
 }

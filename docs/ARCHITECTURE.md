@@ -232,11 +232,14 @@ on another label). So that nothing is hidden, the group page also asks for
 `/api/catalog/artists/<id>/others`: `catalog.artist_albums` reads the full
 list (`/artists/<id>/albums`) and every page of the grouping, and returns the
 releases in the list but not in the grouping. Each joins the group of the
-release with the same title, and its card says "Other release" and names
-the label; without one it goes by its title (" - Single" or " - EP" at the
-end, or Apple's single flag, which Apple sets only for one-song releases,
-make it a single; anything else is an album). They are shown at the end of
-the group page once the list is complete.
+release with the same title; without one it goes by its title (" - Single"
+or " - EP" at the end, or Apple's single flag, which Apple sets only for
+one-song releases, make it a single; anything else is an album). The group
+page mixes them in next to the release with the same title, or else at
+their date, once the list has loaded down to that date, so that nothing
+moves above what is being read. Their cards carry an *Other release* tag
+that explains itself when tapped (a `popover`), and releases sharing a
+title show their label.
 
 *All releases* under the artist's name opens `/artist/<id>/all`: every
 release Apple lists for the artist in one grid, newest first. Apple sorts the
