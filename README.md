@@ -137,10 +137,9 @@ the 6-digit code.
   as in Apple's Music app: a row each for albums, singles and EPs, live
   albums, compilations and appearances; *See all* shows the whole group,
   loading more as you scroll. *All releases* lists everything newest
-  first. Nothing Apple lists is left out: releases
-  Apple's own grouping skips are mixed into their group with an *Other
-  release* tag (tap it for why), and releases sharing a title show their
-  label.
+  first. Nothing Apple lists is left out: releases Apple's own grouping
+  skips are mixed into their group with an *Other release* tag (tap it for
+  why).
 - **Getting the latest from Apple:** pages you return to are remembered for
   a while (a search or an artist page for 15 minutes, an album for an hour)
   instead of asked for again. Reloading the page in your browser, or

@@ -93,7 +93,6 @@ export function AlbumCard({ album, artistId }: { album: Album; artistId?: string
             .filter(Boolean)
             .join(" · ")}
         </p>
-        {album.same_title && album.label && <p className="small muted">Label · {album.label}</p>}
         <div className="album-tags">
           {quality && <span className={`tag ${quality.startsWith("Hi-Res") ? "tag-accent" : ""}`}>{quality}</span>}
           {album.other_release && <OtherReleaseTag />}

@@ -115,8 +115,6 @@ export interface Album {
   group?: ReleaseGroup;
   /** On an artist page: another release under the same title as one in Apple's own grouping. */
   other_release?: boolean;
-  /** On "All releases": another release on the page has the same title. */
-  same_title?: boolean;
   in_library?: string | null;
 }
 

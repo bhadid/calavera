@@ -238,8 +238,7 @@ one-song releases, make it a single; anything else is an album). The group
 page mixes them in next to the release with the same title, or else at
 their date, once the list has loaded down to that date, so that nothing
 moves above what is being read. Their cards carry an *Other release* tag
-that explains itself when tapped (a `popover`), and releases sharing a
-title show their label. The album page cannot tell an "other release" by
+that explains itself when tapped (a `popover`). The album page cannot tell an "other release" by
 itself; a tagged card passes the tag on to the album page it opens (router
 state). Every album page names the label in the line under the title.
 
@@ -248,8 +247,7 @@ release Apple lists for the artist in one grid, newest first. Apple sorts the
 full list itself (`sort=-releaseDate`), so this page also loads 100 at a time
 as it is scrolled. Nothing is left out there; the releases outside Apple's
 grouping (the same `others` answer) get their *Other release* tag once it
-arrives, and releases under the same title (which usually share their date
-and so arrive together) show their label.
+arrives.
 
 ## Artist links
 
