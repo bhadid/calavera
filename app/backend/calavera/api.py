@@ -315,6 +315,14 @@ def create_app(config: Config | None = None) -> FastAPI:
     def mark_owned_tracks(album: dict) -> None:
         album["library_path"] = library.album_path(config.library_dir, album["artist"], album["name"])
         folder = album.get("in_library")
+        # Whether the folder holds this edition of the album or another one
+        # under the same title (explicit and clean, say), by the barcode in
+        # its files' tags; None when either side has none.
+        album["edition"] = None
+        if folder and album.get("upc"):
+            found = library.folder_barcode(config.library_dir / folder)
+            if found:
+                album["edition"] = "same" if library.same_barcode(found, album["upc"]) else "other"
         present = library.track_keys(config.library_dir / folder) if folder else set()
         for track in album["tracks"]:
             track["in_library"] = library.stem_key(track_file_stem(track)) in present
@@ -323,7 +331,8 @@ def create_app(config: Config | None = None) -> FastAPI:
     async def catalog_album(album_id: str, sf: str = "", fresh: bool = False):
         """An album with its tracks, each marked as available or not and as
         already in the library or not, and the album's folder in the library
-        (`library_path`, existing or not). `sf` is the store code of the link."""
+        (`library_path`, existing or not), and whether an existing folder
+        holds this edition (`edition`). `sf` is the store code of the link."""
         if not album_id.isdigit() or (sf and not (len(sf) == 2 and sf.isalpha())):
             raise HTTPException(422, "Not a valid album reference.")
         store, language = sf.lower() or await storefront(), get_settings().language

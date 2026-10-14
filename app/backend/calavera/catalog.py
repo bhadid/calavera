@@ -83,6 +83,7 @@ def _album(item: dict) -> dict:
         "explicit": a.get("contentRating") == "explicit",
         "single": bool(a.get("isSingle")),
         "label": a.get("recordLabel", ""),
+        "upc": a.get("upc", ""),
     }
 
 

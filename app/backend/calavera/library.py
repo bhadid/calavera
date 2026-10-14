@@ -28,6 +28,8 @@ import uuid
 from dataclasses import dataclass
 from pathlib import Path
 
+from . import audio
+
 TMP_PREFIX = ".calavera-importing-"
 # Anything a music library may hold; used to recognise tracks that are
 # already present, whatever their format.
@@ -104,6 +106,33 @@ def track_keys(folder: Path) -> set[str]:
         return {track_key(e) for e in os.listdir(folder) if os.path.splitext(e)[1].lower() in AUDIO_EXTS}
     except OSError:
         return set()
+
+
+def folder_barcode(folder: Path) -> str | None:
+    """The barcode in the tags of an album folder's files, from the first
+    of its first few audio files that has one, or None. Only reads."""
+    try:
+        names = sorted(e for e in os.listdir(folder) if os.path.splitext(e)[1].lower() in AUDIO_EXTS)
+    except OSError:
+        return None
+    for name in names[:3]:
+        code = audio.read_barcode(folder / name)
+        if code:
+            return code
+    return None
+
+
+def same_barcode(a: str, b: str) -> bool:
+    """Whether two barcodes name the same release. Apple writes 14 digits,
+    other sources often 12 or 13; the difference is leading zeros."""
+    return bool(a) and bool(b) and a.lstrip("0") == b.lstrip("0")
+
+
+def other_edition_message(relative: str) -> str:
+    return (
+        f"The library folder '{relative}' holds a different edition of this album (its files carry another "
+        f"barcode). Nothing was added to it."
+    )
 
 
 def library_problem(library: Path) -> str | None:
@@ -237,6 +266,11 @@ def merge_album(src_dir: Path, library: Path, artist: str, album: str) -> Import
     relative = f"{artist_entry}/{album_entry}"
     if not dest.is_dir():
         return ImportResult("failed", f"'{relative}' in the library is not a folder.")
+    # Songs of one edition never go into the folder of another (explicit and
+    # clean under the same title, say), going by the barcodes in the tags.
+    theirs, ours = folder_barcode(dest), folder_barcode(src_dir)
+    if theirs and ours and not same_barcode(theirs, ours):
+        return ImportResult("failed", other_edition_message(relative), relative)
     files = sorted(p for p in src_dir.iterdir() if p.is_file())
     present_tracks = track_keys(dest)
     present_names = {_norm(e) for e in os.listdir(dest)}

@@ -179,6 +179,11 @@ Albums are stored as `<library>/<Artist>/<Album>/NN. Title.flac` plus
   track counts as present if a file with the same name exists in any audio
   format, so an album you hold as `.m4a` is not doubled up with `.flac`
   files. An existing cover image is kept.
+- Nothing is added to a folder that holds a different edition of the album
+  (explicit and clean under the same title, say). Calavera tells editions
+  apart by the barcode in the files' tags, which it only reads; the album
+  page then says *other edition in library*. Files without a barcode count
+  as the same edition.
 - Only verified tracks are imported. Songs Apple does not offer are left out
   up front and reported; any other failed track stops the import.
 - If the library folder is missing, empty or read-only (for example an

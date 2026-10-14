@@ -142,6 +142,9 @@ export interface AlbumDetail extends Album {
   storefront: string;
   /** The album's folder in the library, relative to its root: the existing one, or the one a download would create. */
   library_path: string;
+  /** Whether the existing folder holds this edition or another one under the
+   *  same title, going by the barcode in its files; null when unknown. */
+  edition?: "same" | "other" | null;
   tracks: Track[];
 }
 

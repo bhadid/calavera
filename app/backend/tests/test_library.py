@@ -174,3 +174,36 @@ def test_merge_into_unmounted_library_fails(tmp_path, album):
     empty = tmp_path / "empty"
     empty.mkdir()
     assert library.merge_album(album, empty, "A", "B").status == "failed"
+
+
+def test_the_folders_barcode_comes_from_its_files(lib, monkeypatch):
+    folder = lib / "deadmau5" / "while(1_2)"
+    folder.mkdir(parents=True)
+    for name in ("01. a.flac", "02. b.flac", "cover.jpg"):
+        (folder / name).write_bytes(b"x")
+    codes = {"01. a.flac": None, "02. b.flac": "00883958012772"}
+    monkeypatch.setattr(library.audio, "read_barcode", lambda path: codes.get(path.name, "wrong"))
+    assert library.folder_barcode(folder) == "00883958012772"
+    assert library.folder_barcode(lib / "nothing") is None
+
+
+@pytest.mark.parametrize("a, b, same", [
+    ("00883958012772", "883958012772", True),
+    ("00883958012772", "0883958012772", True),
+    ("00883958012772", "00883958013243", False),
+    ("", "", False),
+])
+def test_barcodes_differ_only_in_leading_zeros(a, b, same):
+    assert library.same_barcode(a, b) is same
+
+
+def test_merge_never_mixes_two_editions(lib, album, partial, monkeypatch):
+    (album / "02. b.flac").write_bytes(b"new" * 500)
+    barcodes = {partial: "00883958012772", album: "00883958013243"}
+    monkeypatch.setattr(library.audio, "read_barcode", lambda path: barcodes.get(path.parent))
+    result = library.merge_album(album, lib, "New Artist", "Album One")
+    assert result.status == "failed" and "different edition" in result.message
+    assert sorted(os.listdir(partial)) == ["01. a.m4a", "cover.jpg"]
+    # The same edition, with fewer leading zeros in one of them, is merged.
+    barcodes[album] = "883958012772"
+    assert library.merge_album(album, lib, "New Artist", "Album One").status == "imported"

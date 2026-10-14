@@ -95,7 +95,10 @@ app/
    decoded audio of both files must have the same MD5. Only then is the `.m4a`
    deleted.
 6. **Import.** `library.import_album` applies the library rules; in merge
-   mode `library.merge_album` adds only missing tracks to an existing folder.
+   mode `library.merge_album` adds only missing tracks to an existing folder,
+   and nothing if the folder's files carry another barcode than the new ones
+   (another edition under the same title). Planning makes the same check
+   against Apple's barcode for the album, so such a job does not download.
 7. **Clean up.** Staging is deleted when everything was imported, kept
    otherwise.
 

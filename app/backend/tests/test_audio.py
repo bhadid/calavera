@@ -90,3 +90,32 @@ def test_truncated_file_is_reported(tmp_path):
     bad.write_bytes(b"not audio")
     with pytest.raises(audio.AudioError):
         audio.probe(bad)
+
+
+def test_the_barcode_is_read_from_any_tagging_style(tmp_path, make_track):
+    from mutagen.flac import FLAC
+    from mutagen.mp4 import MP4, MP4FreeForm
+
+    flac = make_track(tmp_path / "a.flac", codec="flac")
+    f = FLAC(flac)
+    f["UPC"] = "00883958012772"
+    f.save()
+    assert audio.read_barcode(flac) == "00883958012772"
+
+    m4a = make_track(tmp_path / "b.m4a")
+    m = MP4(m4a)
+    m["----:com.apple.iTunes:UPC"] = [MP4FreeForm(b"00883958013243")]
+    m.save()
+    assert audio.read_barcode(m4a) == "00883958013243"
+
+    other = make_track(tmp_path / "c.flac", codec="flac")
+    f = FLAC(other)
+    f["BARCODE"] = "883958012772"
+    f.save()
+    assert audio.read_barcode(other) == "883958012772"
+
+
+def test_no_barcode_is_none(tmp_path, make_track):
+    assert audio.read_barcode(make_track(tmp_path / "a.flac", codec="flac")) is None
+    (tmp_path / "broken.flac").write_bytes(b"not audio")
+    assert audio.read_barcode(tmp_path / "broken.flac") is None

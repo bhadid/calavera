@@ -11,9 +11,11 @@ import { Icon } from "../components/Icon";
 import { StaleNote } from "../components/StaleNote";
 
 /** Why a song cannot be chosen, in words; null if it can. */
-function blocked(track: Track): string | null {
+// A song "in library" has a file of its name in the album's folder. When the
+// folder holds another edition, that file is the other edition's song.
+function blocked(track: Track, otherEdition = false): string | null {
   if (!track.available) return "not available";
-  if (track.in_library) return "in library";
+  if (track.in_library) return otherEdition ? "other edition" : "in library";
   return null;
 }
 
@@ -51,7 +53,7 @@ export function AlbumPage() {
         }
         // Start with everything that can be downloaded selected: the common
         // case is "the album", and unticking is quicker than ticking.
-        setSelected(new Set(loaded.tracks.filter((t) => !blocked(t)).map((t) => t.id)));
+        setSelected(new Set(loaded.edition === "other" ? [] : loaded.tracks.filter((t) => !blocked(t)).map((t) => t.id)));
       })
       .catch((e) => alive && setError(e instanceof ApiError ? e.message : "The album could not be loaded."));
     return () => {
@@ -59,7 +61,12 @@ export function AlbumPage() {
     };
   }, [id, storefront]);
 
-  const selectable = useMemo(() => album?.tracks.filter((t) => !blocked(t)) ?? [], [album]);
+  const otherEdition = album?.edition === "other";
+  // Nothing goes into a folder of another edition, not even the songs it lacks.
+  const selectable = useMemo(
+    () => (otherEdition ? [] : (album?.tracks.filter((t) => !blocked(t)) ?? [])),
+    [album, otherEdition],
+  );
 
   // Go back to where the user came from; a directly opened link has no history.
   const back = (
@@ -149,11 +156,14 @@ export function AlbumPage() {
               {quality && <span className={`tag ${quality.startsWith("Hi-Res") ? "tag-accent" : ""}`}>{quality}</span>}
               {otherRelease && <OtherReleaseTag />}
               {album.explicit && <span className="tag tag-ghost">Explicit</span>}
-              {album.in_library && (
-                <span className="tag tag-ok">
-                  <Icon name="check" size={13} /> folder in library
-                </span>
-              )}
+              {album.in_library &&
+                (otherEdition ? (
+                  <span className="tag tag-warn">other edition in library</span>
+                ) : (
+                  <span className="tag tag-ok">
+                    <Icon name="check" size={13} /> folder in library
+                  </span>
+                ))}
             </div>
           </div>
         </div>
@@ -172,7 +182,19 @@ export function AlbumPage() {
           </div>
         </div>
       )}
-      {selectable.length === 0 && unavailable < album.tracks.length && (
+      {otherEdition && (
+        <div className="callout callout-warn">
+          <span className="callout-icon">
+            <Icon name="warning" size={20} />
+          </span>
+          <div>
+            <strong>Your folder {album.in_library}/ holds a different edition of this album.</strong> Its files carry
+            another barcode, for example the explicit version instead of the clean one. Calavera does not add songs
+            to it, so that the two editions do not get mixed.
+          </div>
+        </div>
+      )}
+      {!otherEdition && selectable.length === 0 && unavailable < album.tracks.length && (
         <div className="callout callout-ok">
           <span className="callout-icon">
             <Icon name="check" size={20} />
@@ -200,7 +222,7 @@ export function AlbumPage() {
         </div>
         <ul className="card tracks">
           {album.tracks.map((track) => {
-            const reason = blocked(track);
+            const reason = blocked(track, otherEdition);
             const checkboxId = `track-${track.id}`;
             return (
               <li key={track.id} className={reason ? "track track-blocked" : "track"}>
@@ -209,7 +231,7 @@ export function AlbumPage() {
                     id={checkboxId}
                     type="checkbox"
                     checked={selected.has(track.id)}
-                    disabled={Boolean(reason)}
+                    disabled={Boolean(reason) || otherEdition}
                     onChange={() => toggle(track.id)}
                   />
                   <span className="track-number" aria-hidden="true">
@@ -224,8 +246,8 @@ export function AlbumPage() {
                     )}
                   </span>
                   {reason ? (
-                    <span className={`tag ${track.available ? "tag-ok" : "tag-ghost"}`}>
-                      {track.available && <Icon name="check" size={13} />}
+                    <span className={`tag ${!track.available ? "tag-ghost" : otherEdition ? "tag-warn" : "tag-ok"}`}>
+                      {track.available && !otherEdition && <Icon name="check" size={13} />}
                       {reason}
                     </span>
                   ) : (
@@ -244,7 +266,13 @@ export function AlbumPage() {
             ? "This album is already in the queue."
             : (
               <>
-                {!album.in_library ? "Saves to " : selectable.length > 0 ? "Adds to " : "In the library at "}
+                {!album.in_library
+                  ? "Saves to "
+                  : otherEdition
+                    ? "Another edition is at "
+                    : selectable.length > 0
+                      ? "Adds to "
+                      : "In the library at "}
                 <span className="path">{album.library_path}/</span>
                 {owned > 0 && selectable.length > 0 &&
                   ` · ${plural(owned, "song")} already there ${owned === 1 ? "stays as it is" : "stay as they are"}.`}

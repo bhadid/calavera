@@ -10,6 +10,7 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
+import mutagen
 from mutagen.flac import FLAC, Picture
 from mutagen.mp4 import MP4
 
@@ -40,6 +41,29 @@ def probe(path: Path) -> AudioInfo:
         return AudioInfo(m.info.codec, m.info.sample_rate, m.info.bits_per_sample, m.info.length, title)
     except Exception as e:  # mutagen raises many unrelated error types
         raise AudioError(f"{path.name}: unreadable audio file ({e})") from e
+
+
+def read_barcode(path: Path) -> str | None:
+    """The release's barcode from a file's tags, digits only, or None. The
+    downloader writes it as UPC; other taggers write BARCODE. Only reads."""
+    try:
+        tags = getattr(mutagen.File(path), "tags", None)
+    except Exception:  # mutagen raises many unrelated error types
+        return None
+    for key in (tags or {}).keys():
+        # FLAC "upc", MP4 "----:com.apple.iTunes:UPC", ID3 "TXXX:BARCODE".
+        if key.lower().rsplit(":", 1)[-1] not in ("upc", "barcode"):
+            continue
+        value = tags[key]
+        value = getattr(value, "text", value)  # an ID3 frame holds its text
+        if isinstance(value, list):
+            value = value[0] if value else ""
+        if isinstance(value, bytes):
+            value = value.decode("utf-8", "replace")
+        digits = "".join(ch for ch in str(value) if ch.isdigit())
+        if digits:
+            return digits
+    return None
 
 
 def check_finished(path: Path, codec: str) -> AudioInfo:

@@ -418,6 +418,11 @@ class JobManager:
             )
             raise _Finished()
 
+        if existing and album.get("upc"):
+            # Adding to a folder that holds another edition would mix the two.
+            found = await asyncio.to_thread(library.folder_barcode, self._config.library_dir / existing)
+            if found and not library.same_barcode(found, album["upc"]):
+                raise JobError(library.other_edition_message(existing).replace("Nothing was added to it.", "Nothing was downloaded."))
         present = await asyncio.to_thread(library.track_keys, self._config.library_dir / existing) if existing else None
         plan = make_plan(album["tracks"], options.get("track_ids"), present)
         for track in plan.unavailable:
