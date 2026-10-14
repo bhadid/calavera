@@ -23,6 +23,15 @@ _UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ch
 
 # An artist page shows at most this many releases.
 ARTIST_ALBUMS = 300
+# Apple's own grouping of an artist's releases, as its Music app shows them:
+# Apple's name for each group, and Calavera's.
+_GROUPS = {
+    "full-albums": "albums",
+    "singles": "singles",
+    "compilation-albums": "compilations",
+    "live-albums": "live",
+    "appears-on-albums": "appears_on",
+}
 # How long to leave Apple alone after it asks for a pause, in seconds: its
 # own figure (Retry-After) within these bounds, the first one without it.
 _PAUSE = (60, 900)
@@ -71,7 +80,16 @@ def _album(item: dict) -> dict:
         "traits": a.get("audioTraits") or [],
         "explicit": a.get("contentRating") == "explicit",
         "single": bool(a.get("isSingle")),
+        "label": a.get("recordLabel", ""),
     }
+
+
+def _group_by_title(album: dict) -> str:
+    """A release's group when Apple's grouping does not have it. Apple marks
+    only one-song releases as singles, but names singles and EPs by a suffix."""
+    if album["single"] or album["name"].endswith((" - Single", " - EP")):
+        return "singles"
+    return "albums"
 
 
 def _song(item: dict) -> dict:
@@ -259,10 +277,20 @@ class Catalog:
         return _song(items[0])
 
     async def artist_albums(self, storefront: str, artist_id: str, language: str = "") -> dict:
-        info = await self._get(f"{storefront}/artists/{artist_id}", {"l": language})
+        """An artist with every release Apple lists for them, each in a
+        `group` (see `_GROUPS`).
+
+        The releases come from the full list; the groups from Apple's own
+        grouping. That grouping leaves out releases it counts as the same as
+        another, which can be a different version (a radio edit under the
+        same title), so it only sorts and never hides anything. A release
+        outside it is sorted by its title, and marked as `other_release` when
+        one with the same title is in it."""
+        info = await self._get(f"{storefront}/artists/{artist_id}", {"l": language, "views": ",".join(_GROUPS)})
         items = info.get("data") or []
         if not items:
             raise NotInCatalog("Artist not found.")
+        groups = await self._artist_groups(storefront, artist_id, language, items[0].get("views") or {})
         albums: list[dict] = []
         offset = 0
         more = False
@@ -279,8 +307,34 @@ class Catalog:
                 more = True  # Apple has further pages; they are not fetched
                 break
             offset += len(batch)
+        grouped_names = {a["name"].casefold() for a in albums if a["id"] in groups}
+        for album in albums:
+            album["group"] = groups.get(album["id"]) or _group_by_title(album)
+            album["other_release"] = album["id"] not in groups and album["name"].casefold() in grouped_names
         albums.sort(key=lambda a: a["release_date"], reverse=True)
         return {**_artist(items[0]), "albums": albums, "more": more}
+
+    async def _artist_groups(self, storefront: str, artist_id: str, language: str, views: dict) -> dict[str, str]:
+        """Release ID -> group, from Apple's grouping. Apple sends the first
+        few of each group with the artist; the rest are fetched page by page.
+        If that fails, the releases not yet seen are sorted by their title."""
+        groups: dict[str, str] = {}
+        for view, group in _GROUPS.items():
+            answer = views.get(view) or {}
+            offset = 0
+            while True:
+                batch = answer.get("data") or []
+                groups.update((a.get("id", ""), group) for a in batch)
+                offset += len(batch)
+                if not answer.get("next") or not batch or offset >= ARTIST_ALBUMS:
+                    break
+                try:
+                    answer = await self._get(
+                        f"{storefront}/artists/{artist_id}/view/{view}", {"l": language, "limit": 100, "offset": offset}
+                    )
+                except CatalogError:
+                    break
+        return groups
 
     async def search(self, storefront: str, term: str, language: str = "", limit: int = 20) -> dict:
         data = await self._get(

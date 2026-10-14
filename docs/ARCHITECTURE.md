@@ -165,7 +165,8 @@ started, and it is masked in any wrapper output that echoes it.
 ## Going easy on Apple's catalogue
 
 One page costs few requests: a search or an album one, an artist one plus
-one per 100 releases. `catalog.py` holds two safeguards:
+one per 100 releases, plus one per further 100 in a group of Apple's
+grouping (see "Artist pages"). `catalog.py` holds two safeguards:
 
 - If Apple answers "too many requests" (HTTP 429), nothing more is sent
   until the pause it names is over (at least one minute, at most fifteen).
@@ -212,6 +213,24 @@ highest there is, stands alone.
 
 Unrelated to Apple, the queue page shows its history 50 jobs at a time
 (`HISTORY_STEP` in `pages/Queue.tsx`).
+
+## Artist pages
+
+An artist page shows every release Apple lists for the artist
+(`/artists/<id>/albums`), each in a group: albums, singles and EPs,
+compilations, live albums, or appears on. The groups come from Apple's own
+grouping, the one its Music app shows (`views` on the artist). That grouping
+leaves out releases it counts as the same as another, which can be a
+different version under the same title (a radio edit, a re-release on
+another label), so Calavera uses it only to sort. A release outside it goes
+by its title: " - Single" or " - EP" at the end, or Apple's single flag
+(which Apple sets only for one-song releases), makes it a single, anything
+else an album. If one with the same title is in the grouping, its card says
+"Other release" and names the label. Without the grouping (Apple not
+answering for it), every release is sorted by title.
+
+The page has two tabs, the albums and the singles and EPs; compilations,
+live albums and appearances follow the albums in the first tab.
 
 ## Artist links
 

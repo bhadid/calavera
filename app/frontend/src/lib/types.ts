@@ -109,8 +109,16 @@ export interface Album {
   traits: string[];
   explicit: boolean;
   single: boolean;
+  /** The record label, if Apple names one. */
+  label?: string;
+  /** On an artist page: which group the release is in. */
+  group?: ReleaseGroup;
+  /** On an artist page: another release under the same title as one in Apple's own grouping. */
+  other_release?: boolean;
   in_library?: string | null;
 }
+
+export type ReleaseGroup = "albums" | "singles" | "compilations" | "live" | "appears_on";
 
 export interface Track extends Song {
   track_number: number;

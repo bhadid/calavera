@@ -89,6 +89,81 @@ def test_an_artists_albums_stop_at_the_limit_and_say_so(total, shown, more):
     assert (len(artist["albums"]), artist["more"]) == (shown, more)
 
 
+def release(id: str, name: str, **attrs) -> dict:
+    return {"id": id, "attributes": {"name": name, "releaseDate": "2020-01-01", **attrs}}
+
+
+def grouped_artist(views: dict, releases: list[dict], failing_view: str = ""):
+    """Apple's answers for an artist whose grouping is `views` (view name ->
+    list of releases, sent five at a time) and whose full list is `releases`."""
+    asked: list[str] = []
+
+    def page(items: list[dict], offset: int, size: int, view: str) -> dict:
+        answer = {"data": items[offset:offset + size]}
+        if offset + size < len(items):
+            answer["next"] = f"/v1/catalog/de/artists/9/view/{view}?offset={offset + size}"
+        return answer
+
+    def handler(request):
+        path = request.url.path
+        asked.append(path)
+        if path.endswith("/albums"):
+            return httpx.Response(200, json={"data": releases})
+        if "/view/" in path:
+            view = path.rsplit("/", 1)[1]
+            if view == failing_view:
+                return httpx.Response(500)
+            return httpx.Response(200, json=page(views[view], int(request.url.params["offset"]), 100, view))
+        assert request.url.params["views"] == "full-albums,singles,compilation-albums,live-albums,appears-on-albums"
+        first = {view: page(items, 0, 5, view) for view, items in views.items()}
+        return httpx.Response(200, json={"data": [{"id": "9", "attributes": {"name": "Somebody"}, "views": first}]})
+
+    return handler, asked
+
+
+def test_releases_are_grouped_as_apple_groups_them_and_none_is_hidden():
+    radio_edit = release("1", "Kill Me - Single", isSingle=True)
+    full_version = release("2", "Kill Me - Single", isSingle=True, recordLabel="BEAT Music Fund")
+    two_songs = release("3", "Ready To Roll - Single")
+    mix = release("4", "Supremacy (DJ Mix)")
+    album = release("5", "Through My Veins")
+    guest = release("6", "LET IT RAIN (feat. Dsturb) - Single", isSingle=True)
+    unknown_ep = release("7", "Merge - EP")
+    views = {"full-albums": [album], "singles": [radio_edit, two_songs], "compilation-albums": [mix], "appears-on-albums": [guest]}
+    handler, _ = grouped_artist(views, [radio_edit, full_version, two_songs, mix, album, guest, unknown_ep])
+    albums = asyncio.run(catalog_answering(handler).artist_albums("de", "9"))["albums"]
+    got = {a["id"]: (a["group"], a["other_release"]) for a in albums}
+    assert got == {
+        "1": ("singles", False),
+        "2": ("singles", True),  # left out by Apple's grouping, still shown
+        "3": ("singles", False),
+        "4": ("compilations", False),
+        "5": ("albums", False),
+        "6": ("appears_on", False),
+        "7": ("singles", False),  # not grouped by Apple: sorted by its title
+    }
+    assert next(a for a in albums if a["id"] == "2")["label"] == "BEAT Music Fund"
+
+
+def test_a_long_group_is_fetched_page_by_page():
+    singles = [release(str(i), f"Song {i} - Single") for i in range(130)]
+    handler, asked = grouped_artist({"singles": singles}, singles)
+    albums = asyncio.run(catalog_answering(handler).artist_albums("de", "9"))["albums"]
+    assert {a["group"] for a in albums} == {"singles"} and not any(a["other_release"] for a in albums)
+    assert asked.count("/v1/catalog/de/artists/9/view/singles") == 2  # 5 with the artist, then 100 and 25
+
+
+def test_without_apples_grouping_releases_are_sorted_by_title():
+    album = release("1", "Ready To Roll - Single")
+    others = [release(str(i), f"Album {i}") for i in range(2, 9)]
+    handler, _ = grouped_artist({"full-albums": others}, [album, *others], failing_view="full-albums")
+    albums = asyncio.run(catalog_answering(handler).artist_albums("de", "9"))["albums"]
+    got = {a["id"]: a["group"] for a in albums}
+    assert got["1"] == "singles" and set(got.values()) == {"singles", "albums"}
+    # The two Apple sent with the artist before the failing page are not other releases.
+    assert not any(a["other_release"] for a in albums)
+
+
 def album_answer(*tracks: tuple[list[str], str]) -> dict:
     songs = [
         {"type": "songs", "id": str(n), "attributes": {"audioTraits": traits, "extendedAssetUrls": {"enhancedHls": url} if url else {}}}

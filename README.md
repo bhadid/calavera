@@ -134,7 +134,10 @@ the 6-digit code.
 - **Search:** type an artist, album or song, or paste a link. *In library*
   marks albums whose folder already exists. Tap a cover or title to open the
   album, an artist's name to open the artist's page. There, a switch shows
-  either the albums or the singles and EPs.
+  either the albums (followed by compilations, live albums and appearances)
+  or the singles and EPs, grouped as in Apple's Music app. Nothing Apple
+  lists is left out: a release under the same title as another says
+  *Other release* and its label.
 - **Getting the latest from Apple:** pages you return to are remembered for
   a while (a search or an artist page for 15 minutes, an album for an hour)
   instead of asked for again. Reloading the page in your browser, or

@@ -76,6 +76,11 @@ export function AlbumGrid({ albums, artistId }: { albums: Album[]; artistId?: st
                   .filter(Boolean)
                   .join(" · ")}
               </p>
+              {album.other_release && (
+                <p className="small muted" title="Apple Music lists another release under this title; this is a further one.">
+                  {["Other release", album.label].filter(Boolean).join(" · ")}
+                </p>
+              )}
               <div className="album-tags">
                 {quality && <span className={`tag ${quality.startsWith("Hi-Res") ? "tag-accent" : ""}`}>{quality}</span>}
                 {album.explicit && (

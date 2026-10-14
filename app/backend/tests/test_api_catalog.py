@@ -16,7 +16,7 @@ def apple(monkeypatch):
         state["asked"] += 1
         if state["down"]:
             raise CatalogError("Apple Music asked for a pause.")
-        album = {"id": "1", "name": "Album", "artist": "Artist", "artists": [], "single": False, "release_date": "2020"}
+        album = {"id": "1", "name": "Album", "artist": "Artist", "artists": [], "single": False, "release_date": "2020", "group": "albums"}
         return {"id": artist_id, "name": "Artist", "artwork": "", "url": "", "albums": [album], "more": False}
 
     monkeypatch.setattr(Catalog, "artist_albums", artist_albums)
