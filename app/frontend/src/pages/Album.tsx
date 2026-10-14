@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { api, ApiError } from "../lib/api";
 import { duration, plural, qualityLabel, qualityNumbers, year } from "../lib/format";
 import { useStore } from "../lib/store";
 import type { AlbumDetail, Track } from "../lib/types";
+import { type AlbumLinkState, OtherReleaseTag } from "../components/AlbumGrid";
 import { ArtistNames } from "../components/ArtistNames";
 import { Cover } from "../components/Cover";
 import { Icon } from "../components/Icon";
@@ -21,6 +22,8 @@ export function AlbumPage() {
   const [params] = useSearchParams();
   const storefront = params.get("sf") ?? undefined;
   const navigate = useNavigate();
+  // Opened from a card marked as an "other release"; see AlbumCard.
+  const otherRelease = Boolean((useLocation().state as AlbumLinkState | null)?.otherRelease);
   const { jobs, notify } = useStore();
   const [album, setAlbum] = useState<AlbumDetail | null>(null);
   const [error, setError] = useState("");
@@ -138,9 +141,13 @@ export function AlbumPage() {
             <p>
               <ArtistNames name={album.artist} artists={album.artists} />
             </p>
-            <p className="small muted">{[year(album.release_date), plural(album.tracks.length, "song"), numbers].filter(Boolean).join(" · ")}</p>
+            {/* The numbers come last: they arrive later, and nothing should move when they do. */}
+            <p className="small muted">
+              {[year(album.release_date), plural(album.tracks.length, "song"), album.label, numbers].filter(Boolean).join(" · ")}
+            </p>
             <div className="album-tags">
               {quality && <span className={`tag ${quality.startsWith("Hi-Res") ? "tag-accent" : ""}`}>{quality}</span>}
+              {otherRelease && <OtherReleaseTag />}
               {album.explicit && <span className="tag tag-ghost">Explicit</span>}
               {album.in_library && (
                 <span className="tag tag-ok">

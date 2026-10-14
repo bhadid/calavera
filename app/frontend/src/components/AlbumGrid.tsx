@@ -52,6 +52,11 @@ export function QueueButton({
   );
 }
 
+/** What a card tells the album page it opens. */
+export interface AlbumLinkState {
+  otherRelease?: boolean;
+}
+
 /** `artistId`: the artist whose page the grid is on, who is then not linked. */
 export function AlbumGrid({ albums, artistId }: { albums: Album[]; artistId?: string }) {
   return (
@@ -65,15 +70,20 @@ export function AlbumGrid({ albums, artistId }: { albums: Album[]; artistId?: st
 
 export function AlbumCard({ album, artistId }: { album: Album; artistId?: string }) {
   const quality = qualityLabel(album.traits);
+  const to = albumPath(album.url) ?? `/album/${album.id}`;
+  // The album page cannot tell an "other release" by itself; it is told.
+  const state: AlbumLinkState | undefined = album.other_release ? { otherRelease: true } : undefined;
   return (
     <article className="card album">
       {/* The cover and title open the album's page, where single songs can be chosen. */}
-      <Link to={albumPath(album.url) ?? `/album/${album.id}`} className="album-link" aria-label={`${album.name}: show songs`}>
+      <Link to={to} state={state} className="album-link" aria-label={`${album.name}: show songs`}>
         <Cover src={album.artwork} size={180} />
       </Link>
       <div className="album-text">
         <h3 title={album.name}>
-          <Link to={albumPath(album.url) ?? `/album/${album.id}`}>{album.name}</Link>
+          <Link to={to} state={state}>
+            {album.name}
+          </Link>
         </h3>
         <p className="artist muted" title={album.artist}>
           <ArtistNames name={album.artist} artists={album.artists} except={artistId} />
@@ -106,7 +116,7 @@ const POPOVER = { popover: "auto" } as Record<string, string>;
  * Marks a release Apple's grouping leaves out. Tapping it explains why, in a
  * small card over the page that a tap elsewhere or Escape closes.
  */
-function OtherReleaseTag() {
+export function OtherReleaseTag() {
   const id = useId();
   const card = useRef<HTMLDivElement>(null);
   const explanation =

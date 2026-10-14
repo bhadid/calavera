@@ -145,8 +145,9 @@ the 6-digit code.
   a while (a search or an artist page for 15 minutes, an album for an hour)
   instead of asked for again. Reloading the page in your browser, or
   pressing *Search*, asks Apple afresh.
-- **Album page:** every song with a checkbox. Everything downloadable starts
-  selected; untick what you do not want. Songs that are not available or are
+- **Album page:** year, label and quality under the title, then every song
+  with a checkbox. Everything downloadable starts selected; untick what you
+  do not want. Songs that are not available or are
   already in your library cannot be ticked and say why. Next to the download
   button is the album's folder in the library. Calavera recognises an album
   only by that exact folder name (capitals aside), so an album you got
