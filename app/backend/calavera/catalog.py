@@ -23,15 +23,17 @@ _UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ch
 
 # An artist page shows at most this many releases.
 ARTIST_ALBUMS = 300
-# Apple's own grouping of an artist's releases, as its Music app shows them:
-# Apple's name for each group, and Calavera's.
-_GROUPS = {
+# Apple's own grouping of an artist's releases, in the order its Music app
+# shows them: Apple's name for each group, and Calavera's.
+GROUPS = {
     "full-albums": "albums",
     "singles": "singles",
-    "compilation-albums": "compilations",
     "live-albums": "live",
+    "compilation-albums": "compilations",
     "appears-on-albums": "appears_on",
 }
+# Releases in one page of a group.
+GROUP_PAGE = 100
 # How long to leave Apple alone after it asks for a pause, in seconds: its
 # own figure (Retry-After) within these bounds, the first one without it.
 _PAUSE = (60, 900)
@@ -278,15 +280,16 @@ class Catalog:
 
     async def artist_albums(self, storefront: str, artist_id: str, language: str = "") -> dict:
         """An artist with every release Apple lists for them, each in a
-        `group` (see `_GROUPS`).
+        `group` (see `GROUPS`).
 
         The releases come from the full list; the groups from Apple's own
         grouping. That grouping leaves out releases it counts as the same as
         another, which can be a different version (a radio edit under the
         same title), so it only sorts and never hides anything. A release
-        outside it is sorted by its title, and marked as `other_release` when
-        one with the same title is in it."""
-        info = await self._get(f"{storefront}/artists/{artist_id}", {"l": language, "views": ",".join(_GROUPS)})
+        outside it (`grouped` false) joins the group of the release with the
+        same title and is marked as `other_release`; without one it is sorted
+        by its title."""
+        info = await self._get(f"{storefront}/artists/{artist_id}", {"l": language, "views": ",".join(GROUPS)})
         items = info.get("data") or []
         if not items:
             raise NotInCatalog("Artist not found.")
@@ -307,19 +310,56 @@ class Catalog:
                 more = True  # Apple has further pages; they are not fetched
                 break
             offset += len(batch)
-        grouped_names = {a["name"].casefold() for a in albums if a["id"] in groups}
+        namesakes = {a["name"].casefold(): groups[a["id"]] for a in albums if a["id"] in groups}
         for album in albums:
-            album["group"] = groups.get(album["id"]) or _group_by_title(album)
-            album["other_release"] = album["id"] not in groups and album["name"].casefold() in grouped_names
+            album["grouped"] = album["id"] in groups
+            namesake = None if album["grouped"] else namesakes.get(album["name"].casefold())
+            album["group"] = groups.get(album["id"]) or namesake or _group_by_title(album)
+            album["other_release"] = namesake is not None
         albums.sort(key=lambda a: a["release_date"], reverse=True)
         return {**_artist(items[0]), "albums": albums, "more": more}
+
+    async def artist(self, storefront: str, artist_id: str, language: str = "") -> dict:
+        """An artist with the first few releases of each group in Apple's
+        grouping (`shelves`), all in one request. `more`: the group has
+        further releases (see `artist_group`)."""
+        info = await self._get(
+            f"{storefront}/artists/{artist_id}",
+            {"l": language, "views": ",".join(GROUPS), "include[albums]": "artists"},
+        )
+        items = info.get("data") or []
+        if not items:
+            raise NotInCatalog("Artist not found.")
+        views = items[0].get("views") or {}
+        shelves = []
+        for view, group in GROUPS.items():
+            answer = views.get(view) or {}
+            batch = answer.get("data") or []
+            if batch:
+                shelves.append({"group": group, "items": [_album(a) for a in batch], "more": bool(answer.get("next"))})
+        return {**_artist(items[0]), "shelves": shelves}
+
+    async def artist_group(self, storefront: str, artist_id: str, group: str, offset: int = 0, language: str = "") -> dict:
+        """One page of a group in Apple's grouping. `next`: the offset of the
+        following page, or None."""
+        view = next(v for v, g in GROUPS.items() if g == group)
+        try:
+            page = await self._get(
+                f"{storefront}/artists/{artist_id}/view/{view}",
+                {"l": language, "limit": GROUP_PAGE, "offset": offset, "include[albums]": "artists"},
+            )
+        except NotInCatalog:
+            # Apple answers an empty group with "not found".
+            return {"items": [], "next": None}
+        batch = page.get("data") or []
+        return {"items": [_album(a) for a in batch], "next": offset + len(batch) if page.get("next") and batch else None}
 
     async def _artist_groups(self, storefront: str, artist_id: str, language: str, views: dict) -> dict[str, str]:
         """Release ID -> group, from Apple's grouping. Apple sends the first
         few of each group with the artist; the rest are fetched page by page.
         If that fails, the releases not yet seen are sorted by their title."""
         groups: dict[str, str] = {}
-        for view, group in _GROUPS.items():
+        for view, group in GROUPS.items():
             answer = views.get(view) or {}
             offset = 0
             while True:

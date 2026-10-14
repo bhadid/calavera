@@ -164,15 +164,16 @@ started, and it is masked in any wrapper output that echoes it.
 
 ## Going easy on Apple's catalogue
 
-One page costs few requests: a search or an album one, an artist one plus
-one per 100 releases, plus one per further 100 in a group of Apple's
-grouping (see "Artist pages"). `catalog.py` holds two safeguards:
+One page costs few requests: a search, an album or an artist one, a page of
+an artist's group one per 100 releases as it is scrolled to. Finding the
+releases outside Apple's grouping costs one per 100 releases and per 100 in
+each group (see "Artist pages"). `catalog.py` holds two safeguards:
 
 - If Apple answers "too many requests" (HTTP 429), nothing more is sent
   until the pause it names is over (at least one minute, at most fifteen).
   Requests in that time fail at once with a message saying so.
-- An artist page stops at 300 releases (`ARTIST_ALBUMS`) and says when Apple
-  lists more.
+- The search for releases outside Apple's grouping stops at 300 releases
+  (`ARTIST_ALBUMS`).
 
 `memory.py` keeps Apple's answers for a while, so that going back to a page
 does not ask again: searches and artist pages for 15 minutes, albums for an
@@ -216,21 +217,26 @@ Unrelated to Apple, the queue page shows its history 50 jobs at a time
 
 ## Artist pages
 
-An artist page shows every release Apple lists for the artist
-(`/artists/<id>/albums`), each in a group: albums, singles and EPs,
-compilations, live albums, or appears on. The groups come from Apple's own
-grouping, the one its Music app shows (`views` on the artist). That grouping
-leaves out releases it counts as the same as another, which can be a
-different version under the same title (a radio edit, a re-release on
-another label), so Calavera uses it only to sort. A release outside it goes
-by its title: " - Single" or " - EP" at the end, or Apple's single flag
-(which Apple sets only for one-song releases), makes it a single, anything
-else an album. If one with the same title is in the grouping, its card says
-"Other release" and names the label. Without the grouping (Apple not
-answering for it), every release is sorted by title.
+Laid out as in Apple's Music app. `pages/Artist.tsx` shows a row
+(`components/Shelf.tsx`) for each group of Apple's own grouping of the
+artist's releases (`views` on the artist): albums, singles and EPs, live
+albums, compilations, appears on. Apple sends the first few of each group
+with the artist, so the page needs one request. Each row leads to the whole
+group, `/artist/<id>/<group>` (`pages/ArtistGroup.tsx`), which fetches 100
+releases at a time as the end of the list comes near and keeps what it has
+loaded, and where it was scrolled to, for the way back from an album.
 
-The page has two tabs, the albums and the singles and EPs; compilations,
-live albums and appearances follow the albums in the first tab.
+Apple's grouping leaves out releases it counts as the same as another, which
+can be a different version under the same title (a radio edit, a re-release
+on another label). So that nothing is hidden, the group page also asks for
+`/api/catalog/artists/<id>/others`: `catalog.artist_albums` reads the full
+list (`/artists/<id>/albums`) and every page of the grouping, and returns the
+releases in the list but not in the grouping. Each joins the group of the
+release with the same title, and its card says "Other release" and names
+the label; without one it goes by its title (" - Single" or " - EP" at the
+end, or Apple's single flag, which Apple sets only for one-song releases,
+make it a single; anything else is an album). They are shown at the end of
+the group page once the list is complete.
 
 ## Artist links
 

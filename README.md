@@ -13,7 +13,7 @@ original, and files it under `Artist/Album/` in your library without ever
 overwriting what is already there.
 
 <p>
-  <img src="docs/screenshots/artist-light.png" alt="Calavera's artist page in the light theme: an artist's albums, with a switch to the singles and EPs; each album has its quality and a download button, one is marked as in the library" width="560">
+  <img src="docs/screenshots/artist-light.png" alt="Calavera's artist page in the light theme: a row of the artist's albums and one of the singles and EPs, each with See all; each album has its quality and a download button, two are marked as in the library" width="560">
   <img src="docs/screenshots/album-dark.png" alt="Calavera's album page on a phone in the dark theme: an album with its quality in numbers, its songs with checkboxes, and a download button" width="200">
 </p>
 
@@ -133,11 +133,12 @@ the 6-digit code.
   instead.
 - **Search:** type an artist, album or song, or paste a link. *In library*
   marks albums whose folder already exists. Tap a cover or title to open the
-  album, an artist's name to open the artist's page. There, a switch shows
-  either the albums (followed by compilations, live albums and appearances)
-  or the singles and EPs, grouped as in Apple's Music app. Nothing Apple
-  lists is left out: a release under the same title as another says
-  *Other release* and its label.
+  album, an artist's name to open the artist's page. It is laid out
+  as in Apple's Music app: a row each for albums, singles and EPs, live
+  albums, compilations and appearances; *See all* shows the whole group,
+  loading more as you scroll. Nothing Apple lists is left out: releases
+  Apple's own grouping skips follow at the end of their group, and one under
+  the same title as another says *Other release* and its label.
 - **Getting the latest from Apple:** pages you return to are remembered for
   a while (a search or an artist page for 15 minutes, an album for an hour)
   instead of asked for again. Reloading the page in your browser, or

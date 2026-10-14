@@ -56,44 +56,48 @@ export function QueueButton({
 export function AlbumGrid({ albums, artistId }: { albums: Album[]; artistId?: string }) {
   return (
     <div className="grid">
-      {albums.map((album) => {
-        const quality = qualityLabel(album.traits);
-        return (
-          <article key={album.id} className="card album">
-            {/* The cover and title open the album's page, where single songs can be chosen. */}
-            <Link to={albumPath(album.url) ?? `/album/${album.id}`} className="album-link" aria-label={`${album.name}: show songs`}>
-              <Cover src={album.artwork} size={180} />
-            </Link>
-            <div className="album-text">
-              <h3 title={album.name}>
-                <Link to={albumPath(album.url) ?? `/album/${album.id}`}>{album.name}</Link>
-              </h3>
-              <p className="artist muted" title={album.artist}>
-                <ArtistNames name={album.artist} artists={album.artists} except={artistId} />
-              </p>
-              <p className="small muted">
-                {[year(album.release_date), plural(album.track_count, "track")]
-                  .filter(Boolean)
-                  .join(" · ")}
-              </p>
-              {album.other_release && (
-                <p className="small muted" title="Apple Music lists another release under this title; this is a further one.">
-                  {["Other release", album.label].filter(Boolean).join(" · ")}
-                </p>
-              )}
-              <div className="album-tags">
-                {quality && <span className={`tag ${quality.startsWith("Hi-Res") ? "tag-accent" : ""}`}>{quality}</span>}
-                {album.explicit && (
-                  <span className="tag tag-ghost" title="Explicit">
-                    E<span className="sr-only">xplicit</span>
-                  </span>
-                )}
-              </div>
-            </div>
-            <QueueButton url={album.url} appleId={album.id} inLibrary={album.in_library} block />
-          </article>
-        );
-      })}
+      {albums.map((album) => (
+        <AlbumCard key={album.id} album={album} artistId={artistId} />
+      ))}
     </div>
+  );
+}
+
+export function AlbumCard({ album, artistId }: { album: Album; artistId?: string }) {
+  const quality = qualityLabel(album.traits);
+  return (
+    <article className="card album">
+      {/* The cover and title open the album's page, where single songs can be chosen. */}
+      <Link to={albumPath(album.url) ?? `/album/${album.id}`} className="album-link" aria-label={`${album.name}: show songs`}>
+        <Cover src={album.artwork} size={180} />
+      </Link>
+      <div className="album-text">
+        <h3 title={album.name}>
+          <Link to={albumPath(album.url) ?? `/album/${album.id}`}>{album.name}</Link>
+        </h3>
+        <p className="artist muted" title={album.artist}>
+          <ArtistNames name={album.artist} artists={album.artists} except={artistId} />
+        </p>
+        <p className="small muted">
+          {[year(album.release_date), plural(album.track_count, "track")]
+            .filter(Boolean)
+            .join(" · ")}
+        </p>
+        {album.other_release && (
+          <p className="small muted" title="Apple Music lists another release under this title; this is a further one.">
+            {["Other release", album.label].filter(Boolean).join(" · ")}
+          </p>
+        )}
+        <div className="album-tags">
+          {quality && <span className={`tag ${quality.startsWith("Hi-Res") ? "tag-accent" : ""}`}>{quality}</span>}
+          {album.explicit && (
+            <span className="tag tag-ghost" title="Explicit">
+              E<span className="sr-only">xplicit</span>
+            </span>
+          )}
+        </div>
+      </div>
+      <QueueButton url={album.url} appleId={album.id} inLibrary={album.in_library} block />
+    </article>
   );
 }

@@ -19,7 +19,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, ValidationError
 
 from . import __version__, library, urls
-from .catalog import Catalog, CatalogError
+from .catalog import GROUPS, Catalog, CatalogError
 from .config import Config
 from .config import load as load_config
 from .db import Database
@@ -349,12 +349,42 @@ def create_app(config: Config | None = None) -> FastAPI:
 
     @app.get("/api/catalog/artists/{artist_id}")
     async def catalog_artist(artist_id: str, fresh: bool = False):
+        """An artist with the first releases of each group (`shelves`)."""
         store, language = await storefront(), get_settings().language
         artist, artist["stale_since"] = await remembered(
-            ("artist", store, language, artist_id), ARTIST, lambda: catalog.artist_albums(store, artist_id, language), fresh
+            ("artist", store, language, artist_id), ARTIST, lambda: catalog.artist(store, artist_id, language), fresh
         )
-        await asyncio.to_thread(mark_owned, artist["albums"])
+        await asyncio.to_thread(mark_owned, [a for shelf in artist["shelves"] for a in shelf["items"]])
         return artist
+
+    @app.get("/api/catalog/artists/{artist_id}/groups/{group}")
+    async def catalog_artist_group(artist_id: str, group: str, offset: int = 0, fresh: bool = False):
+        """One page of an artist's group: `items`, and `next`, the offset of
+        the following page or null."""
+        if group not in GROUPS.values() or not 0 <= offset <= 10_000:
+            raise HTTPException(404, "No such group.")
+        store, language = await storefront(), get_settings().language
+        page, page["stale_since"] = await remembered(
+            ("artist-group", store, language, artist_id, group, offset), ARTIST,
+            lambda: catalog.artist_group(store, artist_id, group, offset, language), fresh,
+        )
+        await asyncio.to_thread(mark_owned, page["items"])
+        return page
+
+    @app.get("/api/catalog/artists/{artist_id}/others")
+    async def catalog_artist_others(artist_id: str, fresh: bool = False):
+        """The releases Apple lists for the artist outside its own grouping,
+        each with the `group` it belongs to. Takes a few requests: every page
+        of the full list and of the grouping."""
+        store, language = await storefront(), get_settings().language
+
+        async def others() -> dict:
+            artist = await catalog.artist_albums(store, artist_id, language)
+            return {"items": [a for a in artist["albums"] if not a["grouped"]], "more": artist["more"]}
+
+        answer, answer["stale_since"] = await remembered(("artist-others", store, language, artist_id), ARTIST, others, fresh)
+        await asyncio.to_thread(mark_owned, answer["items"])
+        return answer
 
     # -- frontend ----------------------------------------------------------------
     @app.api_route("/api/{rest:path}", methods=["GET", "POST", "PUT", "DELETE"], include_in_schema=False)

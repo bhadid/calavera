@@ -1,4 +1,4 @@
-import type { AlbumQuality } from "./types";
+import type { AlbumQuality, ReleaseGroup } from "./types";
 
 export function bytes(n: number | null | undefined): string {
   if (n == null) return "unknown";
@@ -70,3 +70,12 @@ export function qualityLabel(traits: string[]): string {
   if (traits.includes("lossless")) return "Lossless";
   return "";
 }
+
+/** The groups of an artist's releases, in the order Apple's Music app shows them. */
+export const GROUP_NAMES: Record<ReleaseGroup, string> = {
+  albums: "Albums",
+  singles: "Singles and EPs",
+  live: "Live albums",
+  compilations: "Compilations",
+  appears_on: "Appears on",
+};

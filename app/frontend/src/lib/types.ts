@@ -111,7 +111,7 @@ export interface Album {
   single: boolean;
   /** The record label, if Apple names one. */
   label?: string;
-  /** On an artist page: which group the release is in. */
+  /** Outside Apple's grouping: the group the release belongs to. */
   group?: ReleaseGroup;
   /** On an artist page: another release under the same title as one in Apple's own grouping. */
   other_release?: boolean;
@@ -165,12 +165,32 @@ export interface Artist {
   url: string;
 }
 
+/** The first releases of one group on an artist page. */
+export interface Shelf {
+  group: ReleaseGroup;
+  items: Album[];
+  /** The group has more releases than these. */
+  more: boolean;
+}
+
 export interface ArtistDetail extends Artist {
   /** Set when Apple could not be reached and this is an older answer: when it is from (Unix seconds). */
   stale_since?: number | null;
-  albums: Album[];
-  /** Apple lists more releases than the page shows. */
-  more: boolean;
+  shelves: Shelf[];
+}
+
+/** One page of an artist's group. */
+export interface GroupPage {
+  stale_since?: number | null;
+  items: Album[];
+  /** Where the following page starts, or null after the last one. */
+  next: number | null;
+}
+
+/** Releases Apple lists for an artist outside its own grouping, each with its `group`. */
+export interface OtherReleases {
+  stale_since?: number | null;
+  items: Album[];
 }
 
 export interface SearchResults {

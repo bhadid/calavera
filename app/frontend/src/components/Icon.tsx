@@ -12,6 +12,8 @@ const PATHS = {
   user: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm-8 9a8 8 0 0 1 16 0",
   download: "M12 3v12m0 0-4.5-4.5M12 15l4.5-4.5M4 20h16",
   back: "M20 12H5m6-6-6 6 6 6",
+  previous: "M15 5l-7 7 7 7",
+  next: "M9 5l7 7-7 7",
   retry: "M4 12a8 8 0 1 0 2.6-5.9M4 4v4.5h4.5",
   trash: "M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13",
   close: "M6 6l12 12M18 6 6 18",

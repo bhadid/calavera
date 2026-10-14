@@ -114,7 +114,7 @@ def grouped_artist(views: dict, releases: list[dict], failing_view: str = ""):
             if view == failing_view:
                 return httpx.Response(500)
             return httpx.Response(200, json=page(views[view], int(request.url.params["offset"]), 100, view))
-        assert request.url.params["views"] == "full-albums,singles,compilation-albums,live-albums,appears-on-albums"
+        assert request.url.params["views"] == ",".join(catalog_module.GROUPS)
         first = {view: page(items, 0, 5, view) for view, items in views.items()}
         return httpx.Response(200, json={"data": [{"id": "9", "attributes": {"name": "Somebody"}, "views": first}]})
 
@@ -135,7 +135,7 @@ def test_releases_are_grouped_as_apple_groups_them_and_none_is_hidden():
     got = {a["id"]: (a["group"], a["other_release"]) for a in albums}
     assert got == {
         "1": ("singles", False),
-        "2": ("singles", True),  # left out by Apple's grouping, still shown
+        "2": ("singles", True),  # left out by Apple's grouping, still listed
         "3": ("singles", False),
         "4": ("compilations", False),
         "5": ("albums", False),
@@ -143,6 +143,34 @@ def test_releases_are_grouped_as_apple_groups_them_and_none_is_hidden():
         "7": ("singles", False),  # not grouped by Apple: sorted by its title
     }
     assert next(a for a in albums if a["id"] == "2")["label"] == "BEAT Music Fund"
+    assert [a["id"] for a in albums if not a["grouped"]] == ["2", "7"]
+
+
+def test_a_release_outside_apples_grouping_joins_the_group_of_its_namesake():
+    live = release("1", "Live at Somewhere")
+    copy = release("2", "Live at Somewhere")
+    handler, _ = grouped_artist({"live-albums": [live]}, [live, copy])
+    albums = asyncio.run(catalog_answering(handler).artist_albums("de", "9"))["albums"]
+    assert {a["id"]: (a["group"], a["other_release"]) for a in albums} == {"1": ("live", False), "2": ("live", True)}
+
+
+def test_an_artist_comes_with_a_shelf_per_group_in_apples_order():
+    singles = [release(str(i), f"Song {i} - Single") for i in range(12)]
+    album = release("50", "Album")
+    handler, asked = grouped_artist({"singles": singles, "full-albums": [album], "live-albums": []}, [])
+    artist = asyncio.run(catalog_answering(handler).artist("de", "9"))
+    assert [(s["group"], len(s["items"]), s["more"]) for s in artist["shelves"]] == [("albums", 1, False), ("singles", 5, True)]
+    assert artist["name"] == "Somebody" and len(asked) == 1
+
+
+def test_a_group_is_read_page_by_page():
+    singles = [release(str(i), f"Song {i} - Single") for i in range(130)]
+    handler, _ = grouped_artist({"singles": singles}, [])
+    catalog = catalog_answering(handler)
+    first = asyncio.run(catalog.artist_group("de", "9", "singles"))
+    assert (len(first["items"]), first["next"]) == (100, 100)
+    rest = asyncio.run(catalog.artist_group("de", "9", "singles", first["next"]))
+    assert (len(rest["items"]), rest["next"]) == (30, None)
 
 
 def test_a_long_group_is_fetched_page_by_page():

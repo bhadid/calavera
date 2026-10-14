@@ -1048,6 +1048,74 @@ textarea {
   gap: 18px;
 }
 
+/* ---- shelves: a row of albums that scrolls sideways (artist page) --------------- */
+.shelf-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.see-all {
+  font-size: var(--fs-small);
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.see-all:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  background: none;
+}
+
+.button-icon {
+  padding: 0 6px;
+  min-height: 32px;
+}
+
+/* Swiping is how a finger scrolls a row; the arrows are for the mouse. */
+@media (pointer: coarse) {
+  .shelf-arrows {
+    display: none;
+  }
+}
+
+.shelf-row {
+  /* Also contains what is positioned inside the cards (hidden screen-reader
+     text), which would otherwise widen the page past the screen. */
+  position: relative;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 180px;
+  gap: 18px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  /* Room for the cards' offset shadow, which would otherwise be cut off. */
+  padding: 0 var(--lift) var(--lift) 0;
+}
+
+.shelf-row::-webkit-scrollbar {
+  display: none;
+}
+
+.shelf-row > * {
+  scroll-snap-align: start;
+}
+
+/* On a phone the row runs to the screen's edges, and a part of the next
+   card shows that there is more to swipe to. */
+@media (max-width: 720px) {
+  .shelf-row {
+    grid-auto-columns: 42%;
+    gap: 12px;
+    margin-inline: -16px;
+    padding-inline: 16px;
+    scroll-padding-inline: 16px;
+  }
+}
+
 .album {
   display: flex;
   flex-direction: column;

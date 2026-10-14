@@ -3,6 +3,7 @@ import { Layout } from "./components/Layout";
 import { AccountPage } from "./pages/Account";
 import { AlbumPage } from "./pages/Album";
 import { ArtistPage } from "./pages/Artist";
+import { ArtistGroupPage } from "./pages/ArtistGroup";
 import { QueuePage } from "./pages/Queue";
 import { SearchPage } from "./pages/Search";
 import { SettingsPage } from "./pages/Settings";
@@ -19,6 +20,7 @@ export function App() {
         <Route path="album/:id" element={<AlbumPage />} />
         <Route path="song/:id" element={<SongPage />} />
         <Route path="artist/:id" element={<ArtistPage />} />
+        <Route path="artist/:id/:group" element={<ArtistGroupPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="account" element={<AccountPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
