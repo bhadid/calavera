@@ -132,6 +132,8 @@ export interface AlbumDetail extends Album {
   /** Set when Apple could not be reached and this is an older answer: when it is from (Unix seconds). */
   stale_since?: number | null;
   storefront: string;
+  /** The album's folder in the library, relative to its root: the existing one, or the one a download would create. */
+  library_path: string;
   tracks: Track[];
 }
 

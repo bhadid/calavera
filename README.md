@@ -141,7 +141,10 @@ the 6-digit code.
   pressing *Search*, asks Apple afresh.
 - **Album page:** every song with a checkbox. Everything downloadable starts
   selected; untick what you do not want. Songs that are not available or are
-  already in your library cannot be ticked and say why.
+  already in your library cannot be ticked and say why. Next to the download
+  button is the album's folder in the library. Calavera recognises an album
+  only by that exact folder name (capitals aside), so an album you got
+  elsewhere is found once its folder is renamed to match.
 - **Settings:** FLAC on/off, highest sample rate, lyrics, cover size, metadata
   language, store for search. Under *Appearance*, the accent colour (a hue
   and a depth slider, or monochrome), whether the logo has its white fill,

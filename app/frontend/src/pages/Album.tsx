@@ -107,9 +107,10 @@ export function AlbumPage() {
     if (!album) return;
     setBusy(true);
     try {
-      // The plain album link when nothing was left out; otherwise the
-      // chosen songs. Songs Apple does not offer are skipped either way.
-      const result = everything && !owned ? await api.addJobs([album.url]) : await api.addJobs([album.url], [...selected]);
+      // The plain album link when nothing was left out and the album has no
+      // folder yet; otherwise the chosen songs, which may go into an existing
+      // folder. Songs Apple does not offer are skipped either way.
+      const result = everything && !album.in_library ? await api.addJobs([album.url]) : await api.addJobs([album.url], [...selected]);
       if (result.rejected.length) {
         notify(result.rejected[0].error, "error");
       } else {
@@ -234,9 +235,13 @@ export function AlbumPage() {
         <p className="small muted">
           {queued
             ? "This album is already in the queue."
-            : owned > 0
-              ? `${plural(owned, "song")} already in the library ${owned === 1 ? "is" : "are"} left as ${owned === 1 ? "it is" : "they are"}.`
-              : "Songs are stored in the album's folder. Existing files are never replaced."}
+            : (
+              <>
+                {album.in_library ? "Adds to " : "Saves to "}
+                <span className="path">{album.library_path}/</span>
+                {owned > 0 && ` · ${plural(owned, "song")} already there ${owned === 1 ? "stays as it is" : "stay as they are"}.`}
+              </>
+            )}
         </p>
         <button className="button button-primary" disabled={busy || selected.size === 0 || Boolean(queued)} onClick={download}>
           {selected.size > 0 && <Icon name="download" />} {label}

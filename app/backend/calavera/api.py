@@ -313,6 +313,7 @@ def create_app(config: Config | None = None) -> FastAPI:
         return results
 
     def mark_owned_tracks(album: dict) -> None:
+        album["library_path"] = library.album_path(config.library_dir, album["artist"], album["name"])
         folder = album.get("in_library")
         present = library.track_keys(config.library_dir / folder) if folder else set()
         for track in album["tracks"]:
@@ -321,7 +322,8 @@ def create_app(config: Config | None = None) -> FastAPI:
     @app.get("/api/catalog/albums/{album_id}")
     async def catalog_album(album_id: str, sf: str = "", fresh: bool = False):
         """An album with its tracks, each marked as available or not and as
-        already in the library or not. `sf` is the store code of the link."""
+        already in the library or not, and the album's folder in the library
+        (`library_path`, existing or not). `sf` is the store code of the link."""
         if not album_id.isdigit() or (sf and not (len(sf) == 2 and sf.isalpha())):
             raise HTTPException(422, "Not a valid album reference.")
         store, language = sf.lower() or await storefront(), get_settings().language

@@ -1721,6 +1721,11 @@ textarea {
   flex: 1 1 220px;
 }
 
+/* A folder name must stay whole and exact, so long ones wrap anywhere. */
+.actionbar .path {
+  overflow-wrap: anywhere;
+}
+
 .add-actions {
   display: flex;
   flex-wrap: wrap;

@@ -99,6 +99,14 @@ def test_find_album_uses_the_downloaders_folder_names(lib):
     assert library.find_album(lib, "Nobody", "Nothing") is None
 
 
+def test_album_path_names_the_existing_or_the_future_folder(lib):
+    (lib / "Daniil Trifonov" / "BACH_ The Art of Life").mkdir(parents=True)
+    assert library.album_path(lib, "daniil trifonov", "bach: the art of life") == "Daniil Trifonov/BACH_ The Art of Life"
+    # A new album goes into the artist folder as it is spelled on disk.
+    assert library.album_path(lib, "DANIIL TRIFONOV", "Silver Age") == "Daniil Trifonov/Silver Age"
+    assert library.album_path(lib, "AC/DC", "Back in Black - Single") == "AC_DC/Back in Black - Single"
+
+
 # ---- merging into an existing album folder ------------------------------------
 @pytest.fixture
 def partial(lib):

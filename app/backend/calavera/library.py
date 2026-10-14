@@ -76,6 +76,17 @@ def find_album(library: Path, artist: str, album: str) -> str | None:
     return f"{artist_entry}/{album_entry}" if album_entry else None
 
 
+def album_path(library: Path, artist: str, album: str) -> str:
+    """Where an album is or would be in the library, relative to its root:
+    the existing album folder, else the folder an import would create, inside
+    the existing artist folder if there is one."""
+    found = find_album(library, artist, album)
+    if found:
+        return found
+    artist_entry = find_entry(library, folder_name(artist)) or folder_name(artist)
+    return f"{artist_entry}/{folder_name(album)}"
+
+
 def stem_key(stem: str) -> str:
     """How a track is recognised: its file name without the extension,
     compared case-insensitively."""
