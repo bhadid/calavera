@@ -237,9 +237,10 @@ export function AlbumPage() {
             ? "This album is already in the queue."
             : (
               <>
-                {album.in_library ? "Adds to " : "Saves to "}
+                {!album.in_library ? "Saves to " : selectable.length > 0 ? "Adds to " : "In the library at "}
                 <span className="path">{album.library_path}/</span>
-                {owned > 0 && ` · ${plural(owned, "song")} already there ${owned === 1 ? "stays as it is" : "stay as they are"}.`}
+                {owned > 0 && selectable.length > 0 &&
+                  ` · ${plural(owned, "song")} already there ${owned === 1 ? "stays as it is" : "stay as they are"}.`}
               </>
             )}
         </p>
