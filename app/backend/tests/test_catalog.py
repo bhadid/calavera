@@ -108,6 +108,9 @@ def grouped_artist(views: dict, releases: list[dict], failing_view: str = ""):
         path = request.url.path
         asked.append(path)
         if path.endswith("/albums"):
+            if request.url.params.get("sort") == "-releaseDate":
+                newest = sorted(releases, key=lambda r: r["attributes"]["releaseDate"], reverse=True)
+                return httpx.Response(200, json=page(newest, int(request.url.params["offset"]), 100, "all"))
             return httpx.Response(200, json={"data": releases})
         if "/view/" in path:
             view = path.rsplit("/", 1)[1]
@@ -271,3 +274,14 @@ def test_a_lossless_albums_quality_is_unknown_rather_than_wrong(url, playlist, s
     quality, asked = quality_of([(LOSSLESS, url)], playlist, status)
     assert quality is None
     assert all(a.startswith(("amp-api.music.apple.com", "aod.itunes.apple.com")) for a in asked)
+
+
+def test_all_releases_come_newest_first_page_by_page():
+    releases = [release(str(i), f"Release {i}", releaseDate=f"{2000 + i % 30}-01-01") for i in range(150)]
+    handler, _ = grouped_artist({}, releases)
+    catalog = catalog_answering(handler)
+    first = asyncio.run(catalog.artist_group("de", "9", "all"))
+    rest = asyncio.run(catalog.artist_group("de", "9", "all", first["next"]))
+    assert (len(first["items"]), first["next"], len(rest["items"]), rest["next"]) == (100, 100, 50, None)
+    dates = [a["release_date"] for a in first["items"] + rest["items"]]
+    assert dates == sorted(dates, reverse=True)

@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { api, ApiError } from "../lib/api";
 import { GROUP_NAMES } from "../lib/format";
 import type { ArtistDetail } from "../lib/types";
 import { BackButton, LoadError } from "../components/BackButton";
 import { Cover } from "../components/Cover";
+import { Icon } from "../components/Icon";
 import { Shelf } from "../components/Shelf";
 import { StaleNote } from "../components/StaleNote";
 
@@ -48,7 +49,14 @@ export function ArtistPage() {
         <StaleNote since={artist.stale_since} />
         <div className="artist-head">
           <Cover src={artist.artwork} size={96} round />
-          <h1>{artist.name}</h1>
+          <div>
+            <h1>{artist.name}</h1>
+            {artist.shelves.length > 0 && (
+              <Link to={`/artist/${artist.id}/all`} className="see-all">
+                All releases <Icon name="next" size={14} />
+              </Link>
+            )}
+          </div>
         </div>
       </div>
       {artist.shelves.length === 0 && <p className="empty">Apple Music lists no releases for this artist.</p>}

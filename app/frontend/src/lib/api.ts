@@ -103,7 +103,7 @@ export const api = {
   albumQuality: (id: string, storefront?: string) =>
     request<{ quality: AlbumQuality | null }>("GET", `/catalog/albums/${encodeURIComponent(id)}/quality${query({ sf: storefront })}`),
   artist: (id: string) => request<ArtistDetail>("GET", `/catalog/artists/${encodeURIComponent(id)}${query({})}`),
-  artistGroup: (id: string, group: ReleaseGroup, offset: number) =>
+  artistGroup: (id: string, group: ReleaseGroup | "all", offset: number) =>
     request<GroupPage>("GET", `/catalog/artists/${encodeURIComponent(id)}/groups/${group}${query({ offset: String(offset) })}`),
   artistOthers: (id: string) => request<OtherReleases>("GET", `/catalog/artists/${encodeURIComponent(id)}/others${query({})}`),
 };

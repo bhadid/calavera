@@ -83,6 +83,11 @@ export function AlbumCard({ album, artistId }: { album: Album; artistId?: string
             .filter(Boolean)
             .join(" · ")}
         </p>
+        {album.same_title && album.label && (
+          <p className="small muted" title="Apple Music lists another release under this title.">
+            Label · {album.label}
+          </p>
+        )}
         {album.other_release && (
           <p className="small muted" title="Apple Music lists another release under this title; this is a further one.">
             {["Other release", album.label].filter(Boolean).join(" · ")}

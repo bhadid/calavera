@@ -82,5 +82,6 @@ def test_others_are_only_the_releases_outside_apples_grouping(apple, client):
 def test_an_unknown_group_is_not_asked_of_apple(apple, client):
     http, _ = client
     assert http.get("/api/catalog/artists/7/groups/bootlegs").status_code == 404
+    assert http.get("/api/catalog/artists/7/groups/all?offset=20000").status_code == 404
     assert http.get("/api/catalog/artists/7/groups/singles?offset=-1").status_code == 404
     assert apple["asked"] == 0

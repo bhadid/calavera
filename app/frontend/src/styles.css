@@ -1056,6 +1056,9 @@ textarea {
 }
 
 .see-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: var(--fs-small);
   font-weight: 700;
   text-decoration: none;
@@ -1077,6 +1080,10 @@ textarea {
 @media (pointer: coarse) {
   .shelf-arrows {
     display: none;
+  }
+
+  .see-all {
+    min-height: var(--tap);
   }
 }
 

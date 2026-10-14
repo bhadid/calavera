@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Link, Navigate, useNavigationType, useParams } from "react-router-dom";
 import { api, ApiError } from "../lib/api";
 import { GROUP_NAMES } from "../lib/format";
@@ -22,13 +22,17 @@ interface Loaded {
 // the same releases at the same place instead of starting over. Gone on reload.
 const loaded = new Map<string, Loaded>();
 
-const isGroup = (group: string): group is ReleaseGroup => group in GROUP_NAMES;
+type Shown = ReleaseGroup | "all";
+const isGroup = (group: string): group is Shown => group === "all" || group in GROUP_NAMES;
+const title = (group: Shown) => (group === "all" ? "All releases" : GROUP_NAMES[group]);
 
 /**
  * All releases of one group of an artist ("See all"), as in Apple's Music
- * app: the next page is fetched as the end of the list comes near. The
- * releases Apple lists outside its own grouping follow at the end, so that
- * nothing Apple has is hidden.
+ * app, or every release of the artist newest first ("all"): the next page is
+ * fetched as the end of the list comes near. On a group, the releases Apple
+ * lists outside its own grouping follow at the end, so that nothing Apple
+ * has is hidden; "all" has them anyway, and names the label of releases that
+ * share a title.
  */
 export function ArtistGroupPage() {
   const { id = "", group = "" } = useParams();
@@ -114,7 +118,7 @@ export function ArtistGroupPage() {
   // The releases outside Apple's grouping take a few requests; they are
   // fetched alongside and shown once the list has reached its end.
   useEffect(() => {
-    if (state.others !== null || !isGroup(group)) return;
+    if (state.others !== null || !isGroup(group) || group === "all") return;
     let alive = true;
     api
       .artistOthers(id)
@@ -124,6 +128,15 @@ export function ArtistGroupPage() {
       alive = false;
     };
   }, [id, group, state.others]);
+
+  // Releases under the same title usually share their date, so they arrive
+  // on the same page; their labels tell them apart.
+  const items = useMemo(() => {
+    if (group !== "all") return state.items;
+    const count = new Map<string, number>();
+    for (const a of state.items) count.set(a.name.toLowerCase(), (count.get(a.name.toLowerCase()) ?? 0) + 1);
+    return state.items.map((a) => ((count.get(a.name.toLowerCase()) ?? 0) > 1 ? { ...a, same_title: true } : a));
+  }, [group, state.items]);
 
   if (!isGroup(group)) return <Navigate to={`/artist/${id}`} replace />;
   if (error && state.items.length === 0) return <LoadError message={error} fallback={`/artist/${id}`} />;
@@ -135,7 +148,7 @@ export function ArtistGroupPage() {
         <BackButton fallback={`/artist/${id}`} />
         <StaleNote since={state.staleSince} />
         <div>
-          <h1>{GROUP_NAMES[group]}</h1>
+          <h1>{title(group)}</h1>
           {state.artist && (
             <p className="muted">
               <Link to={`/artist/${id}`} className="quiet-link">
@@ -145,8 +158,8 @@ export function ArtistGroupPage() {
           )}
         </div>
       </div>
-      <section className="section" aria-label={GROUP_NAMES[group]}>
-        {state.items.length > 0 && <AlbumGrid albums={state.items} artistId={id} />}
+      <section className="section" aria-label={title(group)}>
+        {items.length > 0 && <AlbumGrid albums={items} artistId={id} />}
         {finished && state.items.length === 0 && <p className="empty">Apple Music lists nothing here.</p>}
         <div ref={end} />
         {!finished && <p className="empty">Loading…</p>}
@@ -159,7 +172,7 @@ export function ArtistGroupPage() {
           </p>
         )}
       </section>
-      {finished && state.others && state.others.length > 0 && (
+      {finished && group !== "all" && state.others && state.others.length > 0 && (
         <section className="section">
           <div className="section-head">
             <h2>

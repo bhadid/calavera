@@ -359,9 +359,10 @@ def create_app(config: Config | None = None) -> FastAPI:
 
     @app.get("/api/catalog/artists/{artist_id}/groups/{group}")
     async def catalog_artist_group(artist_id: str, group: str, offset: int = 0, fresh: bool = False):
-        """One page of an artist's group: `items`, and `next`, the offset of
-        the following page or null."""
-        if group not in GROUPS.values() or not 0 <= offset <= 10_000:
+        """One page of an artist's group, or of all their releases newest
+        first (`all`): `items`, and `next`, the offset of the following page
+        or null."""
+        if (group != "all" and group not in GROUPS.values()) or not 0 <= offset <= 10_000:
             raise HTTPException(404, "No such group.")
         store, language = await storefront(), get_settings().language
         page, page["stale_since"] = await remembered(

@@ -340,14 +340,21 @@ class Catalog:
         return {**_artist(items[0]), "shelves": shelves}
 
     async def artist_group(self, storefront: str, artist_id: str, group: str, offset: int = 0, language: str = "") -> dict:
-        """One page of a group in Apple's grouping. `next`: the offset of the
-        following page, or None."""
-        view = next(v for v, g in GROUPS.items() if g == group)
+        """One page of a group in Apple's grouping, or with `group` "all" of
+        every release Apple lists for the artist, newest first. `next`: the
+        offset of the following page, or None."""
         try:
-            page = await self._get(
-                f"{storefront}/artists/{artist_id}/view/{view}",
-                {"l": language, "limit": GROUP_PAGE, "offset": offset, "include[albums]": "artists"},
-            )
+            if group == "all":
+                page = await self._get(
+                    f"{storefront}/artists/{artist_id}/albums",
+                    {"l": language, "limit": GROUP_PAGE, "offset": offset, "include": "artists", "sort": "-releaseDate"},
+                )
+            else:
+                view = next(v for v, g in GROUPS.items() if g == group)
+                page = await self._get(
+                    f"{storefront}/artists/{artist_id}/view/{view}",
+                    {"l": language, "limit": GROUP_PAGE, "offset": offset, "include[albums]": "artists"},
+                )
         except NotInCatalog:
             # Apple answers an empty group with "not found".
             return {"items": [], "next": None}

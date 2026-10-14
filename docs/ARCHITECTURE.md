@@ -238,6 +238,12 @@ end, or Apple's single flag, which Apple sets only for one-song releases,
 make it a single; anything else is an album). They are shown at the end of
 the group page once the list is complete.
 
+*All releases* under the artist's name opens `/artist/<id>/all`: every
+release Apple lists for the artist in one grid, newest first. Apple sorts the
+full list itself (`sort=-releaseDate`), so this page also loads 100 at a time
+as it is scrolled. Nothing is left out there; releases under the same title
+(which usually share their date and so arrive together) show their label.
+
 ## Artist links
 
 Apple prints who made an album or song as one line of text (`artist`, e.g.

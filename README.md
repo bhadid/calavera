@@ -136,7 +136,8 @@ the 6-digit code.
   album, an artist's name to open the artist's page. It is laid out
   as in Apple's Music app: a row each for albums, singles and EPs, live
   albums, compilations and appearances; *See all* shows the whole group,
-  loading more as you scroll. Nothing Apple lists is left out: releases
+  loading more as you scroll. *All releases* lists everything newest
+  first. Nothing Apple lists is left out: releases
   Apple's own grouping skips follow at the end of their group, and one under
   the same title as another says *Other release* and its label.
 - **Getting the latest from Apple:** pages you return to are remembered for
