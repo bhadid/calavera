@@ -246,8 +246,10 @@ state). Every album page names the label in the line under the title.
 *All releases* under the artist's name opens `/artist/<id>/all`: every
 release Apple lists for the artist in one grid, newest first. Apple sorts the
 full list itself (`sort=-releaseDate`), so this page also loads 100 at a time
-as it is scrolled. Nothing is left out there; releases under the same title
-(which usually share their date and so arrive together) show their label.
+as it is scrolled. Nothing is left out there; the releases outside Apple's
+grouping (the same `others` answer) get their *Other release* tag once it
+arrives, and releases under the same title (which usually share their date
+and so arrive together) show their label.
 
 ## Artist links
 

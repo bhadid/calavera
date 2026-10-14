@@ -31,8 +31,8 @@ const title = (group: Shown) => (group === "all" ? "All releases" : GROUP_NAMES[
  * app, or every release of the artist newest first ("all"): the next page is
  * fetched as the end of the list comes near. On a group, the releases Apple
  * lists outside its own grouping follow at the end, so that nothing Apple
- * has is hidden; "all" has them anyway, and names the label of releases that
- * share a title.
+ * has is hidden; "all" has them anyway and only tags them. Releases that
+ * share a title show their label.
  */
 export function ArtistGroupPage() {
   const { id = "", group = "" } = useParams();
@@ -118,11 +118,11 @@ export function ArtistGroupPage() {
   // The releases outside Apple's grouping take a few requests; they are
   // fetched alongside and mixed in by date (see below).
   useEffect(() => {
-    if (state.others !== null || !isGroup(group) || group === "all") return;
+    if (state.others !== null || !isGroup(group)) return;
     let alive = true;
     api
       .artistOthers(id)
-      .then((answer) => alive && setState((s) => ({ ...s, others: answer.items.filter((a) => a.group === group) })))
+      .then((answer) => alive && setState((s) => ({ ...s, others: answer.items.filter((a) => group === "all" || a.group === group) })))
       .catch(() => alive && setState((s) => ({ ...s, others: [] })));
     return () => {
       alive = false;
@@ -135,9 +135,11 @@ export function ArtistGroupPage() {
   // jumps. Releases under the same title (usually of the same date, so they
   // arrive together) show their label to tell them apart.
   const items = useMemo(() => {
-    const list = [...state.items];
+    // "All releases" has them already; they only get their tag.
+    const outside = new Set(group === "all" ? (state.others ?? []).map((a) => a.id) : []);
+    const list = state.items.map((a) => (outside.has(a.id) ? { ...a, other_release: true } : a));
     const reached = state.next === null ? "" : (list[list.length - 1]?.release_date ?? "\uffff");
-    for (const other of state.others ?? []) {
+    for (const other of group === "all" ? [] : (state.others ?? [])) {
       if (other.release_date < reached || list.some((a) => a.id === other.id)) continue;
       const twin = list.findIndex((a) => a.name.toLowerCase() === other.name.toLowerCase());
       const later = list.findIndex((a) => a.release_date < other.release_date);
@@ -147,7 +149,7 @@ export function ArtistGroupPage() {
     const count = new Map<string, number>();
     for (const a of list) count.set(a.name.toLowerCase(), (count.get(a.name.toLowerCase()) ?? 0) + 1);
     return list.map((a) => ((count.get(a.name.toLowerCase()) ?? 0) > 1 ? { ...a, same_title: true } : a));
-  }, [state.items, state.next, state.others]);
+  }, [group, state.items, state.next, state.others]);
 
   if (!isGroup(group)) return <Navigate to={`/artist/${id}`} replace />;
   if (error && state.items.length === 0) return <LoadError message={error} fallback={`/artist/${id}`} />;
