@@ -87,17 +87,17 @@ export function ArtistPage() {
             )}
           </div>
         </div>
-        {shown && (
+      </div>
+      {shown ? (
+        <section className="section" aria-label={shown.name}>
+          {/* In the grid's section, where a heading would be: closer to the
+              cards it switches than to the header. */}
           <Segmented
             label="Releases shown"
             value={shown.value}
             options={lists.map((list) => ({ value: list.value, label: `${list.name} [${list.items.length}]` }))}
             onChange={(show) => setParams({ show }, { replace: true })}
           />
-        )}
-      </div>
-      {shown ? (
-        <section className="section" aria-label={shown.name}>
           <AlbumGrid albums={shown.items} artistId={artist.id} />
         </section>
       ) : (
