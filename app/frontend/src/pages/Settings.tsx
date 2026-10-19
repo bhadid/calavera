@@ -18,7 +18,7 @@ const RATES: { value: Settings["max_sample_rate"]; label: string }[] = [
 // Where this copy's source code can be obtained. The licence (AGPL-3.0)
 // requires offering the source to everyone who uses the app over a network:
 // if you run a modified version for others, point this at your own source.
-const SOURCE_URL = "https://github.com/killparty/calavera";
+const SOURCE_URL = "https://github.com/bhadid/calavera";
 
 const COVERS: { value: Settings["cover_size"]; label: string }[] = [
   { value: 1400, label: "1400" },

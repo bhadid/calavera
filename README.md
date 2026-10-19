@@ -1,8 +1,8 @@
 # Calavera
 
-[![CI](https://github.com/killparty/calavera/actions/workflows/ci.yml/badge.svg)](https://github.com/killparty/calavera/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/killparty/calavera)](https://github.com/killparty/calavera/releases/latest)
-[![Licence](https://img.shields.io/github/license/killparty/calavera)](LICENSE)
+[![CI](https://github.com/bhadid/calavera/actions/workflows/ci.yml/badge.svg)](https://github.com/bhadid/calavera/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/bhadid/calavera)](https://github.com/bhadid/calavera/releases/latest)
+[![Licence](https://img.shields.io/github/license/bhadid/calavera)](LICENSE)
 
 A small, self-hosted web UI that downloads albums and songs from Apple Music
 into your own music library as FLAC.
@@ -80,7 +80,7 @@ the library. More in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 ## Install
 
 ```bash
-git clone https://github.com/killparty/calavera.git
+git clone https://github.com/bhadid/calavera.git
 cd calavera
 cp .env.example .env      # then edit it, see below
 mkdir -p data/staging
@@ -215,7 +215,7 @@ again).
 ### Updating Calavera
 
 New versions are listed under
-[Releases](https://github.com/killparty/calavera/releases). In the folder
+[Releases](https://github.com/bhadid/calavera/releases). In the folder
 you cloned:
 
 ```bash
@@ -303,7 +303,7 @@ downloads at build time and does not redistribute.
 
 ## Licence
 
-Copyright © 2026 killparty.
+Copyright © 2026 bhadid.
 
 Calavera is free software, licensed under the GNU Affero General Public
 License, version 3 (`AGPL-3.0-only`). See [LICENSE](LICENSE).
