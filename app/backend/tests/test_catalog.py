@@ -285,3 +285,31 @@ def test_all_releases_come_newest_first_page_by_page():
     assert (len(first["items"]), first["next"], len(rest["items"]), rest["next"]) == (100, 100, 50, None)
     dates = [a["release_date"] for a in first["items"] + rest["items"]]
     assert dates == sorted(dates, reverse=True)
+
+
+def test_a_cover_is_asked_for_at_its_largest():
+    small = "https://is1-ssl.mzstatic.com/image/thumb/Music/v4/ab/cd.jpg/600x600bb.jpg"
+    assert catalog_module.large_artwork(small) == small.replace("600x600bb", "3000x3000bb")
+    assert catalog_module.large_artwork("") == ""
+
+
+def test_a_cover_comes_only_from_apples_image_servers():
+    asked = []
+
+    def handler(request):
+        asked.append(str(request.url))
+        return httpx.Response(200, content=b"jpeg", headers={"content-type": "image/jpeg"})
+
+    catalog = catalog_answering(handler)
+    image, kind = asyncio.run(catalog.cover("https://is1-ssl.mzstatic.com/a.jpg/600x600bb.jpg"))
+    assert (image, kind) == (b"jpeg", "image/jpeg") and asked == ["https://is1-ssl.mzstatic.com/a.jpg/3000x3000bb.jpg"]
+    for elsewhere in ("", "https://example.com/a.jpg/600x600bb.jpg", "http://is1.mzstatic.com/a.jpg/600x600bb.jpg"):
+        with pytest.raises(catalog_module.NotInCatalog):
+            asyncio.run(catalog.cover(elsewhere))
+    assert len(asked) == 1
+
+
+def test_a_cover_that_is_no_image_is_refused():
+    catalog = catalog_answering(lambda request: httpx.Response(200, text="<html>", headers={"content-type": "text/html"}))
+    with pytest.raises(CatalogError, match="other than a cover"):
+        asyncio.run(catalog.cover("https://is1-ssl.mzstatic.com/a.jpg/600x600bb.jpg"))

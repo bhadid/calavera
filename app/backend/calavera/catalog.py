@@ -34,6 +34,10 @@ GROUPS = {
 }
 # Releases in one page of a group.
 GROUP_PAGE = 100
+# The largest cover asked of Apple's image servers, and the most it may weigh.
+COVER_SIZE = 3000
+_COVER_BYTES = 20 << 20
+_SIZE_RE = re.compile(r"/\d+x\d+[a-z]*\.(?:jpg|png|webp)$")
 # How long to leave Apple alone after it asks for a pause, in seconds: its
 # own figure (Retry-After) within these bounds, the first one without it.
 _PAUSE = (60, 900)
@@ -58,6 +62,13 @@ class NotInCatalog(CatalogError):
 def _artwork(attrs: dict, size: int = 600) -> str:
     url = (attrs.get("artwork") or {}).get("url") or ""
     return url.replace("{w}", str(size)).replace("{h}", str(size))
+
+
+def large_artwork(url: str) -> str:
+    """The address of a cover at its largest, from its address in any size.
+    Apple sends the original when it is smaller than asked and never
+    enlarges it."""
+    return _SIZE_RE.sub(f"/{COVER_SIZE}x{COVER_SIZE}bb.jpg", url)
 
 
 def _artists(item: dict) -> list[dict]:
@@ -271,6 +282,22 @@ class Catalog:
         except httpx.HTTPError:
             return None
         return _best_lossless(resp.text)
+
+    async def cover(self, url: str) -> tuple[bytes, str]:
+        """A cover from Apple's image servers at its largest: the image and
+        its media type. No catalogue request, no Apple account."""
+        target = httpx.URL(large_artwork(url))
+        if target.scheme != "https" or not target.host.endswith(".mzstatic.com"):
+            raise NotInCatalog("This album has no cover.")
+        try:
+            resp = await self._http.get(target)
+            resp.raise_for_status()
+        except httpx.HTTPError as e:
+            raise CatalogError(f"The cover could not be loaded ({type(e).__name__}).") from e
+        kind = resp.headers.get("content-type", "")
+        if not kind.startswith("image/") or len(resp.content) > _COVER_BYTES:
+            raise CatalogError("Apple sent something other than a cover.")
+        return resp.content, kind
 
     async def song(self, storefront: str, song_id: str, language: str = "") -> dict:
         data = await self._get(f"{storefront}/songs/{song_id}", {"l": language, "include": "artists"})

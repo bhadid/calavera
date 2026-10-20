@@ -10,16 +10,16 @@ import asyncio
 import json
 import shutil
 from contextlib import asynccontextmanager
-from urllib.parse import urlparse
+from urllib.parse import quote, urlparse
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, ValidationError
 
 from . import __version__, library, urls
-from .catalog import GROUPS, Catalog, CatalogError
+from .catalog import GROUPS, Catalog, CatalogError, NotInCatalog
 from .config import Config
 from .config import load as load_config
 from .db import Database
@@ -327,12 +327,9 @@ def create_app(config: Config | None = None) -> FastAPI:
         for track in album["tracks"]:
             track["in_library"] = library.stem_key(track_file_stem(track)) in present
 
-    @app.get("/api/catalog/albums/{album_id}")
-    async def catalog_album(album_id: str, sf: str = "", fresh: bool = False):
-        """An album with its tracks, each marked as available or not and as
-        already in the library or not, and the album's folder in the library
-        (`library_path`, existing or not), and whether an existing folder
-        holds this edition (`edition`). `sf` is the store code of the link."""
+    async def album_answer(album_id: str, sf: str, fresh: bool = False) -> dict:
+        """An album from the memory or from Apple, with `stale_since` and
+        the `storefront` it was looked up in."""
         if not album_id.isdigit() or (sf and not (len(sf) == 2 and sf.isalpha())):
             raise HTTPException(422, "Not a valid album reference.")
         store, language = sf.lower() or await storefront(), get_settings().language
@@ -340,9 +337,37 @@ def create_app(config: Config | None = None) -> FastAPI:
             ("album", store, language, album_id), ALBUM, lambda: catalog.album(store, album_id, language), fresh
         )
         album["storefront"] = store
+        return album
+
+    @app.get("/api/catalog/albums/{album_id}")
+    async def catalog_album(album_id: str, sf: str = "", fresh: bool = False):
+        """An album with its tracks, each marked as available or not and as
+        already in the library or not, and the album's folder in the library
+        (`library_path`, existing or not), and whether an existing folder
+        holds this edition (`edition`). `sf` is the store code of the link."""
+        album = await album_answer(album_id, sf, fresh)
         await asyncio.to_thread(mark_owned, [album])
         await asyncio.to_thread(mark_owned_tracks, album)
         return album
+
+    @app.get("/api/catalog/albums/{album_id}/cover/{file_name}")
+    async def catalog_album_cover(album_id: str, file_name: str, sf: str = ""):
+        """The album's cover at its largest. It comes through Calavera so
+        that saving it suggests "Artist - Album.jpg" instead of Apple's
+        "3000x3000bb.jpg": the browser takes the name from the end of the
+        address (`file_name`, not used here) or from Content-Disposition."""
+        album = await album_answer(album_id, sf)
+        try:
+            image, kind = await catalog.cover(album["artwork"])
+        except NotInCatalog as e:
+            raise HTTPException(404, str(e)) from e
+        except CatalogError as e:
+            raise HTTPException(502, str(e)) from e
+        name = library.folder_name(f"{album['artist']} - {album['name']}") + ".jpg"
+        return Response(image, media_type=kind, headers={
+            "Content-Disposition": f"inline; filename*=UTF-8''{quote(name)}",
+            "Cache-Control": "private, max-age=86400",
+        })
 
     @app.get("/api/catalog/albums/{album_id}/quality")
     async def catalog_album_quality(album_id: str, sf: str = "", fresh: bool = False):

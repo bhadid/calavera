@@ -26,7 +26,17 @@ def apple(monkeypatch):
         other = {"id": "2", "name": "Album", "artist": "Artist", "grouped": False, "group": "albums", "other_release": True}
         return {"id": artist_id, "name": "Artist", "albums": [grouped, other], "more": False}
 
+    async def album(self, storefront, album_id, language=""):
+        state["asked"] += 1
+        return {"id": album_id, "name": "While(1<2)", "artist": "deadmau5", "artwork": state.get("artwork", "https://is1.mzstatic.com/a.jpg/600x600bb.jpg")}
+
+    async def cover(self, url):
+        state["cover"] = url
+        return b"jpeg", "image/jpeg"
+
     monkeypatch.setattr(Catalog, "artist", artist)
+    monkeypatch.setattr(Catalog, "album", album)
+    monkeypatch.setattr(Catalog, "cover", cover)
     monkeypatch.setattr(Catalog, "artist_albums", artist_albums)
     return state
 
@@ -85,3 +95,17 @@ def test_an_unknown_group_is_not_asked_of_apple(apple, client):
     assert http.get("/api/catalog/artists/7/groups/all?offset=20000").status_code == 404
     assert http.get("/api/catalog/artists/7/groups/singles?offset=-1").status_code == 404
     assert apple["asked"] == 0
+
+
+def test_a_cover_is_saved_under_the_artist_and_album_name(apple, client):
+    http, _ = client
+    answer = http.get("/api/catalog/albums/5/cover/anything.jpg?sf=de")
+    assert answer.status_code == 200 and answer.content == b"jpeg" and answer.headers["content-type"] == "image/jpeg"
+    assert answer.headers["content-disposition"] == "inline; filename*=UTF-8''deadmau5%20-%20While%281_2%29.jpg"
+    assert apple["cover"] == "https://is1.mzstatic.com/a.jpg/600x600bb.jpg"
+
+
+def test_a_cover_of_no_album_is_not_asked_for(apple, client):
+    http, _ = client
+    assert http.get("/api/catalog/albums/abc/cover/x.jpg").status_code == 422
+    assert "cover" not in apple

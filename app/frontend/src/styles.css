@@ -1527,6 +1527,85 @@ textarea {
   background: var(--surface-2);
 }
 
+/* ---- large cover ------------------------------------------------------------------------ */
+.cover-button {
+  flex: none;
+  display: block;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius);
+  background: none;
+  cursor: zoom-in;
+}
+
+.cover-button:hover .cover {
+  box-shadow: 3px 3px 0 var(--accent);
+}
+
+/* The dialog is exactly the cover, so that a click beside it is a click on
+   the backdrop, which closes it. */
+.lightbox {
+  padding: 0;
+  border: 0;
+  background: none;
+  max-width: none;
+  max-height: none;
+  overflow: visible;
+}
+
+.lightbox img {
+  display: block;
+  width: min(1500px, calc(100vw - 32px), calc(100dvh - 96px));
+  aspect-ratio: 1;
+  object-fit: contain;
+  border-radius: var(--radius);
+  background: var(--surface-2) center / cover no-repeat;
+  box-shadow: 0 12px 48px rgb(0 0 0 / 50%);
+}
+
+.lightbox::backdrop {
+  background: rgb(0 0 0 / 80%);
+}
+
+.lightbox[open],
+.lightbox[open]::backdrop {
+  animation: lightbox-in 0.2s ease-out;
+}
+
+@keyframes lightbox-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Over the cover's corner, as iOS places it: always visible on any cover. */
+.lightbox-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgb(0 0 0 / 55%);
+  color: #fff;
+  cursor: pointer;
+}
+
+.lightbox-close:hover {
+  background: rgb(0 0 0 / 75%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lightbox[open],
+  .lightbox[open]::backdrop {
+    animation: none;
+  }
+}
+
 /* ---- toasts ------------------------------------------------------------------------------- */
 .toasts {
   position: fixed;

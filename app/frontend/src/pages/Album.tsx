@@ -6,7 +6,7 @@ import { useStore } from "../lib/store";
 import type { AlbumDetail, Track } from "../lib/types";
 import { type AlbumLinkState, OtherReleaseTag } from "../components/AlbumGrid";
 import { ArtistNames } from "../components/ArtistNames";
-import { Cover } from "../components/Cover";
+import { CoverViewer } from "../components/CoverViewer";
 import { Icon } from "../components/Icon";
 import { StaleNote } from "../components/StaleNote";
 
@@ -142,7 +142,7 @@ export function AlbumPage() {
         {back}
         <StaleNote since={album.stale_since} />
         <div className="album-head">
-          <Cover src={album.artwork} size={160} />
+          <CoverViewer album={album} size={160} />
           <div className="album-head-text">
             <h1>{album.name}</h1>
             <p>
