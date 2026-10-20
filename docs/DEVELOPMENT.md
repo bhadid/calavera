@@ -129,6 +129,7 @@ Interactive reference while the app runs: `http://<host>:<port>/api/docs`.
 | `POST /api/account/login` · `/api/account/code` | Start a sign-in · submit the 2FA code. |
 | `GET /api/catalog/search?q=` · `/api/catalog/artists/{id}` · `/api/catalog/albums/{id}?sf=` | Catalogue. The album response lists tracks with `available` and `in_library`; the artist response has `shelves`, the first releases of each group. |
 | `GET /api/catalog/artists/{id}/groups/{group}?offset=` · `/api/catalog/artists/{id}/others` | A page of an artist's group (`items`, `next`; the group `all` is every release, newest first), and the releases outside Apple's grouping. |
+| `GET /api/catalog/albums/{id}/cover/{name}.jpg?sf=` | The album's cover at the largest size Apple has, fetched from Apple's image servers (no account). `name` is only there so that saving the image suggests it; `Content-Disposition` names it `Artist - Album.jpg`. |
 | `GET /api/catalog/albums/{id}/quality?sf=` | The lossless quality the album is offered in: `{"quality": {"bit_depth", "sample_rate_min", "sample_rate_max"}}`, or `null` if it cannot be told. The two rates differ for a hi-res album whose exact rate is not known. |
 
 The catalogue routes answer from a short memory (see ARCHITECTURE.md).

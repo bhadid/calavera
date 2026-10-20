@@ -150,7 +150,8 @@ the 6-digit code.
   already in your library cannot be ticked and say why. Next to the download
   button is the album's folder in the library. Calavera recognises an album
   only by that exact folder name (capitals aside), so an album you got
-  elsewhere is found once its folder is renamed to match.
+  elsewhere is found once its folder is renamed to match. Click the cover to
+  see it large; right-click to save it as `Artist - Album.jpg`.
 - **Settings:** FLAC on/off, highest sample rate, lyrics, cover size, metadata
   language, store for search. Under *Appearance*, the accent colour (a hue
   and a depth slider, or monochrome), whether the logo has its white fill,
