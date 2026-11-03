@@ -70,6 +70,9 @@ Two containers:
 A job runs through: download (amdl) → verify → convert to FLAC → import into
 the library. More in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
+Neither container runs as root: `app` runs as `PUID:PGID`, `wrapper` as user
+`10001`, both without Linux capabilities.
+
 ## Requirements
 
 - Linux on x86-64 with Docker Engine and the Compose plugin.
@@ -90,6 +93,16 @@ docker compose up -d
 
 Open `http://<BIND_ADDRESS>:<WEB_PORT>`, go to **Account** (the status pill in
 the top right) and sign in.
+
+With a compose file of your own, each image can be built straight from a
+release tag; the version pins are part of the Dockerfiles:
+
+```yaml
+build: https://github.com/bhadid/calavera.git#v0.6.0:app        # or …:wrapper
+```
+
+Copy the `security_opt`, `cap_drop`, volumes and ports from `compose.yaml`;
+the wrapper does not start without its three relaxed options.
 
 ### `.env`
 
@@ -230,14 +243,31 @@ A download that is running is interrupted by the restart; *Retry* runs it
 again. To stay on a particular version instead of the latest state, use
 `git checkout v0.4.0` (for example) in place of `git pull`.
 
+#### Upgrading from 0.5.0 or older
+
+Since 0.6.0 the wrapper runs as user `10001` instead of root. The files that
+older versions left in its two volumes belong to root, so once, after
+`docker compose build`:
+
+```bash
+docker compose stop wrapper
+docker compose run --rm --no-deps --user 0 --cap-add CHOWN --entrypoint chown wrapper -R 10001:10001 /app/rootfs/data /control
+docker compose up -d
+```
+
+The Apple session is kept. Without this step the wrapper does not start, and
+the Account page shows this command. Going back to 0.5.0 works without
+undoing it.
+
 ### Updating the pinned components
 
-Versions are pinned in `compose.yaml` and `app/Dockerfile`:
+Versions are pinned in the two Dockerfiles, so an image built from a git tag
+gets the same versions as one built here:
 
 | Component | Pin | Where |
 |---|---|---|
-| wrapper-lite | commit `2fd7e0eaef081f93cf687428b965674937832ba4` | `compose.yaml` → `wrapper.build.args.WRAPPER_REF` |
-| amdl | release `v0.1.0` + SHA-256 of the binary | `compose.yaml` → `app.build.args` |
+| wrapper-lite | commit `2fd7e0eaef081f93cf687428b965674937832ba4` | `wrapper/Dockerfile` → `ARG WRAPPER_REF` |
+| amdl | release `v0.1.0` + SHA-256 of the binary | `app/Dockerfile` → `ARG AMDL_VERSION`, `ARG AMDL_SHA256` |
 | ffmpeg | static 7.1, image digest | `app/Dockerfile` |
 | Python packages | direct ones in `requirements.in`, full lock generated | `app/backend/requirements.txt` |
 | JavaScript packages | lockfile | `app/frontend/package-lock.json` |
@@ -258,7 +288,7 @@ things in it watch for updates:
 - **`.github/workflows/upstream-check.yml`** runs every Monday and compares
   the amdl and wrapper-lite pins with upstream. If either is behind it opens
   an issue (label `upstream`) with the new version, the changes, and the
-  exact lines to put into `compose.yaml`, including amdl's checksum. One
+  exact lines to put into the Dockerfile, including amdl's checksum. One
   issue per component; it adds a comment if upstream moves again. It never
   changes anything itself. Run it by hand under *Actions → Upstream check →
   Run workflow*, or locally with
@@ -283,8 +313,12 @@ things in it watch for updates:
 - Search uses an anonymous token taken from Apple's web player, the same way
   amdl does. If Apple changes the web player, search stops working until
   `app/backend/calavera/catalog.py` is updated; downloads by link keep working.
-- wrapper-lite needs three relaxed Docker security options (see
-  `compose.yaml`). It does not run privileged.
+- wrapper-lite needs three relaxed Docker security options: seccomp and
+  AppArmor unconfined, and an unmasked `/proc` (see `compose.yaml` for what
+  each one is for). It runs as an unprivileged user without capabilities,
+  which keeps the host's kernel settings out of its reach; what remains is
+  that it may create user namespaces and use system calls Docker would
+  otherwise filter. It does not run privileged.
 - Developed and in daily use on Debian 12 with Docker Engine. Other Linux
   distributions should work but are untested, as are rootless Docker,
   Podman, SELinux hosts and ARM.

@@ -1,6 +1,6 @@
 # Weekly: report when amdl or wrapper-lite has something newer than the
-# versions pinned in compose.yaml, by opening an issue. Nothing is updated
-# automatically.
+# versions pinned in app/Dockerfile and wrapper/Dockerfile, by opening an
+# issue. Nothing is updated automatically.
 name: Upstream check
 
 on:

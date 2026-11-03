@@ -19,22 +19,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - name: Read the amdl pin from compose.yaml
-        run: |
-          version=$(sed -n 's/^ *AMDL_VERSION: *//p' compose.yaml)
-          sha256=$(sed -n 's/^ *AMDL_SHA256: *//p' compose.yaml)
-          test -n "$version" && test -n "$sha256"
-          echo "AMDL_VERSION=$version" >> "$GITHUB_ENV"
-          echo "AMDL_SHA256=$sha256" >> "$GITHUB_ENV"
       - name: Backend tests
-        run: >
-          docker build --target test
-          --build-arg AMDL_VERSION --build-arg AMDL_SHA256
-          app
+        run: docker build --target test app
       - name: App image, with frontend type check and build
-        run: >
-          docker build
-          --build-arg AMDL_VERSION --build-arg AMDL_SHA256
-          app
+        run: docker build app
       - name: Accent colour check
         run: docker run --rm -v "$PWD":/w -w /w node:22-alpine node scripts/check-accent.mjs

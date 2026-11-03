@@ -24,10 +24,7 @@ below. It does not build the wrapper image and does not talk to Apple.
 ## Backend tests
 
 ```bash
-docker build --target test \
-  --build-arg AMDL_VERSION=v0.1.0 \
-  --build-arg AMDL_SHA256=949e287d0fd92d0960ae9b14a0582c1056afaa78a7f66d486648d80673ef8d59 \
-  app
+docker build --target test app
 ```
 
 The build fails if a test fails. The tests cover link parsing, the amdl output
@@ -182,7 +179,8 @@ pipeline:
 
 | Symptom | Look at |
 |---|---|
-| "Wrapper offline" | `docker compose logs wrapper`. `mount ... failed` means the `security_opt` entries in `compose.yaml` are not in effect. |
+| "Wrapper offline" | `docker compose logs wrapper`. `unshare` or `mount ... failed` means the `security_opt` entries in `compose.yaml` are not in effect. |
+| "Wrapper needs a fix" | Volumes from 0.5.0 or older still belong to root; the Account page gives the `chown` command (README, "Upgrading from 0.5.0 or older"). |
 | Jobs fail with "Not signed in" | Account page; the wrapper log at the bottom of it. |
 | "The library folder is empty" | The library path is not mounted on the host, or `LIBRARY_PATH` is wrong. |
 | Search fails, downloads work | Apple changed its web player; see `catalog.py`. |

@@ -20,7 +20,11 @@ and described in the [README](README.md) and in
 - The web UI has no login. Anyone who can reach its port can use it.
 - The web UI is served over plain HTTP.
 - The wrapper container runs with relaxed seccomp, AppArmor and `/proc`
-  settings, which wrapper-lite needs.
+  settings, which wrapper-lite's launcher needs to create its namespaces. It
+  runs as an unprivileged user (10001) without capabilities and with
+  `no-new-privileges`, so these settings do not give it the host's kernel
+  settings (`/proc/sys`) or other root powers. Only the attack surface of the
+  kernel itself is larger than in a default container.
 - During a sign-in, the Apple ID password is visible in the wrapper
   container's process list.
 
@@ -32,7 +36,8 @@ Worth reporting, for example:
 - the Apple ID password or the session ending up in a log, a file or an API
   response;
 - reaching the wrapper's ports from outside the Compose network with the
-  shipped `compose.yaml`.
+  shipped `compose.yaml`;
+- a way for either container to gain root, or capabilities, on the host.
 
 ## Other projects
 

@@ -24,6 +24,7 @@ function accountState(status: Status | null): { tone: Tone; text: string } {
   const { wrapper } = status;
   if (wrapper.ready) return { tone: "ok", text: `signed in (${wrapper.regions.join(", ")})` };
   if (!wrapper.reachable) return { tone: "bad", text: "wrapper offline" };
+  if (wrapper.phase === "needs_fix") return { tone: "bad", text: "wrapper needs a fix" };
   if (wrapper.phase === "awaiting_2fa") return { tone: "wait", text: "code needed" };
   if (wrapper.phase === "starting" || wrapper.phase === "logging_in") return { tone: "wait", text: "connecting" };
   return { tone: "bad", text: "not signed in" };
