@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Compare the upstream versions pinned in compose.yaml with what upstream has
+# Compare the upstream versions pinned in the Dockerfiles with what upstream has
 # published, and open (or update) an issue for each component that is behind.
 #
 # It only reports. Updating is a manual step, because every amdl or
@@ -14,7 +14,8 @@ set -euo pipefail
 AMDL_REPO="zhaarey/apple-music-downloader"
 WRAPPER_REPO="WorldObservationLog/wrapper"
 WRAPPER_BRANCH="lite"
-COMPOSE_FILE="${COMPOSE_FILE:-compose.yaml}"
+APP_DOCKERFILE="app/Dockerfile"
+WRAPPER_DOCKERFILE="wrapper/Dockerfile"
 LABEL="upstream"
 DRY_RUN="${DRY_RUN:-}"
 
@@ -25,10 +26,10 @@ api() {
 }
 
 pin() {
-  # The value of "<KEY>: value" in compose.yaml, without quotes.
+  # The default of "ARG <KEY>=value" in Dockerfile $1, without quotes.
   local value
-  value="$(sed -n "s/^[[:space:]]*$1:[[:space:]]*//p" "$COMPOSE_FILE" | head -n1 | tr -d "\"'")"
-  [ -n "$value" ] || { echo "error: $1 not found in $COMPOSE_FILE" >&2; exit 1; }
+  value="$(sed -n "s/^ARG $2=//p" "$1" | head -n1 | tr -d "\"' ")"
+  [ -n "$value" ] || { echo "error: ARG $2=… not found in $1" >&2; exit 1; }
   printf '%s' "$value"
 }
 
@@ -58,7 +59,7 @@ report() {
 status=0
 
 # --- amdl: latest published release -------------------------------------------
-pinned_amdl="$(pin AMDL_VERSION)"
+pinned_amdl="$(pin "$APP_DOCKERFILE" AMDL_VERSION)"
 latest_amdl="$(api "repos/${AMDL_REPO}/releases/latest" | jq -r .tag_name)"
 echo "amdl:         pinned ${pinned_amdl}, latest release ${latest_amdl}"
 if [ "$latest_amdl" != "$pinned_amdl" ] && [ "$latest_amdl" != "null" ]; then
@@ -71,11 +72,11 @@ amdl has a newer release: **${latest_amdl}** (Calavera pins \`${pinned_amdl}\`).
 - Release notes: https://github.com/${AMDL_REPO}/releases/tag/${latest_amdl}
 - Changes: https://github.com/${AMDL_REPO}/compare/${pinned_amdl}...${latest_amdl}
 
-To update, set in \`compose.yaml\` under \`app.build.args\`:
+To update, set in \`app/Dockerfile\`:
 
-\`\`\`yaml
-AMDL_VERSION: ${latest_amdl}
-AMDL_SHA256: ${sha256}
+\`\`\`dockerfile
+ARG AMDL_VERSION=${latest_amdl}
+ARG AMDL_SHA256=${sha256}
 \`\`\`
 
 then \`docker compose build app && docker compose up -d\`.
@@ -89,7 +90,7 @@ BODY
 fi
 
 # --- wrapper-lite: newest commit on its branch (it publishes no releases) ------
-pinned_wrapper="$(pin WRAPPER_REF)"
+pinned_wrapper="$(pin "$WRAPPER_DOCKERFILE" WRAPPER_REF)"
 latest_wrapper="$(api "repos/${WRAPPER_REPO}/commits/${WRAPPER_BRANCH}" | jq -r .sha)"
 echo "wrapper-lite: pinned ${pinned_wrapper:0:12}, newest commit ${latest_wrapper:0:12}"
 if [ "$latest_wrapper" != "$pinned_wrapper" ] && [ "$latest_wrapper" != "null" ]; then
@@ -102,10 +103,10 @@ ${commits}
 
 Full diff: https://github.com/${WRAPPER_REPO}/compare/${pinned_wrapper}...${latest_wrapper}
 
-To update, set in \`compose.yaml\` under \`wrapper.build.args\`:
+To update, set in \`wrapper/Dockerfile\`:
 
-\`\`\`yaml
-WRAPPER_REF: ${latest_wrapper}
+\`\`\`dockerfile
+ARG WRAPPER_REF=${latest_wrapper}
 \`\`\`
 
 then \`docker compose build wrapper && docker compose up -d\` (the build takes several minutes). The Apple session is kept.

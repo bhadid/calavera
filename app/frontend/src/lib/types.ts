@@ -71,8 +71,10 @@ export interface LoginState {
 
 export interface WrapperStatus {
   reachable: boolean;
-  phase: "unreachable" | "no_session" | "starting" | "running" | "logging_in" | "awaiting_2fa";
+  phase: "unreachable" | "needs_fix" | "no_session" | "starting" | "running" | "logging_in" | "awaiting_2fa";
   session: boolean;
+  /** Why the wrapper cannot start, with the command that fixes it (phase "needs_fix"). */
+  problem?: string | null;
   ready: boolean;
   regions: string[];
   login: LoginState;

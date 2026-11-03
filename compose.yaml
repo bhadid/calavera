@@ -4,18 +4,25 @@ services:
   # wrapper-lite: holds the Apple Music session and serves the decryption API.
   # Reachable on the Compose network only.
   wrapper:
-    build:
-      context: ./wrapper
-      args:
-        WRAPPER_REF: 2fd7e0eaef081f93cf687428b965674937832ba4
+    # The pinned wrapper-lite commit is set in wrapper/Dockerfile.
+    build: ./wrapper
     image: calavera-wrapper:local
     init: true
     restart: unless-stopped
-    # Not privileged. wrapper-lite's rootless launcher creates user, mount and
-    # PID namespaces, bind-mounts /dev/urandom and mounts /proc inside them.
-    # With Docker's defaults that fails on "mount /dev/urandom" (AppArmor)
-    # and then on "mount proc" (masked /proc paths).
+    # Runs as user 10001 (set in the image), with no capabilities and no way to
+    # gain any. wrapper-lite's rootless launcher creates its own user, mount
+    # and PID namespaces, bind-mounts /dev/urandom and mounts /proc inside
+    # them; Docker's defaults block each step, so three of them are relaxed.
+    # Tested by removing one at a time:
+    #   seccomp:unconfined      without it: "unshare: Operation not permitted"
+    #   apparmor:unconfined     without it: "mount /dev/urandom failed: Permission denied"
+    #   systempaths=unconfined  without it: "mount proc failed: Operation not permitted"
+    # As a non-root user these do not reach the host: /proc/sys, sysrq-trigger
+    # and the like stay read-only for it, also from inside its namespaces.
+    cap_drop:
+      - ALL
     security_opt:
+      - no-new-privileges:true
       - seccomp:unconfined
       - apparmor:unconfined
       - systempaths=unconfined
@@ -30,15 +37,16 @@ services:
 
   # Calavera: web UI, API, download queue, FLAC conversion, library import.
   app:
-    build:
-      context: ./app
-      args:
-        AMDL_VERSION: v0.1.0
-        AMDL_SHA256: 949e287d0fd92d0960ae9b14a0582c1056afaa78a7f66d486648d80673ef8d59
+    # The pinned amdl release is set in app/Dockerfile.
+    build: ./app
     image: calavera-app:local
     init: true
     restart: unless-stopped
     user: "${PUID:-1000}:${PGID:-1000}"
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     depends_on:
       - wrapper
     environment:

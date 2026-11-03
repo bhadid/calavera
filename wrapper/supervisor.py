@@ -16,6 +16,10 @@ never logged, and never returned by the API.
 Every request must carry `Authorization: Bearer <token>`. The token is created
 on first start in a volume shared with the app container.
 
+The container runs as an unprivileged user. If the session volume holds files
+it cannot write (volumes from Calavera 0.5.0 or older were written as root),
+wrapper-lite is not started and the API reports the one-time fix instead.
+
 Standard library only, so the image needs nothing beyond `python3`.
 
     python3 supervisor.py            run the supervisor (container entrypoint)
@@ -56,6 +60,35 @@ CODE_RE = re.compile(r"^\d{6}$")
 TOKEN_RE = re.compile(r"\b(dev|music)=[^\s)]+")
 
 
+def ownership_problem() -> str | None:
+    """Why this process cannot use its volumes, or None when it can.
+
+    wrapper-lite rewrites its session files and the supervisor writes the 2FA
+    code next to them, so every folder and file there must be writable.
+    """
+    if os.geteuid() == 0:
+        return None
+    blocked: list[str] = []
+    for root, _dirs, files in os.walk(DATA_DIR):
+        if not os.access(root, os.W_OK | os.X_OK):
+            blocked.append(root)
+        blocked += [p for p in (os.path.join(root, f) for f in files)
+                    if not os.path.islink(p) and not os.access(p, os.W_OK)]
+    control = os.path.dirname(TOKEN_FILE)
+    if not os.path.exists(TOKEN_FILE) and not os.access(control, os.W_OK | os.X_OK):
+        blocked.append(control)
+    if not blocked:
+        return None
+    uid, gid = os.getuid(), os.getgid()
+    return (
+        f"The wrapper runs as user {uid} but cannot write {blocked[0]}"
+        + (f" and {len(blocked) - 1} more" if len(blocked) > 1 else "")
+        + ". Volumes from Calavera 0.5.0 or older were written as root. Fix it once, on the Docker host"
+        f" in the Calavera folder: docker compose run --rm --no-deps --user 0 --cap-add CHOWN"
+        f" --entrypoint chown wrapper -R {uid}:{gid} {DATA_DIR} {control}"
+    )
+
+
 def log(msg: str) -> None:
     print(f"[supervisor] {msg}", flush=True)
 
@@ -73,6 +106,7 @@ class Supervisor:
         self._redact: str | None = None
         self._stopping = False
         self._restarts = 0
+        self._problem: str | None = None
 
     # -- state ---------------------------------------------------------------
     @staticmethod
@@ -82,9 +116,19 @@ class Supervisor:
         except OSError:
             return False
 
+    def check_volumes(self) -> None:
+        problem = ownership_problem()
+        with self._lock:
+            if problem == self._problem:
+                return
+            self._problem = problem
+        log(problem or "volumes are writable again")
+
     def snapshot(self) -> dict:
         with self._lock:
-            if self._login["state"] in ("running", "awaiting_2fa"):
+            if self._problem:
+                phase = "needs_fix"
+            elif self._login["state"] in ("running", "awaiting_2fa"):
                 phase = self._login["state"] if self._login["state"] == "awaiting_2fa" else "logging_in"
             elif self._server and self._server.poll() is None:
                 phase = "running" if self._listening else "starting"
@@ -95,6 +139,7 @@ class Supervisor:
             return {
                 "phase": phase,
                 "session": self.has_session(),
+                "problem": self._problem,
                 "login": dict(self._login),
                 "log_tail": list(self._logs)[-40:],
             }
@@ -117,7 +162,9 @@ class Supervisor:
             with self._lock:
                 busy = self._login["state"] in ("running", "awaiting_2fa")
                 alive = self._server is not None and self._server.poll() is None
-            if busy or alive or not self.has_session():
+            if not (busy or alive):
+                self.check_volumes()
+            if busy or alive or self._problem or not self.has_session():
                 time.sleep(1)
                 continue
             if self._restarts:
@@ -187,6 +234,8 @@ class Supervisor:
         if not email or not password:
             return 400, {"error": "Apple ID and password are required."}
         with self._lock:
+            if self._problem:
+                return 409, {"error": self._problem}
             if self._login["state"] in ("running", "awaiting_2fa"):
                 return 409, {"error": "A sign-in is already in progress."}
             self._login = {"state": "running", "message": "Contacting Apple…", "twofa_deadline": None}
@@ -289,15 +338,19 @@ def load_token() -> str:
             return token
     except OSError:
         pass
-    os.makedirs(os.path.dirname(TOKEN_FILE), exist_ok=True)
     token = secrets.token_hex(32)
     tmp = TOKEN_FILE + ".tmp"
-    with open(tmp, "w") as f:
-        f.write(token + "\n")
-    # Readable by the app container, which runs as an unprivileged user. The
-    # volume holding it is mounted into these two containers only.
-    os.chmod(tmp, 0o644)
-    os.replace(tmp, TOKEN_FILE)
+    try:
+        os.makedirs(os.path.dirname(TOKEN_FILE), exist_ok=True)
+        with open(tmp, "w") as f:
+            f.write(token + "\n")
+        # Readable by the app container, which runs as another unprivileged
+        # user. The volume holding it is mounted into these two containers only.
+        os.chmod(tmp, 0o644)
+        os.replace(tmp, TOKEN_FILE)
+    except PermissionError:
+        log(ownership_problem() or f"cannot create {TOKEN_FILE}: permission denied")
+        sys.exit(1)
     return token
 
 
@@ -354,9 +407,9 @@ def make_handler(sup: Supervisor, token: str):
 
 
 def run() -> None:
-    os.makedirs(DATA_DIR, exist_ok=True)
     token = load_token()
     sup = Supervisor()
+    sup.check_volumes()
     httpd = ThreadingHTTPServer(("0.0.0.0", CONTROL_PORT), make_handler(sup, token))
 
     def stop(_signum, _frame) -> None:

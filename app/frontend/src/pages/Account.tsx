@@ -89,6 +89,15 @@ export function AccountPage() {
             <code>docker compose logs wrapper</code>.
           </div>
         </div>
+      ) : wrapper.phase === "needs_fix" ? (
+        <div className="callout callout-bad" role="alert">
+          <span className="callout-icon">
+            <Icon name="warning" size={20} />
+          </span>
+          <div>
+            <strong>The wrapper cannot use its volumes.</strong> {wrapper.problem}
+          </div>
+        </div>
       ) : wrapper.ready ? (
         <div className="callout callout-ok">
           <span className="callout-icon">

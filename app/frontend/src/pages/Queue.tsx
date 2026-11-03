@@ -91,7 +91,15 @@ export function QueuePage() {
             <Icon name="warning" size={20} />
           </span>
           <div>
-            <strong>Not signed in to Apple Music.</strong> Downloads will fail until you <Link to="/account">sign in</Link>.
+            {wrapper.phase === "needs_fix" ? (
+              <>
+                <strong>The wrapper cannot start.</strong> Downloads will fail until it is fixed; see <Link to="/account">Account</Link>.
+              </>
+            ) : (
+              <>
+                <strong>Not signed in to Apple Music.</strong> Downloads will fail until you <Link to="/account">sign in</Link>.
+              </>
+            )}
           </div>
         </div>
       )}

@@ -24,7 +24,7 @@ the app container only.
 ## Repository layout
 
 ```
-compose.yaml              both services and every version pin
+compose.yaml              both services, their security options
 .github/
   workflows/ci.yml               tests, image build and colour check on every push
   workflows/upstream-check.yml   weekly check of the amdl and wrapper-lite pins
@@ -35,10 +35,10 @@ scripts/
   browser-smoke.mjs       read-only browser test of the main routes
   check-accent.mjs        contrast check of every accent colour choice
 wrapper/
-  Dockerfile              builds wrapper-lite from source at a pinned commit
+  Dockerfile              builds wrapper-lite from source at a pinned commit; runs as user 10001
   supervisor.py           process supervisor + sign-in control API (stdlib only)
 app/
-  Dockerfile              frontend build, amdl download, tests, runtime image
+  Dockerfile              frontend build, amdl download (pinned), tests, runtime image
   backend/
     requirements.in       direct dependencies; requirements.txt is the generated lock
     calavera/
@@ -274,10 +274,18 @@ to it.
   refused, so a web page open in the same browser cannot drive Calavera.
 - A Content-Security-Policy allows the page's own files and artwork from
   Apple's image CDN only, and forbids framing.
-- The app container runs as an unprivileged user (`PUID:PGID`).
+- Both containers run without Linux capabilities and with
+  `no-new-privileges`: the app as `PUID:PGID`, the wrapper as user `10001`.
 - The wrapper container is not privileged but runs with seccomp and AppArmor
   unconfined and unmasked `/proc`, which wrapper-lite's rootless launcher
-  needs to create its namespaces.
+  needs to create its namespaces (it maps its own user to root inside them).
+  Because the user is not root, the unmasked `/proc` gives no write access to
+  the host's kernel settings, also not from inside those namespaces.
+- The image prepares the wrapper's volume mount points owned by `10001`, and
+  Docker copies that ownership into new volumes. On start the supervisor
+  checks it can write every file in them; if not (volumes from 0.5.0), it does
+  not start wrapper-lite and reports the one-time `chown` instead (phase
+  `needs_fix`).
 
 ## Interface design
 

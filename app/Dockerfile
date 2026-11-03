@@ -3,6 +3,9 @@
 #
 #   docker build --target test .     run the backend tests
 #   docker build .                   build the runtime image
+#
+# Builds with this directory as its only context, also straight from git:
+#   docker build https://github.com/bhadid/calavera.git#<tag>:app
 
 ARG PYTHON_VERSION=3.12
 ARG NODE_VERSION=22
@@ -17,8 +20,11 @@ RUN npm run build
 
 # --- amdl: official release binary, checksum-verified -------------------------
 FROM debian:13.7-slim AS amdl
-ARG AMDL_VERSION
-ARG AMDL_SHA256
+# The pinned amdl release and the SHA-256 of its amdl_linux_amd64. Updating
+# them: see README, "Updating the pinned components"
+# (.github/scripts/check-upstream.sh reads these two lines).
+ARG AMDL_VERSION=v0.1.0
+ARG AMDL_SHA256=949e287d0fd92d0960ae9b14a0582c1056afaa78a7f66d486648d80673ef8d59
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl \
     && curl -fsSL -o /amdl "https://github.com/zhaarey/apple-music-downloader/releases/download/${AMDL_VERSION}/amdl_linux_amd64" \
     && echo "${AMDL_SHA256}  /amdl" | sha256sum -c - \

@@ -35,7 +35,7 @@ class WrapperClient:
 
     async def status(self) -> dict:
         """State for the UI. Never raises."""
-        state = {"reachable": False, "phase": "unreachable", "session": False, "ready": False,
+        state = {"reachable": False, "phase": "unreachable", "session": False, "ready": False, "problem": None,
                  "regions": [], "login": {"state": "idle", "message": "", "twofa_deadline": None}, "log_tail": []}
         try:
             resp = await self._http.get(f"{self._supervisor_url}/health", headers=self._headers())
