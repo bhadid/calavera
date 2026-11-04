@@ -47,16 +47,25 @@ const BENTO = {
 /** The lightest surface accent text sits on in each theme (bento's grey page, raised dark fill). */
 const BENTO_PAGE = { l: "#f2f2f7", d: "#2c2c2e" };
 
-// The halftone logo: dots in three colours on a dark tile. Each keeps the
-// lightness, chroma and hue distance from the accent that the drawing has at
-// the default accent, so the default reproduces the drawing and every other
-// hue turns all four colours together.
-const DOTS: Record<string, [number, number, number]> = {
-  "--ac-dot-edge": [0.648, 0.204, -9.9],
-  "--ac-dot-high": [0.88, 0.135, 65.1],
-  "--ac-dot-bone": [0.967, 0.016, 70.6],
-  "--ac-dot-tile": [0.191, 0.026, 269.8],
+// The halftone logo: dots in three colours, edge, bone and highlight, with
+// no tile behind them. Each keeps the lightness, chroma and hue distance from
+// the accent that the drawing has at the default accent, so the dark-theme
+// shades at the default reproduce the drawing (3-halftone-dots.svg) and every
+// other hue turns all three together. On a light page the bone is dark and the
+// other two are deeper, so the skull shows on both. [lightness, chroma, turn]
+const DOTS: Record<"edge" | "high" | "bone", { l: [number, number, number]; d: [number, number, number] }> = {
+  edge: { l: [0.6, 0.2, -9.9], d: [0.648, 0.204, -9.9] },
+  high: { l: [0.68, 0.15, 65.1], d: [0.88, 0.135, 65.1] },
+  bone: { l: [0.27, 0.035, 70.6], d: [0.967, 0.016, 70.6] },
 };
+/** The page surfaces the logo is drawn on; each dot colour keeps 3:1 against them. */
+const LOGO_PAGE = { l: "#f2f2f7", d: "#1c1c1e" };
+
+// The second colour: status that needs attention (a failure, a warning, not
+// signed in), where "all good" is shown in the accent. It is the hue of the
+// logo's highlight, made as dark (light theme) or light (dark theme) as text
+// needs on the tiles.
+const SECOND = { turn: 65.1, l: [0.56, 0.17], d: [0.84, 0.15] } as const;
 
 /** Monochrome: ink on paper in the light theme, paper on ink in the dark one. */
 const MONO: Record<string, string> = {
@@ -75,10 +84,14 @@ const MONO: Record<string, string> = {
   "--ac-logo-bone-d": "#fdfdfd00",
   "--ac-b-l": "#000000",
   "--ac-b-d": "#ffffff",
-  "--ac-dot-edge": "#8e8e93",
-  "--ac-dot-high": "#ffffff",
-  "--ac-dot-bone": "#c7c7cc",
-  "--ac-dot-tile": "#1c1c1e",
+  "--ac-b2-l": "#636366",
+  "--ac-b2-d": "#aeaeb2",
+  "--ac-dot-edge-l": "#76767b",
+  "--ac-dot-high-l": "#636366",
+  "--ac-dot-bone-l": "#1c1c1e",
+  "--ac-dot-edge-d": "#8e8e93",
+  "--ac-dot-high-d": "#ffffff",
+  "--ac-dot-bone-d": "#c7c7cc",
 };
 
 const ON_ACCENT = "#0c0c0c";
@@ -142,9 +155,21 @@ export function accentTokens(choice: AccentChoice): Record<string, string> {
   let dark = Math.max(BENTO["--ac-b-d"].lowest, BENTO["--ac-b-d"].lightness - step);
   while (contrast(shade(dark, BENTO["--ac-b-d"].cap, choice.hue), BENTO_PAGE.d) < 4.6) dark += 0.005;
   tokens["--ac-b-d"] = shade(dark, BENTO["--ac-b-d"].cap, choice.hue);
-  for (const [name, [lightness, cap, turn]] of Object.entries(DOTS)) {
-    tokens[name] = shade(lightness, cap, (choice.hue + turn + 360) % 360);
+  const turned = (turn: number) => (choice.hue + turn + 360) % 360;
+  for (const [part, themes] of Object.entries(DOTS)) {
+    for (const theme of ["l", "d"] as const) {
+      let [lightness, cap, turn] = themes[theme];
+      const darker = theme === "l" ? -0.005 : 0.005;
+      while (contrast(shade(lightness, cap, turned(turn)), LOGO_PAGE[theme]) < 3) lightness += darker;
+      tokens[`--ac-dot-${part}-${theme}`] = shade(lightness, cap, turned(turn));
+    }
   }
+  let second: number = SECOND.l[0];
+  while (contrast(shade(second, SECOND.l[1], turned(SECOND.turn)), BENTO_PAGE.l) < 4.6) second -= 0.005;
+  tokens["--ac-b2-l"] = shade(second, SECOND.l[1], turned(SECOND.turn));
+  second = SECOND.d[0];
+  while (contrast(shade(second, SECOND.d[1], turned(SECOND.turn)), BENTO_PAGE.d) < 4.6) second += 0.005;
+  tokens["--ac-b2-d"] = shade(second, SECOND.d[1], turned(SECOND.turn));
   return tokens;
 }
 

@@ -31,17 +31,18 @@
   --accent: var(--ac-b-l, #d70034);
   --on-accent: #ffffff;
   --accent-soft: color-mix(in srgb, var(--accent) 12%, transparent);
-  --green: #1f7a37;
-  --orange: #a54a00;
-  --red: #c4141f;
-  --green-soft: rgba(52, 199, 89, 0.14);
-  --orange-soft: rgba(255, 149, 0, 0.16);
-  --red-soft: rgba(255, 59, 48, 0.12);
+  /* Status: all good in the accent, anything that needs attention in the
+     second colour (the hue of the logo's highlight). Never colour alone:
+     the words and symbols say it too. */
+  --second: var(--ac-b2-l, #896700);
+  --good: var(--accent);
+  --alert: var(--second);
+  --good-soft: color-mix(in srgb, var(--good) 12%, transparent);
+  --alert-soft: color-mix(in srgb, var(--alert) 14%, transparent);
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 6px 24px rgba(0, 0, 0, 0.05);
-  --dot-edge: var(--ac-dot-edge, #ef476f);
-  --dot-high: var(--ac-dot-high, #ffd166);
-  --dot-bone: var(--ac-dot-bone, #f8f4e8);
-  --dot-tile: var(--ac-dot-tile, #14121f);
+  --dot-edge: var(--ac-dot-edge-l, #dc3862);
+  --dot-high: var(--ac-dot-high-l, #af8500);
+  --dot-bone: var(--ac-dot-bone-l, #2d2611);
   --console-bg: #1c1c1e;
   --console-fg: #f2f2f7;
   --console-dim: rgba(235, 235, 245, 0.55);
@@ -71,12 +72,10 @@
     --accent: var(--ac-b-d, #ff5e66);
     --on-accent: #000000;
     --accent-soft: color-mix(in srgb, var(--accent) 18%, transparent);
-    --green: #32d74b;
-    --orange: #ff9f0a;
-    --red: #ff6961;
-    --green-soft: rgba(48, 209, 88, 0.16);
-    --orange-soft: rgba(255, 159, 10, 0.18);
-    --red-soft: rgba(255, 69, 58, 0.18);
+    --second: var(--ac-b2-d, #f6c343);
+    --dot-edge: var(--ac-dot-edge-d, #ef476f);
+    --dot-high: var(--ac-dot-high-d, #ffd166);
+    --dot-bone: var(--ac-dot-bone-d, #f8f4e8);
     --shadow: none;
     --console-bg: #000000;
     color-scheme: dark;
@@ -96,12 +95,10 @@
   --accent: var(--ac-b-d, #ff5e66);
   --on-accent: #000000;
   --accent-soft: color-mix(in srgb, var(--accent) 18%, transparent);
-  --green: #32d74b;
-  --orange: #ff9f0a;
-  --red: #ff6961;
-  --green-soft: rgba(48, 209, 88, 0.16);
-  --orange-soft: rgba(255, 159, 10, 0.18);
-  --red-soft: rgba(255, 69, 58, 0.18);
+  --second: var(--ac-b2-d, #f6c343);
+  --dot-edge: var(--ac-dot-edge-d, #ef476f);
+  --dot-high: var(--ac-dot-high-d, #ffd166);
+  --dot-bone: var(--ac-dot-bone-d, #f8f4e8);
   --shadow: none;
   --console-bg: #000000;
   color-scheme: dark;
@@ -252,7 +249,7 @@ a {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: var(--orange);
+  background: var(--alert);
 }
 .main {
   min-width: 0;
@@ -553,13 +550,13 @@ a.tile:active {
   flex: none;
 }
 .ok {
-  color: var(--green);
+  color: var(--good);
 }
 .warn {
-  color: var(--orange);
+  color: var(--alert);
 }
 .bad {
-  color: var(--red);
+  color: var(--alert);
 }
 
 /* A tile in the colours Apple picked from its artwork. */
@@ -608,22 +605,22 @@ a.tile:active {
   margin-top: 1px;
 }
 .notice-warn {
-  background: var(--orange-soft);
+  background: var(--alert-soft);
 }
 .notice-warn > .icon {
-  color: var(--orange);
+  color: var(--alert);
 }
 .notice-bad {
-  background: var(--red-soft);
+  background: var(--alert-soft);
 }
 .notice-bad > .icon {
-  color: var(--red);
+  color: var(--alert);
 }
 .notice-ok {
-  background: var(--green-soft);
+  background: var(--good-soft);
 }
 .notice-ok > .icon {
-  color: var(--green);
+  color: var(--good);
 }
 .notice-info {
   background: var(--fill);
@@ -686,8 +683,8 @@ a.tile:active {
   padding: 0 8px;
 }
 .btn-danger {
-  background: var(--red-soft);
-  color: var(--red);
+  background: var(--alert-soft);
+  color: var(--alert);
 }
 .btn-small {
   min-height: 34px;
@@ -744,16 +741,16 @@ button.pill {
   color: var(--accent);
 }
 .pill-ok {
-  background: var(--green-soft);
-  color: var(--green);
+  background: var(--good-soft);
+  color: var(--good);
 }
 .pill-warn {
-  background: var(--orange-soft);
-  color: var(--orange);
+  background: var(--alert-soft);
+  color: var(--alert);
 }
 .pill-bad {
-  background: var(--red-soft);
-  color: var(--red);
+  background: var(--alert-soft);
+  color: var(--alert);
 }
 .tinted .pill {
   background: color-mix(in srgb, var(--art-1) 18%, transparent);
@@ -771,7 +768,7 @@ button.pill {
   min-height: 34px;
   font-size: 0.9375rem;
   font-weight: 600;
-  color: var(--green);
+  color: var(--good);
 }
 .owned-wait {
   color: var(--label-2);
@@ -859,7 +856,7 @@ textarea.field-input {
   transition: transform 0.2s ease;
 }
 .switch input:checked + .switch-track {
-  background: #34c759;
+  background: var(--accent);
 }
 .switch input:checked + .switch-track::after {
   transform: translateX(20px);
@@ -1027,13 +1024,13 @@ button.row {
   flex: none;
 }
 .row-end.ok {
-  color: var(--green);
+  color: var(--good);
 }
 .row-end.bad {
-  color: var(--red);
+  color: var(--alert);
 }
 .row-end.warn {
-  color: var(--orange);
+  color: var(--alert);
 }
 .row .chev {
   color: var(--label-3);
@@ -1072,7 +1069,7 @@ button.row {
   }
 }
 .details .error {
-  color: var(--red);
+  color: var(--alert);
 }
 
 /* ---- console: a job's or the wrapper's log ------------------------------------- */
@@ -1093,10 +1090,10 @@ button.row {
   color: var(--console-dim);
 }
 .console .ok {
-  color: #30d158;
+  color: var(--ac-b-d, #ff5e66);
 }
 .console .err {
-  color: #ff6961;
+  color: var(--ac-b2-d, #f6c343);
 }
 .tile-console {
   background: var(--console-bg);
@@ -1609,6 +1606,31 @@ button.row {
   gap: 12px;
   text-align: center;
 }
+.logo-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  width: 100%;
+}
+.logo-pair > div {
+  display: grid;
+  place-items: center;
+  padding: 18px 8px;
+  border-radius: 16px;
+}
+/* The logo on a light and on a dark page, whatever the current appearance. */
+.logo-on-light {
+  background: #f2f2f7;
+  --dot-edge: var(--ac-dot-edge-l, #dc3862);
+  --dot-high: var(--ac-dot-high-l, #af8500);
+  --dot-bone: var(--ac-dot-bone-l, #2d2611);
+}
+.logo-on-dark {
+  background: #000000;
+  --dot-edge: var(--ac-dot-edge-d, #ef476f);
+  --dot-high: var(--ac-dot-high-d, #ffd166);
+  --dot-bone: var(--ac-dot-bone-d, #f8f4e8);
+}
 .logo-swatches {
   display: flex;
   gap: 8px;
@@ -1724,10 +1746,10 @@ button.row {
   flex: none;
 }
 .banner-success .icon {
-  color: var(--green);
+  color: var(--good);
 }
 .banner-error .icon {
-  color: var(--red);
+  color: var(--alert);
 }
 .banner-info .icon {
   color: var(--accent);
@@ -1748,8 +1770,8 @@ button.row {
   gap: 8px;
   min-height: 32px;
   padding: 4px 12px;
-  background: var(--orange-soft);
-  color: var(--orange);
+  background: var(--alert-soft);
+  color: var(--alert);
   font-size: 0.8125rem;
   font-weight: 600;
 }
@@ -1809,7 +1831,7 @@ button.row {
   font-weight: 600;
 }
 .dialog-actions .button-danger {
-  color: var(--red);
+  color: var(--alert);
 }
 .dialog-actions .button:hover {
   background: var(--fill);

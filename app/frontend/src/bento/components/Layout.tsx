@@ -11,8 +11,8 @@ import { Icon, type IconName } from "./Icon";
 // The same four destinations are a sidebar on wide screens and a tab bar on
 // phones, as in Apple's own apps.
 const NAV: { to: string; label: string; icon: IconName }[] = [
-  { to: "/", label: "Queue", icon: "queue" },
   { to: "/search", label: "Search", icon: "search" },
+  { to: "/", label: "Queue", icon: "queue" },
   { to: "/settings", label: "Settings", icon: "settings" },
   { to: "/account", label: "Account", icon: "user" },
 ];

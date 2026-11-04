@@ -243,15 +243,26 @@ export function SettingsPage() {
             </div>
           </div>
         </section>
-        <section className="tile logo-preview" style={span(2, 4, 2)} aria-label="Logo">
-          <DotsLogo size={150} />
-          <div className="logo-swatches" aria-hidden="true">
-            <span style={{ background: "var(--dot-edge)" }} />
-            <span style={{ background: "var(--dot-bone)" }} />
-            <span style={{ background: "var(--dot-high)" }} />
-            <span style={{ background: "var(--dot-tile)" }} />
+        <section className="tile logo-preview" style={span(2, 4, 2)} aria-label="Logo and status colours">
+          <div className="logo-pair" aria-hidden="true">
+            <div className="logo-on-light">
+              <DotsLogo size={96} />
+            </div>
+            <div className="logo-on-dark">
+              <DotsLogo size={96} />
+            </div>
           </div>
-          <p className="help">Edge, bone, highlight and tile: each follows the accent.</p>
+          <div className="pills" style={{ justifyContent: "center" }}>
+            <span className="pill pill-ok">
+              <Icon name="check" size={12} weight={3} />
+              All good
+            </span>
+            <span className="pill pill-bad">
+              <Icon name="warning" size={12} weight={2.4} />
+              Needs attention
+            </span>
+          </div>
+          <p className="help">The logo has a light and a dark set of colours. Status uses the accent and the logo's highlight colour.</p>
         </section>
       </div>
 

@@ -20,9 +20,10 @@ async function paintFavicon(tokens: Record<string, string>, standard: boolean) {
   const turn = ++favicon;
   // The bento interface has the halftone logo, drawn here in its colours.
   if (document.documentElement.dataset.ui === "bento") {
-    const svg = logoSvg({
-      edge: tokens["--ac-dot-edge"], bone: tokens["--ac-dot-bone"], high: tokens["--ac-dot-high"], tile: tokens["--ac-dot-tile"],
+    const set = (theme: "l" | "d") => ({
+      edge: tokens[`--ac-dot-edge-${theme}`], bone: tokens[`--ac-dot-bone-${theme}`], high: tokens[`--ac-dot-high-${theme}`],
     });
+    const svg = logoSvg(set("l"), set("d"));
     link.href = `data:image/svg+xml,${encodeURIComponent(svg)}`;
     return;
   }

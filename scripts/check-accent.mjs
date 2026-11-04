@@ -68,17 +68,26 @@ let worstBento = Infinity;
 for (const choice of choices) {
   const t = accentTokens(choice);
   const label = choice.mono ? "mono" : `hue ${choice.hue} depth ${choice.depth}`;
-  const pairs = choice.mono
-    ? [["#ffffff", t["--ac-b-l"]], ["#f2f2f7", t["--ac-b-l"]], ["#000000", t["--ac-b-d"]], ["#2c2c2e", t["--ac-b-d"]]]
-    : [["#ffffff", t["--ac-b-l"]], ["#f2f2f7", t["--ac-b-l"]], ["#000000", t["--ac-b-d"]], ["#1c1c1e", t["--ac-b-d"]], ["#2c2c2e", t["--ac-b-d"]]];
+  // Accent fills carry white (light) or black (dark) text; accent and second
+  // colour are text on the page and on tiles.
+  const pairs = [
+    ["#ffffff", t["--ac-b-l"]], ["#f2f2f7", t["--ac-b-l"]], ["#000000", t["--ac-b-d"]], ["#1c1c1e", t["--ac-b-d"]], ["#2c2c2e", t["--ac-b-d"]],
+    ["#ffffff", t["--ac-b2-l"]], ["#f2f2f7", t["--ac-b2-l"]], ["#000000", t["--ac-b2-d"]], ["#1c1c1e", t["--ac-b2-d"]], ["#2c2c2e", t["--ac-b2-d"]],
+  ];
   for (const [surface, accent] of pairs) {
     const ratio = contrast(surface, accent);
     worstBento = Math.min(worstBento, ratio);
     if (ratio < 4.5) fail(`${label} bento: ${accent} with ${surface} is ${ratio.toFixed(2)}:1`);
   }
-  // The halftone logo's outer dots on its tile (3:1 for graphics).
-  const edge = contrast(t["--ac-dot-edge"], t["--ac-dot-tile"]);
-  if (edge < 3) fail(`${label} halftone logo: edge dots on the tile are ${edge.toFixed(2)}:1`);
+  // The halftone logo's dots on the page and on tiles (3:1 for graphics).
+  for (const part of ["edge", "high", "bone"]) {
+    for (const [theme, surfaces] of [["l", ["#ffffff", "#f2f2f7"]], ["d", ["#000000", "#1c1c1e"]]]) {
+      for (const surface of surfaces) {
+        const ratio = contrast(t[`--ac-dot-${part}-${theme}`], surface);
+        if (ratio < 3) fail(`${label} halftone logo ${theme}: ${part} dots on ${surface} are ${ratio.toFixed(2)}:1`);
+      }
+    }
+  }
 }
 console.log(`bento accent text and fills: worst ${worstBento.toFixed(2)}:1`);
 
@@ -88,11 +97,11 @@ const defaults = accentTokens(DEFAULT_ACCENT);
 const css = readFileSync(new URL("../app/frontend/src/styles.css", import.meta.url), "utf8");
 const bentoCss = readFileSync(new URL("../app/frontend/src/bento/bento.css", import.meta.url), "utf8");
 for (const [name, value] of Object.entries(defaults)) {
-  const bento = name.startsWith("--ac-b-") || name.startsWith("--ac-dot-");
+  const bento = name.startsWith("--ac-b-") || name.startsWith("--ac-b2-") || name.startsWith("--ac-dot-");
   if (!(bento ? bentoCss : css).includes(`var(${name}, ${value})`)) fail(`${bento ? "bento.css" : "styles.css"} default for ${name} should be ${value}`);
 }
-// The halftone logo's default colours are the drawing's own.
-const drawing = { "--ac-dot-edge": "#ef476f", "--ac-dot-high": "#ffd166", "--ac-dot-bone": "#f8f4e8", "--ac-dot-tile": "#14121f" };
+// The halftone logo's default dark-theme colours are the drawing's own.
+const drawing = { "--ac-dot-edge-d": "#ef476f", "--ac-dot-high-d": "#ffd166", "--ac-dot-bone-d": "#f8f4e8" };
 for (const [name, value] of Object.entries(drawing)) {
   if (defaults[name] !== value) fail(`default ${name} is ${defaults[name]}, the drawing has ${value}`);
 }
