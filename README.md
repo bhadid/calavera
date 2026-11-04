@@ -99,7 +99,7 @@ With a compose file of your own, each image can be built straight from a
 release tag; the version pins are part of the Dockerfiles:
 
 ```yaml
-build: https://github.com/bhadid/calavera.git#v0.7.3:app        # or …:wrapper
+build: https://github.com/bhadid/calavera.git#v0.7.4:app        # or …:wrapper
 ```
 
 Copy the `security_opt`, `cap_drop`, volumes and ports from `compose.yaml`;
@@ -153,7 +153,7 @@ the 6-digit code.
   loading more as you scroll. *All releases* lists everything newest
   first. Nothing Apple lists is left out: releases Apple's own grouping
   skips are mixed into their group with an *Other release* tag (tap it for
-  why).
+  why); their album pages carry the tag too.
 - **Getting the latest from Apple:** pages you return to are remembered for
   a while (a search or an artist page for 15 minutes, an album for an hour)
   instead of asked for again. Reloading the page in your browser, or

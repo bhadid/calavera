@@ -30,6 +30,9 @@ from .settings import Settings
 from .wrapper import WrapperClient
 
 SETTINGS_KEY = "settings"
+# An album page checks at most this many of the album's artists for whether
+# Apple leaves the album out of their releases (each costs a few requests).
+MAX_ARTISTS_CHECKED = 3
 
 # The page may load its own files and album artwork from Apple's CDN, nothing
 # else, and may not be embedded in another site.
@@ -354,6 +357,23 @@ def create_app(config: Config | None = None) -> FastAPI:
         album["storefront"] = store
         return album
 
+    @app.get("/api/catalog/albums/{album_id}/other-release")
+    async def catalog_album_other_release(album_id: str, sf: str = ""):
+        """Whether Apple leaves the album out of its grouping of the releases
+        of any of the album's artists (`other_release`). Asked for after the
+        album page is shown: it takes a few requests per artist, remembered
+        like an artist page, and none when that artist's pages were just
+        seen. An artist Apple cannot be asked about now is left out."""
+        album = await album_answer(album_id, sf)
+        for artist in (album.get("artists") or [])[:MAX_ARTISTS_CHECKED]:
+            try:
+                answer, _ = await outside_grouping(album["storefront"], artist["id"])
+            except HTTPException:
+                continue
+            if any(a.get("id") == album_id for a in answer["items"]):
+                return {"other_release": True}
+        return {"other_release": False}
+
     @app.get("/api/catalog/albums/{album_id}")
     async def catalog_album(album_id: str, sf: str = "", fresh: bool = False):
         """An album with its tracks, each marked as available or not and as
@@ -421,18 +441,23 @@ def create_app(config: Config | None = None) -> FastAPI:
         await asyncio.to_thread(mark_owned, page["items"])
         return page
 
-    @app.get("/api/catalog/artists/{artist_id}/others")
-    async def catalog_artist_others(artist_id: str, fresh: bool = False):
-        """The releases Apple lists for the artist outside its own grouping,
-        each with the `group` it belongs to. Takes a few requests: every page
-        of the full list and of the grouping."""
-        store, language = await storefront(), get_settings().language
+    async def outside_grouping(store: str, artist_id: str, fresh: bool = False) -> tuple:
+        """The releases Apple lists for an artist outside its own grouping,
+        remembered like an artist page; with since when the answer is old."""
+        language = get_settings().language
 
         async def others() -> dict:
             artist = await catalog.artist_albums(store, artist_id, language)
             return {"items": [a for a in artist["albums"] if not a["grouped"]], "more": artist["more"]}
 
-        answer, answer["stale_since"] = await remembered(("artist-others", store, language, artist_id), ARTIST, others, fresh)
+        return await remembered(("artist-others", store, language, artist_id), ARTIST, others, fresh)
+
+    @app.get("/api/catalog/artists/{artist_id}/others")
+    async def catalog_artist_others(artist_id: str, fresh: bool = False):
+        """The releases Apple lists for the artist outside its own grouping,
+        each with the `group` it belongs to. Takes a few requests: every page
+        of the full list and of the grouping."""
+        answer, answer["stale_since"] = await outside_grouping(await storefront(), artist_id, fresh)
         await asyncio.to_thread(mark_owned, answer["items"])
         return answer
 

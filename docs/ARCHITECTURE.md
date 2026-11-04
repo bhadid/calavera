@@ -232,9 +232,9 @@ group, `/artist/<id>/<group>` (`pages/ArtistGroup.tsx`), which fetches 100
 releases at a time as the end of the list comes near and keeps what it has
 loaded, and where it was scrolled to, for the way back from an album.
 
-Apple's grouping leaves out releases it counts as the same as another, which
-can be a different version under the same title (a radio edit, a re-release
-on another label). So that nothing is hidden, the group page also asks for
+Apple's grouping leaves out releases it counts as another edition of one it
+shows: a deluxe or standard edition, a remaster, a re-release on another
+label, or a single next to the EP with the same song. So that nothing is hidden, the group page also asks for
 `/api/catalog/artists/<id>/others`: `catalog.artist_albums` reads the full
 list (`/artists/<id>/albums`) and every page of the grouping, and returns the
 releases in the list but not in the grouping. Each joins the group of the
@@ -244,9 +244,14 @@ one-song releases, make it a single; anything else is an album). The group
 page mixes them in next to the release with the same title, or else at
 their date, once the list has loaded down to that date, so that nothing
 moves above what is being read. Their cards carry an *Other release* tag
-that explains itself when tapped (a `popover`). The album page cannot tell an "other release" by
-itself; a tagged card passes the tag on to the album page it opens (router
-state). Every album page names the label in the line under the title.
+that explains itself when tapped (a `popover`). The album page shows the tag
+too, wherever it was opened from: a tagged card passes it on with the link
+(router state), so it shows at once; otherwise the page asks
+`/api/catalog/albums/<id>/other-release` once it is shown, which checks the
+same `others` answer for up to three of the album's artists. That takes a few
+requests per artist, remembered like an artist page, and none when the
+artist's pages were just seen. Every album page names the label in the line
+under the title.
 
 *All releases* under the artist's name opens `/artist/<id>/all`: every
 release Apple lists for the artist in one grid, newest first. Apple sorts the

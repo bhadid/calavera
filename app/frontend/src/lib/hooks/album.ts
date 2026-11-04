@@ -21,6 +21,7 @@ export function useAlbumPage(id: string, storefront?: string) {
   const [album, setAlbum] = useState<AlbumDetail | null>(null);
   const [error, setError] = useState("");
   const [numbers, setNumbers] = useState("");
+  const [otherRelease, setOtherRelease] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
 
@@ -29,6 +30,7 @@ export function useAlbumPage(id: string, storefront?: string) {
     setAlbum(null);
     setError("");
     setNumbers("");
+    setOtherRelease(false);
     api
       .album(id, storefront)
       .then((loaded) => {
@@ -40,6 +42,14 @@ export function useAlbumPage(id: string, storefront?: string) {
           api
             .albumQuality(id, storefront)
             .then(({ quality }) => alive && quality && setNumbers(qualityNumbers(quality)))
+            .catch(() => undefined);
+        }
+        // Whether Apple leaves the album out of its artists' releases takes
+        // a few more requests per artist; the label follows when known.
+        if (loaded.artists?.length) {
+          api
+            .albumOtherRelease(id, storefront)
+            .then(({ other_release }) => alive && setOtherRelease(other_release))
             .catch(() => undefined);
         }
         // Start with everything that can be downloaded selected: the common
@@ -105,7 +115,7 @@ export function useAlbumPage(id: string, storefront?: string) {
         : `Download ${plural(selected.size, "song")}`;
 
   return {
-    album, error, numbers, selected, toggle, toggleAll, busy, download, label,
+    album, error, numbers, otherRelease, selected, toggle, toggleAll, busy, download, label,
     otherEdition, selectable, unavailable, owned, everything, wholeAlbum, queued,
   };
 }
