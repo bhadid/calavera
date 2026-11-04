@@ -288,7 +288,7 @@ function HistoryRow({ job }: { job: Job }) {
           ))}
           <div className="actions">
             <Link className="btn btn-gray btn-small" to={jobPage(job)}>
-              {job.kind === "album" ? "Album" : "Song's album"}
+              Go to album
             </Link>
             {canKeep && (
               <button className="btn btn-filled btn-small" disabled={busy} onClick={keep} title="Convert and import the tracks that finished downloading. Existing files are never replaced.">
