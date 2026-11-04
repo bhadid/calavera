@@ -76,10 +76,12 @@ It fails if any hue, or monochrome, gives accent or second-colour text less
 than 4.5:1 contrast or logo dots less than 3:1, if the default shades written
 into `styles.css` differ from the calculated ones, or if
 `app/frontend/public/favicon.svg` is out of date. After changing the logo's
-drawing or shades, rewrite the favicon with:
+drawing or shades, rewrite the tab icon and the iOS home-screen icon with:
 
 ```bash
 docker run --rm -u "$(id -u):$(id -g)" -v "$PWD":/w -w /w node:22-alpine node scripts/favicon.mjs
+docker run --rm -u "$(id -u):$(id -g)" -v "$PWD/app/frontend/public":/p zenika/alpine-chrome --no-sandbox --disable-gpu \
+  --headless --hide-scrollbars --window-size=180,180 --screenshot=/p/apple-touch-icon.png /p/apple-touch-icon.svg
 ```
 
 ### Python dependencies
