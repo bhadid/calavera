@@ -354,10 +354,13 @@ three colours: edge, bone and highlight. Each keeps the distance in hue,
 lightness and chroma from the accent that the drawing has at the default hue,
 so the default's dark set is the drawing's own colours and every other hue
 turns all three together. On a light page the bone is dark and the other two
-are deeper, so it shows on both. `public/favicon.svg` is the logo in the
-default shades, with the light or dark set chosen by the browser's own
-appearance; with a colour chosen, `lib/accent.ts` draws the tab icon in its
-shades.
+are deeper, so it shows on both. Its box is a square cropped close around
+the dots, so the skull fills whatever size it is drawn at.
+`public/favicon.svg` is the logo in the default shades, with the light or
+dark set chosen by the browser's own appearance, and the smallest dots drawn
+a little larger so they still show as dots at 16 px; with a colour chosen,
+`lib/accent.ts` draws the tab icon in its shades. `public/apple-touch-icon.png`
+(180 × 180, for the iOS home screen) is the logo on the drawing's dark tile.
 
 `scripts/check-accent.mjs` checks the contrast of every hue and of
 monochrome, that the fallbacks in `styles.css` match the calculation, that the
