@@ -64,6 +64,20 @@ def _artwork(attrs: dict, size: int = 600) -> str:
     return url.replace("{w}", str(size)).replace("{h}", str(size))
 
 
+_HEX_RE = re.compile(r"^[0-9a-fA-F]{6}$")
+
+
+def _colors(attrs: dict) -> dict | None:
+    """The colours Apple picked from a cover: its background and four text
+    colours that go on it, as #rrggbb. None when Apple sends none."""
+    art = attrs.get("artwork") or {}
+    bg = art.get("bgColor") or ""
+    text = [art.get(f"textColor{i}") or "" for i in range(1, 5)]
+    if not _HEX_RE.match(bg) or not all(_HEX_RE.match(t) for t in text):
+        return None
+    return {"bg": f"#{bg.lower()}", "text": [f"#{t.lower()}" for t in text]}
+
+
 def large_artwork(url: str) -> str:
     """The address of a cover at its largest, from its address in any size.
     Apple sends the original when it is smaller than asked and never
@@ -87,6 +101,7 @@ def _album(item: dict) -> dict:
         "artist": a.get("artistName", ""),
         "artists": _artists(item),
         "artwork": _artwork(a),
+        "colors": _colors(a),
         "url": a.get("url", ""),
         "track_count": a.get("trackCount", 0),
         "release_date": a.get("releaseDate", ""),
@@ -115,6 +130,7 @@ def _song(item: dict) -> dict:
         "artists": _artists(item),
         "album": a.get("albumName", ""),
         "artwork": _artwork(a),
+        "colors": _colors(a),
         "url": a.get("url", ""),
         "duration_ms": a.get("durationInMillis", 0),
         "traits": a.get("audioTraits") or [],
@@ -151,7 +167,7 @@ def _best_lossless(playlist: str) -> dict | None:
 
 def _artist(item: dict) -> dict:
     a = item.get("attributes") or {}
-    return {"id": item.get("id", ""), "name": a.get("name", ""), "artwork": _artwork(a), "url": a.get("url", "")}
+    return {"id": item.get("id", ""), "name": a.get("name", ""), "artwork": _artwork(a), "colors": _colors(a), "url": a.get("url", "")}
 
 
 def _wait_text(seconds: float) -> str:

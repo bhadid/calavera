@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS jobs (
     artist      TEXT NOT NULL DEFAULT '',
     artists     TEXT NOT NULL DEFAULT '[]',
     artwork_url TEXT NOT NULL DEFAULT '',
+    artwork_colors TEXT NOT NULL DEFAULT 'null',
     status      TEXT NOT NULL,
     stage       TEXT NOT NULL DEFAULT '',
     progress    REAL NOT NULL DEFAULT 0,
@@ -48,7 +49,13 @@ CREATE TABLE IF NOT EXISTS kv (
 );
 """
 
-_JSON_COLUMNS = ("result", "options", "artists")
+_JSON_COLUMNS = ("result", "options", "artists", "artwork_colors")
+
+# Columns added since the first release, added to databases made before.
+_ADDED_COLUMNS = {
+    "artists": "TEXT NOT NULL DEFAULT '[]'",
+    "artwork_colors": "TEXT NOT NULL DEFAULT 'null'",
+}
 
 
 class Database:
@@ -61,10 +68,10 @@ class Database:
             self._conn.execute("PRAGMA journal_mode=WAL")
             self._conn.execute("PRAGMA foreign_keys=ON")
             self._conn.executescript(SCHEMA)
-            # Columns added since the first release, for databases made before.
             columns = {row["name"] for row in self._conn.execute("PRAGMA table_info(jobs)")}
-            if "artists" not in columns:
-                self._conn.execute("ALTER TABLE jobs ADD COLUMN artists TEXT NOT NULL DEFAULT '[]'")
+            for name, definition in _ADDED_COLUMNS.items():
+                if name not in columns:
+                    self._conn.execute(f"ALTER TABLE jobs ADD COLUMN {name} {definition}")
 
     def close(self) -> None:
         with self._lock:
