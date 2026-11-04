@@ -99,7 +99,7 @@ With a compose file of your own, each image can be built straight from a
 release tag; the version pins are part of the Dockerfiles:
 
 ```yaml
-build: https://github.com/bhadid/calavera.git#v0.7.2:app        # or …:wrapper
+build: https://github.com/bhadid/calavera.git#v0.7.3:app        # or …:wrapper
 ```
 
 Copy the `security_opt`, `cap_drop`, volumes and ports from `compose.yaml`;
@@ -269,8 +269,8 @@ gets the same versions as one built here:
 
 | Component | Pin | Where |
 |---|---|---|
-| wrapper-lite | commit `2fd7e0eaef081f93cf687428b965674937832ba4` | `wrapper/Dockerfile` → `ARG WRAPPER_REF` |
-| amdl | release `v0.1.0` + SHA-256 of the binary | `app/Dockerfile` → `ARG AMDL_VERSION`, `ARG AMDL_SHA256` |
+| wrapper-lite | commit `386ec82e1fc9c9761aa68060a2be6f19d39106fc` | `wrapper/Dockerfile` → `ARG WRAPPER_REF` |
+| amdl | release `v0.1.4` + SHA-256 of the binary | `app/Dockerfile` → `ARG AMDL_VERSION`, `ARG AMDL_SHA256` |
 | ffmpeg | static 7.1, image digest | `app/Dockerfile` |
 | Python packages | direct ones in `requirements.in`, full lock generated | `app/backend/requirements.txt` |
 | JavaScript packages | lockfile | `app/frontend/package-lock.json` |

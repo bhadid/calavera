@@ -14,7 +14,7 @@ FROM debian:${DEBIAN_VERSION} AS build
 ARG WRAPPER_REPO=https://github.com/WorldObservationLog/wrapper
 # The pinned wrapper-lite commit. Updating it: see README, "Updating the
 # pinned components" (.github/scripts/check-upstream.sh reads this line).
-ARG WRAPPER_REF=2fd7e0eaef081f93cf687428b965674937832ba4
+ARG WRAPPER_REF=386ec82e1fc9c9761aa68060a2be6f19d39106fc
 # Android NDK r23b and the SHA-256 of android-ndk-r23b-linux.zip (Google
 # publishes the SHA-1, f47ec4c4badd11e9f593a8450180884a927c330d, which this
 # file also matches). Change both together.
