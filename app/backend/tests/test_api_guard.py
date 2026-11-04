@@ -3,6 +3,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from calavera import api
+from calavera import config as config_module
 from calavera.config import Config
 
 
@@ -23,9 +24,18 @@ def make(tmp_path, **extra):
     ("[::1]:8080", "::1"),
     ("::1", "::1"),
     ("", ""),
+    ("http://Calavera.lan:8443/", "calavera.lan"),
+    ("https://[fd00::4]:8443", "fd00::4"),
 ])
-def test_request_host(header, host):
-    assert api.request_host(header) == host
+def test_host_name(header, host):
+    assert config_module.host_name(header) == host
+
+
+def test_allowed_hosts_entries_with_port_or_scheme_match(tmp_path, monkeypatch):
+    monkeypatch.setenv("CALAVERA_ALLOWED_HOSTS", "127.0.0.1, proxy.lan:8443,http://Calavera.lan/,,")
+    assert config_module.load().allowed_hosts == ("127.0.0.1", "proxy.lan", "calavera.lan")
+    http = make(tmp_path, allowed_hosts=("proxy.lan:8443",))
+    assert http.get("/api/health", headers={"host": "proxy.lan:8443"}).status_code == 200
 
 
 def test_local_and_configured_hosts_are_accepted(tmp_path):
