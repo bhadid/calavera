@@ -1,46 +1,32 @@
 import { useCallback, useState } from "react";
-import { accentTokens, DEFAULT_ACCENT, DEPTH, type AccentChoice } from "./accentColour";
+import { accentTokens, DEFAULT_ACCENT, type AccentChoice } from "./accentColour";
+import { logoSvg } from "../components/DotsLogo";
 
 // The accent choice is kept per browser, like the theme. The calculated
 // shades are stored with it so that public/theme.js can apply them before
-// first paint without repeating the colour maths.
+// first paint without repeating the colour maths. Monochrome is the default:
+// nothing is stored for it, and its shades are in styles.css.
 const KEY = "calavera-accent";
 
-const isDefault = (choice: AccentChoice) =>
-  !choice.mono && choice.fill && choice.hue === DEFAULT_ACCENT.hue && choice.depth === DEFAULT_ACCENT.depth;
-
-const DEFAULT_TOKENS = accentTokens(DEFAULT_ACCENT);
-let favicon = 0;
-
-/** Recolour the browser-tab icon: public/favicon.svg with the logo shade swapped. */
-async function paintFavicon(tokens: Record<string, string>, standard: boolean) {
+/** The browser-tab icon: public/favicon.svg for the default, else the logo in the chosen shades. */
+function paintFavicon(choice: AccentChoice) {
   const link = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
   if (!link) return;
-  const turn = ++favicon;
-  if (standard) {
+  if (choice.mono) {
     link.href = "/favicon.svg";
     return;
   }
-  try {
-    let svg = await (await fetch("/favicon.svg")).text();
-    // The light-theme shade. The icon keeps its white bone, so with monochrome
-    // it is black lines on white, which shows on any tab bar.
-    svg = svg.replaceAll(DEFAULT_TOKENS["--ac-logo-l"], tokens["--ac-logo-l"]);
-    // A slower, older request must not overwrite a newer colour.
-    if (turn === favicon) link.href = `data:image/svg+xml,${encodeURIComponent(svg)}`;
-  } catch {
-    // The icon keeps its previous colour.
-  }
+  const tokens = accentTokens(choice);
+  const set = (theme: "l" | "d") => ({
+    edge: tokens[`--ac-dot-edge-${theme}`], bone: tokens[`--ac-dot-bone-${theme}`], high: tokens[`--ac-dot-high-${theme}`],
+  });
+  link.href = `data:image/svg+xml,${encodeURIComponent(logoSvg(set("l"), set("d")))}`;
 }
 
 function read(): AccentChoice {
   try {
     const stored = JSON.parse(localStorage.getItem(KEY) ?? "null");
-    if (stored && Number.isInteger(stored.hue) && stored.hue >= 0 && stored.hue < 360) {
-      // A choice saved before there was a depth slider keeps the look it had.
-      const depth = Number.isInteger(stored.depth) && stored.depth >= DEPTH.min && stored.depth <= DEPTH.max ? stored.depth : 0;
-      return { hue: stored.hue, depth, mono: stored.mono === true, fill: stored.fill !== false };
-    }
+    if (stored && Number.isInteger(stored.hue) && stored.hue >= 0 && stored.hue < 360) return { hue: stored.hue, mono: stored.mono === true };
   } catch {
     // Storage unavailable or damaged: use the default.
   }
@@ -50,29 +36,27 @@ function read(): AccentChoice {
 function apply(choice: AccentChoice) {
   const style = document.documentElement.style;
   const tokens = accentTokens(choice);
-  // The default lives in styles.css; no overrides are needed for it.
-  for (const [name, value] of Object.entries(tokens)) {
-    if (isDefault(choice)) style.removeProperty(name);
-    else style.setProperty(name, value);
-  }
+  // Shades stored by an earlier version may have other names: clear them all.
+  for (const name of [...style].filter((n) => n.startsWith("--ac-"))) style.removeProperty(name);
+  if (!choice.mono) for (const [name, value] of Object.entries(tokens)) style.setProperty(name, value);
   try {
-    if (isDefault(choice)) localStorage.removeItem(KEY);
+    if (choice.mono) localStorage.removeItem(KEY);
     else localStorage.setItem(KEY, JSON.stringify({ ...choice, tokens }));
   } catch {
     // Private windows may refuse storage; the choice then lasts for this page only.
   }
-  void paintFavicon(tokens, isDefault(choice));
+  paintFavicon(choice);
 }
 
 // Shades stored by an earlier version may lack ones added since: recalculate.
-if (!isDefault(read())) apply(read());
+apply(read());
 
-/** The accent choice, a setter that applies it at once, and whether it is the default. */
-export function useAccent(): [AccentChoice, (choice: AccentChoice) => void, boolean] {
+/** The accent choice and a setter that applies it at once. */
+export function useAccent(): [AccentChoice, (choice: AccentChoice) => void] {
   const [choice, setChoice] = useState<AccentChoice>(read);
   const change = useCallback((next: AccentChoice) => {
     apply(next);
     setChoice(next);
   }, []);
-  return [choice, change, isDefault(choice)];
+  return [choice, change];
 }

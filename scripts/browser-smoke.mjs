@@ -35,39 +35,43 @@ const results = [];
 const check = (name, ok, detail) => { results.push(ok); console.log(`${ok ? "PASS" : "FAIL"} ${name}${detail ? "  | " + detail : ""}`); };
 
 let p = await page(base + "/nope"); await p.wait(3500);
-check("unknown path redirects to the queue", (await p.ev("location.pathname")) === "/" && /ADD APPLE MUSIC LINKS/i.test(await p.ev(text)), await p.ev(text));
-await p.ev(`document.querySelector('a[href="/settings"]').click()`); await p.wait(1500);
-check("nav click opens Settings", (await p.ev("location.pathname")) === "/settings" && /Convert to FLAC/i.test(await p.ev(`document.querySelector("main").innerText`)));
-check("active tab is marked", (await p.ev(`document.querySelector('a.nav-link.active')?.innerText.trim()`)) === "SETTINGS" || /settings/i.test(await p.ev(`document.querySelector('a.nav-link.active')?.innerText`)));
+check("unknown path redirects to search, the start page", (await p.ev("location.pathname")) === "/search" && (await p.ev(`!!document.querySelector("input[type=search]")`)), await p.ev(text));
+await p.ev(`document.querySelector('.sidebar a[href="/settings"], .tabbar a[href="/settings"]').click()`); await p.wait(1500);
+check("menu click opens Settings", (await p.ev("location.pathname")) === "/settings" && /Convert to FLAC/i.test(await p.ev(`document.querySelector("main").innerText`)));
+check("current page is marked in the menu", /settings/i.test(await p.ev(`document.querySelector('.sidebar a.active, .tabbar a.active')?.innerText ?? ""`)));
 await p.ev("history.back()"); await p.wait(1200);
-check("browser back returns to the queue", (await p.ev("location.pathname")) === "/");
+check("browser back returns to search", (await p.ev("location.pathname")) === "/search");
 check("no errors on these pages", p.errors.length === 0, p.errors.join(" ; ")); await p.close();
 
+p = await page(base + "/queue"); await p.wait(3000);
+check("queue page renders", /Queue/.test(await p.ev(`document.querySelector("h1")?.innerText ?? ""`)), await p.ev(text));
+check("no errors on the queue", p.errors.length === 0, p.errors.join(" ; ")); await p.close();
+
 p = await page(base + "/search?q=hatebreed"); await p.wait(6000);
-const cards = await p.ev(`document.querySelectorAll("article.album").length`);
-check("search from URL shows albums", cards > 0, `${cards} album cards, field="${await p.ev(`document.querySelector('input[type=search]').value`)}"`);
-const albumHref = await p.ev(`document.querySelector("article.album a.album-link")?.getAttribute("href")`);
-check("album cards link to their album page", /^\/album\/\d+\?sf=[a-z]{2}$/.test(albumHref ?? ""), albumHref);
-await p.ev(`document.querySelector('a.chip')?.click()`); await p.wait(5000);
-check("artist chip opens the artist page", /^\/artist\/\d+$/.test(await p.ev("location.pathname")) && (await p.ev(`document.querySelectorAll("article.album").length`)) > 0, await p.ev(`document.querySelector("h1")?.innerText`));
+const tiles = await p.ev(`document.querySelectorAll("article.album-tile").length`);
+check("search from URL shows albums", tiles > 0, `${tiles} album tiles, field="${await p.ev(`document.querySelector('input[type=search]').value`)}"`);
+const albumHref = await p.ev(`document.querySelector("article.album-tile a.cover-link")?.getAttribute("href")`);
+check("album tiles link to their album page", /^\/album\/\d+\?sf=[a-z]{2}$/.test(albumHref ?? ""), albumHref);
+await p.ev(`document.querySelector('.artist-strip a')?.click()`); await p.wait(5000);
+check("an artist opens the artist page", /^\/artist\/\d+$/.test(await p.ev("location.pathname")) && (await p.ev(`document.querySelectorAll("article.album-tile").length`)) > 0, await p.ev(`document.querySelector("h1")?.innerText`));
 check("no errors on search/artist", p.errors.length === 0, p.errors.join(" ; ")); await p.close();
 
 if (albumHref) {
   p = await page(base + albumHref); await p.wait(5000);
   const rows = await p.ev(`document.querySelectorAll(".track").length`);
   const selectable = await p.ev(`document.querySelectorAll(".track input:not(:disabled)").length`);
-  const label = await p.ev(`document.querySelector(".actionbar .button")?.innerText.replace(/\\s+/g, " ").trim()`);
+  const label = await p.ev(`document.querySelector(".actionbar .btn")?.innerText.replace(/\\s+/g, " ").trim()`);
   check("album page lists its songs with a download button", rows > 0 && Boolean(label), `${rows} songs, ${selectable} selectable, button "${label}"`);
   if (selectable > 1) {
     await p.ev(`document.querySelector(".track input:not(:disabled)").closest("label").click()`); await p.wait(300);
-    const after = await p.ev(`document.querySelector(".actionbar .button")?.innerText.replace(/\\s+/g, " ").trim()`);
+    const after = await p.ev(`document.querySelector(".actionbar .btn")?.innerText.replace(/\\s+/g, " ").trim()`);
     check("unticking a song changes the button", after !== label, `"${after}"`);
   }
   check("no errors on the album page", p.errors.length === 0, p.errors.join(" ; ")); await p.close();
 }
 
 p = await page(base + "/account"); await p.wait(3000);
-check("account page renders status", /Signed in to Apple Music/i.test(await p.ev(`document.querySelector("main").innerText`)));
+check("account page renders status", /Apple Music/i.test(await p.ev(`document.querySelector("main").innerText`)), await p.ev(text));
 check("covers allowed by CSP (no errors)", p.errors.length === 0, p.errors.join(" ; ")); await p.close();
 console.log(results.every(Boolean) ? "ALL PASS" : "SOME FAILED");
 process.exit(results.every(Boolean) ? 0 : 1);

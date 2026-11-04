@@ -212,7 +212,8 @@ class JobManager:
         except CatalogError:
             return
         if self._db.get_job(job["id"]):
-            self._update(job["id"], title=item["name"], artist=item["artist"], artists=item["artists"], artwork_url=item["artwork"])
+            self._update(job["id"], title=item["name"], artist=item["artist"], artists=item["artists"], artwork_url=item["artwork"],
+                         artwork_colors=item.get("colors"))
 
     def cancel(self, job_id: str) -> None:
         job = self._db.get_job(job_id)
@@ -404,7 +405,8 @@ class JobManager:
             return None
         if not job["title"]:
             self._update(
-                job_id, title=album["name"], artist=album["artist"], artists=album["artists"], artwork_url=album["artwork"]
+                job_id, title=album["name"], artist=album["artist"], artists=album["artists"], artwork_url=album["artwork"],
+                artwork_colors=album.get("colors"),
             )
 
         existing = await asyncio.to_thread(library.find_album, self._config.library_dir, album["artist"], album["name"])

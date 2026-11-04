@@ -1,146 +1,167 @@
 import { useEffect, useRef } from "react";
-import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import "../lib/accent"; // applies the saved accent and draws the tab icon
 import { leftReloadedPage } from "../lib/api";
 import { bytes } from "../lib/format";
 import { useStore } from "../lib/store";
-import { useTheme } from "../lib/theme";
 import type { Status } from "../lib/types";
+import { DotsLogo } from "./DotsLogo";
 import { Icon, type IconName } from "./Icon";
-import { Skull } from "./Skull";
 
-// The same four destinations are a row of tabs on wide screens and a bottom
-// tab bar on phones.
+// The same four destinations are a sidebar on wide screens and a tab bar on
+// phones, as in Apple's own apps.
 const NAV: { to: string; label: string; icon: IconName }[] = [
-  { to: "/", label: "Queue", icon: "queue" },
   { to: "/search", label: "Search", icon: "search" },
+  { to: "/queue", label: "Queue", icon: "queue" },
   { to: "/settings", label: "Settings", icon: "settings" },
   { to: "/account", label: "Account", icon: "user" },
 ];
 
-type Tone = "ok" | "wait" | "bad";
+export type Tone = "ok" | "warn" | "bad";
 
-function accountState(status: Status | null): { tone: Tone; text: string } {
-  if (!status) return { tone: "wait", text: "checking" };
+export function accountState(status: Status | null): { tone: Tone; text: string } {
+  if (!status) return { tone: "warn", text: "Checking" };
   const { wrapper } = status;
-  if (wrapper.ready) return { tone: "ok", text: `signed in (${wrapper.regions.join(", ")})` };
-  if (!wrapper.reachable) return { tone: "bad", text: "wrapper offline" };
-  if (wrapper.phase === "needs_fix") return { tone: "bad", text: "wrapper needs a fix" };
-  if (wrapper.phase === "awaiting_2fa") return { tone: "wait", text: "code needed" };
-  if (wrapper.phase === "starting" || wrapper.phase === "logging_in") return { tone: "wait", text: "connecting" };
-  return { tone: "bad", text: "not signed in" };
+  if (wrapper.ready) return { tone: "ok", text: "Signed in" };
+  if (!wrapper.reachable) return { tone: "bad", text: "Wrapper offline" };
+  if (wrapper.phase === "needs_fix") return { tone: "bad", text: "Needs a fix" };
+  if (wrapper.phase === "awaiting_2fa") return { tone: "warn", text: "Code needed" };
+  if (wrapper.phase === "starting" || wrapper.phase === "logging_in") return { tone: "warn", text: "Connecting" };
+  return { tone: "bad", text: "Not signed in" };
 }
 
-// Typed on purpose: these marks are drawn by the device's own font, like
-// characters in a terminal.
-const TONE_MARK: Record<Tone, string> = { ok: "●", wait: "◐", bad: "✕" };
-const TONE_CLASS: Record<Tone, string> = { ok: "good", wait: "wait", bad: "fail" };
+export function libraryState(status: Status | null): { tone: Tone; text: string } {
+  if (!status) return { tone: "warn", text: "Checking" };
+  return status.library.ok ? { tone: "ok", text: `${bytes(status.library.free_bytes)} free` } : { tone: "bad", text: "Unavailable" };
+}
 
-function StatusLine() {
-  const { status, connected, jobsLoaded } = useStore();
-  const account = accountState(status);
-  const library: { tone: Tone; text: string } = !status
-    ? { tone: "wait", text: "checking" }
-    : status.library.ok
-      ? { tone: "ok", text: `ok, ${bytes(status.library.free_bytes)} free` }
-      : { tone: "bad", text: "unavailable" };
-  const link: { tone: Tone; text: string } = connected
-    ? { tone: "ok", text: "live" }
-    : { tone: jobsLoaded ? "bad" : "wait", text: jobsLoaded ? "reconnecting" : "connecting" };
-  const items: { key: string; state: { tone: Tone; text: string }; to?: string }[] = [
-    { key: "apple", state: account, to: "/account" },
-    { key: "library", state: library, to: "/settings" },
-    { key: "link", state: link },
-  ];
+function State({ tone, text }: { tone: Tone; text: string }) {
   return (
-    <div className="statusline" role="status">
-      <div className="statusline-inner">
-        {items.map(({ key, state, to }) => {
-          const body = (
-            <>
-              <span className="key">{key}:</span>{" "}
-              <span className={TONE_CLASS[state.tone]}>
-                <span aria-hidden="true">{TONE_MARK[state.tone]}</span> {state.text}
-              </span>
-            </>
-          );
-          return to ? (
-            <NavLink key={key} to={to}>
-              {body}
-            </NavLink>
-          ) : (
-            <span key={key}>{body}</span>
-          );
-        })}
-      </div>
-    </div>
+    <span className={`state ${tone}`}>
+      <span className="dot" aria-hidden="true" />
+      {text}
+    </span>
   );
 }
 
+const BANNER_ICON = { success: "check", error: "warning", info: "info" } as const;
+
 export function Layout() {
-  const { toasts, dismiss, jobs, status } = useStore();
-  const [theme, cycleTheme] = useTheme();
+  const { toasts, dismiss, jobs, status, connected, jobsLoaded } = useStore();
   const active = jobs.filter((j) => j.status === "queued" || j.status === "running").length;
   const account = accountState(status);
+  const library = libraryState(status);
+  const link: { tone: Tone; text: string } = connected ? { tone: "ok", text: "Live" } : { tone: jobsLoaded ? "bad" : "warn", text: jobsLoaded ? "Reconnecting" : "Connecting" };
+
   // A reloaded page asks Apple afresh (lib/api.ts); that ends on leaving it.
   const location = useLocation();
   const arrived = useRef(true);
   useEffect(() => {
     if (arrived.current) arrived.current = false;
     else leftReloadedPage();
-  }, [location.key]);
+  }, [location.pathname]);
+
   return (
-    <>
-      <header className="topbar">
-        <div className="topbar-inner">
-          <NavLink to="/" className="brand" aria-label="Calavera, go to the queue">
-            <Skull size={32} />
-            <span>
-              calavera
-              <span className="cursor" aria-hidden="true" />
-            </span>
+    <div className="app">
+      <aside className="sidebar">
+        <NavLink to="/search" className="brand" aria-label="Calavera, go to search">
+          <DotsLogo size={34} />
+          Calavera
+        </NavLink>
+        <nav className="nav" aria-label="Main">
+          {NAV.map((item) => (
+            <NavLink key={item.to} to={item.to} className={({ isActive }) => (isActive ? "active" : "")}>
+              <Icon name={item.icon} size={22} />
+              <span>{item.label}</span>
+              {item.to === "/queue" && active > 0 && (
+                <span className="count">
+                  {active}
+                  <span className="sr-only"> in the queue</span>
+                </span>
+              )}
+              {item.to === "/account" && account.tone !== "ok" && (
+                <span className="count warn">
+                  <span aria-hidden="true">●</span>
+                  <span className="sr-only">{account.text}</span>
+                </span>
+              )}
+            </NavLink>
+          ))}
+        </nav>
+        <div className="side-status" role="status">
+          <NavLink to="/account">
+            <span className="muted">Apple Music</span>
+            <State {...account} />
           </NavLink>
-          <nav className="nav" aria-label="Main">
-            {NAV.map((item) => (
-              <NavLink key={item.to} to={item.to} end={item.to === "/"} className="nav-link">
-                <Icon name={item.icon} size={20} />
-                <span>{item.label}</span>
-                {item.to === "/" && active > 0 && (
-                  <span className="nav-badge">
-                    {active}
-                    <span className="sr-only"> in progress</span>
-                  </span>
-                )}
-                {item.to === "/account" && account.tone !== "ok" && (
-                  <span className={`nav-dot tone-${account.tone}`}>
-                    <span className="sr-only">{account.text}</span>
-                  </span>
-                )}
-              </NavLink>
-            ))}
-          </nav>
-          <div className="topbar-end">
-            <button className="button button-small" onClick={cycleTheme} aria-label={`Theme: ${theme}. Change theme.`}>
-              <Icon name={theme === "system" ? "auto" : theme === "light" ? "sun" : "moon"} size={16} />
-              {theme === "system" ? "auto" : theme}
-            </button>
+          <NavLink to="/settings">
+            <span className="muted">Library</span>
+            <State {...library} />
+          </NavLink>
+          <div>
+            <span className="muted">Connection</span>
+            <State {...link} />
           </div>
         </div>
-      </header>
-      <StatusLine />
-      <main className="page">
-        <Outlet />
+      </aside>
+
+      <main className="main">
+        {jobsLoaded && !connected && (
+          <div className="connection" role="status">
+            <Icon name="bolt" size={14} /> Connection lost. Reconnecting…
+          </div>
+        )}
+        <div className="content">
+          <Outlet />
+        </div>
       </main>
-      <div className="toasts" role="status" aria-live="polite">
+
+      <nav className="tabbar" aria-label="Main">
+        {NAV.map((item) => (
+          <NavLink key={item.to} to={item.to} className={({ isActive }) => `tab${isActive ? " active" : ""}`}>
+            <Icon name={item.icon} size={25} />
+            <span>{item.label}</span>
+            {item.to === "/queue" && active > 0 && (
+              <span className="badge">
+                {active}
+                <span className="sr-only"> in the queue</span>
+              </span>
+            )}
+            {item.to === "/account" && account.tone !== "ok" && (
+              <span className="dot-warn">
+                <span className="sr-only">{account.text}</span>
+              </span>
+            )}
+          </NavLink>
+        ))}
+      </nav>
+
+      <div className="banners" role="status" aria-live="polite">
         {toasts.map((t) => (
-          <button key={t.id} className="toast" onClick={() => dismiss(t.id)} aria-label={`${t.message} Dismiss.`}>
-            <span className={`tag ${t.kind === "error" ? "tag-bad" : t.kind === "success" ? "tag-ok" : "tag-info"}`}>
-              {t.kind === "success" && <Icon name="check" size={13} />}
-              {t.kind === "error" ? "error" : t.kind === "success" ? "ok" : "info"}
-            </span>
+          <button key={t.id} className={`banner banner-${t.kind}`} onClick={() => dismiss(t.id)} aria-label={`${t.message} Dismiss.`}>
+            <Icon name={BANNER_ICON[t.kind]} size={20} />
             <span>{t.message}</span>
           </button>
         ))}
       </div>
-    </>
+    </div>
+  );
+}
+
+/** Back to where the user came from; a directly opened link has no history. */
+export function BackBar({ fallback = "/search", label = "Back" }: { fallback?: string; label?: string }) {
+  return (
+    <div className="backbar">
+      <BackButton fallback={fallback} label={label} />
+    </div>
+  );
+}
+
+function BackButton({ fallback, label }: { fallback: string; label: string }) {
+  const navigate = useNavigate();
+  return (
+    <button className="back" onClick={() => (window.history.length > 1 ? navigate(-1) : navigate(fallback))}>
+      <Icon name="back" size={22} weight={2.4} />
+      {label}
+    </button>
   );
 }

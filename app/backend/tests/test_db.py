@@ -36,3 +36,21 @@ def test_a_database_from_before_the_artists_column_is_upgraded(tmp_path):
     db.insert_job(job("new", artists=[{"id": "10", "name": "A"}]))
     assert {j["id"]: j["artists"] for j in db.list_jobs()} == {"old": [], "new": [{"id": "10", "name": "A"}]}
     db.close()
+
+
+def test_cover_colours_are_stored_with_a_job_and_added_to_old_databases(tmp_path):
+    path = tmp_path / "calavera.db"
+    db = Database(path)
+    db.insert_job(job("old"))
+    db.close()
+    conn = sqlite3.connect(path)
+    conn.execute("ALTER TABLE jobs DROP COLUMN artwork_colors")
+    conn.commit()
+    conn.close()
+
+    db = Database(path)
+    assert db.get_job("old")["artwork_colors"] is None
+    colors = {"bg": "#000000", "text": ["#ffffff"] * 4}
+    db.update_job("old", artwork_colors=colors)
+    assert db.get_job("old")["artwork_colors"] == colors
+    db.close()

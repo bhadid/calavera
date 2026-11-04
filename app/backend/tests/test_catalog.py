@@ -313,3 +313,17 @@ def test_a_cover_that_is_no_image_is_refused():
     catalog = catalog_answering(lambda request: httpx.Response(200, text="<html>", headers={"content-type": "text/html"}))
     with pytest.raises(CatalogError, match="other than a cover"):
         asyncio.run(catalog.cover("https://is1-ssl.mzstatic.com/a.jpg/600x600bb.jpg"))
+
+
+def test_cover_colours_come_from_the_artwork():
+    art = {"url": "x", "bgColor": "08090D", "textColor1": "43afe9", "textColor2": "54a6df", "textColor3": "378ebd", "textColor4": "4586b5"}
+    item = {"id": "1", "attributes": {"artwork": art}}
+    expected = {"bg": "#08090d", "text": ["#43afe9", "#54a6df", "#378ebd", "#4586b5"]}
+    assert _album(item)["colors"] == expected
+    assert _song(item)["colors"] == expected
+
+
+def test_missing_or_damaged_cover_colours_are_none():
+    assert _album({"id": "1", "attributes": {"artwork": {"url": "x"}}})["colors"] is None
+    damaged = {"bgColor": "zz0000", "textColor1": "000000", "textColor2": "000000", "textColor3": "000000", "textColor4": "000000"}
+    assert _album({"id": "1", "attributes": {"artwork": damaged}})["colors"] is None
