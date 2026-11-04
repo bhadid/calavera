@@ -1,24 +1,15 @@
-import { useEffect, useState, type FormEvent } from "react";
-import { api, ApiError } from "../lib/api";
-import { useStore } from "../lib/store";
+import { useSecondsLeft, useSignIn } from "../lib/hooks/signIn";
 import { Icon } from "../components/Icon";
 
 function Countdown({ deadline }: { deadline: number }) {
-  const [left, setLeft] = useState(() => Math.max(0, Math.round(deadline - Date.now() / 1000)));
-  useEffect(() => {
-    const timer = window.setInterval(() => setLeft(Math.max(0, Math.round(deadline - Date.now() / 1000))), 500);
-    return () => window.clearInterval(timer);
-  }, [deadline]);
-  return <strong>{left} s</strong>;
+  return <strong>{useSecondsLeft(deadline)} s</strong>;
 }
 
 export function AccountPage() {
-  const { status, refreshStatus } = useStore();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [code, setCode] = useState("");
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
+  const {
+    status, email, setEmail, password, setPassword, code, setCode, error, busy, submitLogin, submitCode,
+    inProgress, logLines, step,
+  } = useSignIn();
 
   const heading = (
     <div className="page-head">
@@ -40,40 +31,6 @@ export function AccountPage() {
   }
   const { wrapper } = status;
   const login = wrapper.login;
-  const inProgress = login.state === "running" || login.state === "awaiting_2fa";
-  // wrapper-lite logs every status poll; those lines say nothing useful.
-  const logLines = wrapper.log_tail.filter((line) => !line.includes("request: GET /status"));
-  const step = login.state === "awaiting_2fa" ? 2 : login.state === "running" ? 1 : 0;
-
-  async function submitLogin(event: FormEvent) {
-    event.preventDefault();
-    setBusy(true);
-    setError("");
-    try {
-      await api.login(email, password);
-      setPassword(""); // do not keep it in the page once it has been sent
-      refreshStatus();
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : "The sign-in could not be started.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function submitCode(event: FormEvent) {
-    event.preventDefault();
-    setBusy(true);
-    setError("");
-    try {
-      await api.submitCode(code);
-      setCode("");
-      refreshStatus();
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : "The code could not be submitted.");
-    } finally {
-      setBusy(false);
-    }
-  }
 
   return (
     <>
@@ -170,7 +127,7 @@ export function AccountPage() {
                 pattern="\d{6}"
                 maxLength={6}
                 value={code}
-                onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+                onChange={(e) => setCode(e.target.value)}
                 autoFocus
                 required
               />

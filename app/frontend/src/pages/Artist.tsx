@@ -1,8 +1,6 @@
-import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { api, ApiError } from "../lib/api";
+import { useArtist } from "../lib/hooks/artist";
 import { GROUP_NAMES } from "../lib/format";
-import type { ArtistDetail } from "../lib/types";
 import { BackButton, LoadError } from "../components/BackButton";
 import { Cover } from "../components/Cover";
 import { Icon } from "../components/Icon";
@@ -17,21 +15,7 @@ import { StaleNote } from "../components/StaleNote";
  */
 export function ArtistPage() {
   const { id = "" } = useParams();
-  const [artist, setArtist] = useState<ArtistDetail | null>(null);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    let alive = true;
-    setArtist(null);
-    setError("");
-    api
-      .artist(id)
-      .then((a) => alive && setArtist(a))
-      .catch((e) => alive && setError(e instanceof ApiError ? e.message : "The artist could not be loaded."));
-    return () => {
-      alive = false;
-    };
-  }, [id]);
+  const { artist, error } = useArtist(id);
 
   if (error) return <LoadError message={error} />;
   if (!artist) {

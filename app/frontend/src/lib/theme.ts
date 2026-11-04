@@ -12,22 +12,30 @@ function read(): Theme {
   }
 }
 
-/** The theme preference and a function that cycles system -> light -> dark. */
-export function useTheme(): [Theme, () => void] {
+function apply(next: Theme) {
+  if (next === "system") delete document.documentElement.dataset.theme;
+  else document.documentElement.dataset.theme = next;
+  try {
+    if (next === "system") localStorage.removeItem(KEY);
+    else localStorage.setItem(KEY, next);
+  } catch {
+    // Private windows may refuse storage; the choice then lasts for this page only.
+  }
+}
+
+/** The theme preference, a function that cycles system -> light -> dark, and one that sets it. */
+export function useTheme(): [Theme, () => void, (theme: Theme) => void] {
   const [theme, setTheme] = useState<Theme>(read);
   const cycle = useCallback(() => {
     setTheme((current) => {
       const next: Theme = current === "system" ? "light" : current === "light" ? "dark" : "system";
-      if (next === "system") delete document.documentElement.dataset.theme;
-      else document.documentElement.dataset.theme = next;
-      try {
-        if (next === "system") localStorage.removeItem(KEY);
-        else localStorage.setItem(KEY, next);
-      } catch {
-        // Private windows may refuse storage; the choice then lasts for this page only.
-      }
+      apply(next);
       return next;
     });
   }, []);
-  return [theme, cycle];
+  const set = useCallback((next: Theme) => {
+    apply(next);
+    setTheme(next);
+  }, []);
+  return [theme, cycle, set];
 }

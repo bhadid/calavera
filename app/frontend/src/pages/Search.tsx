@@ -1,8 +1,6 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Link, useSearchParams } from "react-router-dom";
-import { api, ApiError } from "../lib/api";
+import { Link } from "react-router-dom";
+import { useSearch } from "../lib/hooks/search";
 import { duration, songAlbumPath } from "../lib/format";
-import type { SearchResults } from "../lib/types";
 import { AlbumGrid, QueueButton } from "../components/AlbumGrid";
 import { ArtistNames } from "../components/ArtistNames";
 import { Cover } from "../components/Cover";
@@ -10,47 +8,7 @@ import { Icon } from "../components/Icon";
 import { StaleNote } from "../components/StaleNote";
 
 export function SearchPage() {
-  // The query lives in the URL so results survive reloads and the back button.
-  const [params, setParams] = useSearchParams();
-  const query = params.get("q") ?? "";
-  const [text, setText] = useState(query);
-  const [results, setResults] = useState<SearchResults | null>(null);
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  // Pressing Search asks Apple afresh, also for the same words again; coming
-  // back to this page uses what Calavera remembers.
-  const [presses, setPresses] = useState(0);
-  const pressed = useRef(false);
-
-  useEffect(() => {
-    setText(query);
-    if (query.trim().length < 2) {
-      setResults(null);
-      return;
-    }
-    let alive = true;
-    setLoading(true);
-    setError("");
-    const fresh = pressed.current;
-    pressed.current = false;
-    api
-      .search(query, fresh)
-      .then((r) => alive && setResults(r))
-      .catch((e) => alive && setError(e instanceof ApiError ? e.message : "The search failed."))
-      .finally(() => alive && setLoading(false));
-    return () => {
-      alive = false;
-    };
-  }, [query, presses]);
-
-  function submit(event: FormEvent) {
-    event.preventDefault();
-    pressed.current = true;
-    setPresses((n) => n + 1);
-    setParams(text.trim() ? { q: text.trim() } : {});
-  }
-
-  const empty = results && !results.albums.length && !results.songs.length && !results.artists.length;
+  const { query, text, setText, results, error, loading, empty, submit } = useSearch();
   return (
     <>
       <div className="page-head">

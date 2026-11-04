@@ -1,8 +1,7 @@
-import { useId, useRef, useState } from "react";
+import { useId, useRef } from "react";
 import { Link } from "react-router-dom";
-import { api, ApiError } from "../lib/api";
 import { albumPath, plural, qualityLabel, year } from "../lib/format";
-import { useStore } from "../lib/store";
+import { useQueueItem } from "../lib/hooks/queueItem";
 import type { Album } from "../lib/types";
 import { ArtistNames } from "./ArtistNames";
 import { Cover } from "./Cover";
@@ -20,30 +19,16 @@ export function QueueButton({
   inLibrary?: string | null;
   block?: boolean;
 }) {
-  const { jobs, notify } = useStore();
-  const [busy, setBusy] = useState(false);
-  const job = jobs.find((j) => j.apple_id === appleId);
-
-  if (job?.status === "queued" || job?.status === "running") {
-    return <span className="owned">{job.status === "running" ? "downloading…" : "queued"}</span>;
+  const { state, busy, add } = useQueueItem(url, appleId, inLibrary);
+  if (state === "queued" || state === "running") {
+    return <span className="owned">{state === "running" ? "downloading…" : "queued"}</span>;
   }
-  if (inLibrary || job?.status === "done") {
+  if (state === "owned") {
     return (
       <span className="owned owned-ok" title={inLibrary ?? undefined}>
         <Icon name="check" size={14} /> in library
       </span>
     );
-  }
-  async function add() {
-    setBusy(true);
-    try {
-      const result = await api.addJobs([url]);
-      if (result.rejected.length) notify(result.rejected[0].error, "error");
-    } catch (e) {
-      notify(e instanceof ApiError ? e.message : "Could not add that to the queue.", "error");
-    } finally {
-      setBusy(false);
-    }
   }
   return (
     <button className={`button button-primary button-small${block ? " button-block" : ""}`} disabled={busy} onClick={add}>

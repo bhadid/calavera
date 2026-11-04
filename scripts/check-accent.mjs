@@ -62,10 +62,39 @@ console.log(`logo on the page and on its bone: worst ${worstLogo.toFixed(2)}:1`)
 console.log(`text on accent: worst ${worstText.toFixed(2)}:1 over ${choices.length} choices`);
 console.log(`outline on dark surfaces: worst ${worstEdge.toFixed(2)}:1`);
 
+// The bento interface: accent text on its grey page and raised fills, and
+// text on accent fills (white in the light theme, black in the dark one).
+let worstBento = Infinity;
+for (const choice of choices) {
+  const t = accentTokens(choice);
+  const label = choice.mono ? "mono" : `hue ${choice.hue} depth ${choice.depth}`;
+  const pairs = choice.mono
+    ? [["#ffffff", t["--ac-b-l"]], ["#f2f2f7", t["--ac-b-l"]], ["#000000", t["--ac-b-d"]], ["#2c2c2e", t["--ac-b-d"]]]
+    : [["#ffffff", t["--ac-b-l"]], ["#f2f2f7", t["--ac-b-l"]], ["#000000", t["--ac-b-d"]], ["#1c1c1e", t["--ac-b-d"]], ["#2c2c2e", t["--ac-b-d"]]];
+  for (const [surface, accent] of pairs) {
+    const ratio = contrast(surface, accent);
+    worstBento = Math.min(worstBento, ratio);
+    if (ratio < 4.5) fail(`${label} bento: ${accent} with ${surface} is ${ratio.toFixed(2)}:1`);
+  }
+  // The halftone logo's outer dots on its tile (3:1 for graphics).
+  const edge = contrast(t["--ac-dot-edge"], t["--ac-dot-tile"]);
+  if (edge < 3) fail(`${label} halftone logo: edge dots on the tile are ${edge.toFixed(2)}:1`);
+}
+console.log(`bento accent text and fills: worst ${worstBento.toFixed(2)}:1`);
+
+// The defaults are written into the stylesheets, so that the first paint
+// needs no script: the classic shades in styles.css, the bento ones in bento.css.
 const defaults = accentTokens(DEFAULT_ACCENT);
 const css = readFileSync(new URL("../app/frontend/src/styles.css", import.meta.url), "utf8");
+const bentoCss = readFileSync(new URL("../app/frontend/src/bento/bento.css", import.meta.url), "utf8");
 for (const [name, value] of Object.entries(defaults)) {
-  if (!css.includes(`var(${name}, ${value})`)) fail(`styles.css default for ${name} should be ${value}`);
+  const bento = name.startsWith("--ac-b-") || name.startsWith("--ac-dot-");
+  if (!(bento ? bentoCss : css).includes(`var(${name}, ${value})`)) fail(`${bento ? "bento.css" : "styles.css"} default for ${name} should be ${value}`);
+}
+// The halftone logo's default colours are the drawing's own.
+const drawing = { "--ac-dot-edge": "#ef476f", "--ac-dot-high": "#ffd166", "--ac-dot-bone": "#f8f4e8", "--ac-dot-tile": "#14121f" };
+for (const [name, value] of Object.entries(drawing)) {
+  if (defaults[name] !== value) fail(`default ${name} is ${defaults[name]}, the drawing has ${value}`);
 }
 
 // The favicon is in the default colours and is the same drawing as the logo.

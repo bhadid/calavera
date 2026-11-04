@@ -1,11 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { api, ApiError } from "../lib/api";
+import { useJobActions, useJobLog } from "../lib/hooks/jobActions";
 import { plural, timeOfDay } from "../lib/format";
-import { useStore } from "../lib/store";
-import type { Job, JobStatus, LogLine } from "../lib/types";
+import type { Job, JobStatus } from "../lib/types";
 import { ArtistNames } from "./ArtistNames";
-import { useConfirm } from "./Confirm";
 import { Cover } from "./Cover";
 import { Icon } from "./Icon";
 
@@ -51,22 +49,8 @@ function lineClass(line: string): string | undefined {
 }
 
 function JobLog({ job }: { job: Job }) {
-  const { onLog } = useStore();
-  const [lines, setLines] = useState<LogLine[] | null>(null);
+  const lines = useJobLog(job.id);
   const body = useRef<HTMLPreElement>(null);
-
-  useEffect(() => {
-    let alive = true;
-    api
-      .job(job.id)
-      .then((r) => alive && setLines(r.log))
-      .catch(() => alive && setLines([]));
-    const off = onLog(job.id, (line, ts) => setLines((all) => [...(all ?? []), { line, ts }]));
-    return () => {
-      alive = false;
-      off();
-    };
-  }, [job.id, onLog]);
 
   useEffect(() => {
     if (body.current) body.current.scrollTop = body.current.scrollHeight;
@@ -97,55 +81,9 @@ function JobLog({ job }: { job: Job }) {
 const folder = (path: string) => `${path}/`;
 
 export function JobCard({ job }: { job: Job }) {
-  const { notify } = useStore();
-  const confirm = useConfirm();
   const [showLog, setShowLog] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const { busy, active, name, canKeep, canAddMissing, selection, cancel, keep, retry, discard, remove } = useJobActions(job);
   const status = STATUS[job.status];
-  const active = job.status === "queued" || job.status === "running";
-  const name = job.title || (job.kind === "album" ? "this album" : "this song");
-
-  async function act(action: () => Promise<unknown>) {
-    setBusy(true);
-    try {
-      await action();
-    } catch (e) {
-      notify(e instanceof ApiError ? e.message : "That did not work.", "error");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  // "Keep downloaded tracks": a download that failed part-way still has
-  // finished tracks in staging. "Add missing tracks": the album folder
-  // exists; add only what it lacks. Both never replace a file.
-  const canKeep = job.status === "failed" && job.staged_tracks > 0;
-  const canAddMissing = job.status === "skipped" && job.kind === "album" && !job.options.merge;
-  const selection = job.options.track_ids?.length ?? 0;
-
-  async function discard() {
-    const ok = await confirm({
-      title: "Discard downloaded files?",
-      message: `The files this job left in the staging folder for “${name}” will be deleted. Your library is not touched.`,
-      action: "Discard files",
-      destructive: true,
-    });
-    if (ok) await act(() => api.discardFiles(job.id));
-  }
-
-  async function remove() {
-    // Removing a job that left nothing behind loses only a history entry.
-    if (job.has_files) {
-      const ok = await confirm({
-        title: "Remove this job?",
-        message: `“${name}” still has downloaded files in the staging folder. Removing the job deletes them. Your library is not touched.`,
-        action: "Remove and delete files",
-        destructive: true,
-      });
-      if (!ok) return;
-    }
-    await act(() => api.removeJob(job.id));
-  }
 
   return (
     <article className={`card job job-${job.status}`} aria-label={`${name}: ${status.label}`}>
@@ -200,7 +138,7 @@ export function JobCard({ job }: { job: Job }) {
 
         <div className="job-actions">
           {active && (
-            <button className="button button-small" disabled={busy} onClick={() => act(() => api.cancelJob(job.id))}>
+            <button className="button button-small" disabled={busy} onClick={cancel}>
               Cancel
             </button>
           )}
@@ -209,7 +147,7 @@ export function JobCard({ job }: { job: Job }) {
               className="button button-small button-primary"
               disabled={busy}
               title="Convert and import the tracks that finished downloading. Existing files in the library are never replaced."
-              onClick={() => act(() => api.importJob(job.id))}
+              onClick={keep}
             >
               Keep {plural(job.staged_tracks, "track")}
             </button>
@@ -219,13 +157,13 @@ export function JobCard({ job }: { job: Job }) {
               className="button button-small"
               disabled={busy}
               title="Add only the tracks the existing album folder does not have. Existing files are never replaced."
-              onClick={() => act(() => api.importJob(job.id))}
+              onClick={keep}
             >
               Add missing tracks
             </button>
           )}
           {!active && job.status !== "done" && (
-            <button className="button button-small" disabled={busy} onClick={() => act(() => api.retryJob(job.id))}>
+            <button className="button button-small" disabled={busy} onClick={retry}>
               Retry
             </button>
           )}

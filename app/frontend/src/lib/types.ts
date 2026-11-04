@@ -22,6 +22,12 @@ export interface JobOptions {
   resume?: boolean;
 }
 
+/** Colours Apple picked from a cover: its background and four text colours for it. */
+export interface ArtworkColors {
+  bg: string;
+  text: [string, string, string, string];
+}
+
 /** One of the artists behind an album or song: enough to link to their page. */
 export interface ArtistRef {
   id: string;
@@ -38,6 +44,8 @@ export interface Job {
   artist: string;
   artists: ArtistRef[];
   artwork_url: string;
+  /** Missing for jobs from before they were kept. */
+  artwork_colors?: ArtworkColors | null;
   status: JobStatus;
   stage: string;
   progress: number;
@@ -105,6 +113,7 @@ export interface Album {
   artist: string;
   artists: ArtistRef[];
   artwork: string;
+  colors?: ArtworkColors | null;
   url: string;
   track_count: number;
   release_date: string;
@@ -157,6 +166,7 @@ export interface Song {
   artists: ArtistRef[];
   album: string;
   artwork: string;
+  colors?: ArtworkColors | null;
   url: string;
   duration_ms: number;
   traits: string[];
@@ -167,6 +177,7 @@ export interface Artist {
   id: string;
   name: string;
   artwork: string;
+  colors?: ArtworkColors | null;
   url: string;
 }
 

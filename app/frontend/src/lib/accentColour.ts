@@ -36,6 +36,28 @@ const SHADES = {
   "--ac-logo-d": [0.605, 0.193],
 } as const;
 
+// The bento interface uses the accent as text on its grey page and as a fill
+// under white (light theme) or black (dark theme) text, as Apple's tint
+// colours are. Its shades are a step darker (light) and lighter (dark) than
+// the classic ones, and move with the depth slider within these bounds.
+const BENTO = {
+  "--ac-b-l": { lightness: 0.61, cap: 0.24, highest: 0.555 },
+  "--ac-b-d": { lightness: 0.74, cap: 0.2, lowest: 0.69 },
+} as const;
+/** The lightest surface accent text sits on in each theme (bento's grey page, raised dark fill). */
+const BENTO_PAGE = { l: "#f2f2f7", d: "#2c2c2e" };
+
+// The halftone logo: dots in three colours on a dark tile. Each keeps the
+// lightness, chroma and hue distance from the accent that the drawing has at
+// the default accent, so the default reproduces the drawing and every other
+// hue turns all four colours together.
+const DOTS: Record<string, [number, number, number]> = {
+  "--ac-dot-edge": [0.648, 0.204, -9.9],
+  "--ac-dot-high": [0.88, 0.135, 65.1],
+  "--ac-dot-bone": [0.967, 0.016, 70.6],
+  "--ac-dot-tile": [0.191, 0.026, 269.8],
+};
+
 /** Monochrome: ink on paper in the light theme, paper on ink in the dark one. */
 const MONO: Record<string, string> = {
   "--ac-l": "#0c0c0c",
@@ -51,6 +73,12 @@ const MONO: Record<string, string> = {
   "--ac-logo-d": "#f4f1ea",
   "--ac-logo-bone-l": "#fdfdfd00",
   "--ac-logo-bone-d": "#fdfdfd00",
+  "--ac-b-l": "#000000",
+  "--ac-b-d": "#ffffff",
+  "--ac-dot-edge": "#8e8e93",
+  "--ac-dot-high": "#ffffff",
+  "--ac-dot-bone": "#c7c7cc",
+  "--ac-dot-tile": "#1c1c1e",
 };
 
 const ON_ACCENT = "#0c0c0c";
@@ -104,6 +132,18 @@ export function accentTokens(choice: AccentChoice): Record<string, string> {
   for (const [name, [lightness, cap]] of Object.entries(SHADES)) {
     const moved = FILLS.includes(name) ? Math.max(FLOOR, lightness - choice.depth * DEPTH.step) : lightness;
     tokens[name] = shade(moved, cap, choice.hue);
+  }
+  // Some hues (greens, yellows) look lighter at the same lightness: those
+  // are moved further until text in and on them is readable.
+  const step = choice.depth * DEPTH.step;
+  let light = Math.min(BENTO["--ac-b-l"].highest, BENTO["--ac-b-l"].lightness - step);
+  while (contrast(shade(light, BENTO["--ac-b-l"].cap, choice.hue), BENTO_PAGE.l) < 4.6) light -= 0.005;
+  tokens["--ac-b-l"] = shade(light, BENTO["--ac-b-l"].cap, choice.hue);
+  let dark = Math.max(BENTO["--ac-b-d"].lowest, BENTO["--ac-b-d"].lightness - step);
+  while (contrast(shade(dark, BENTO["--ac-b-d"].cap, choice.hue), BENTO_PAGE.d) < 4.6) dark += 0.005;
+  tokens["--ac-b-d"] = shade(dark, BENTO["--ac-b-d"].cap, choice.hue);
+  for (const [name, [lightness, cap, turn]] of Object.entries(DOTS)) {
+    tokens[name] = shade(lightness, cap, (choice.hue + turn + 360) % 360);
   }
   return tokens;
 }

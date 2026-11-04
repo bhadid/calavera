@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import { accentTokens, DEFAULT_ACCENT, DEPTH, type AccentChoice } from "./accentColour";
+import { logoSvg } from "../bento/components/DotsLogo";
 
 // The accent choice is kept per browser, like the theme. The calculated
 // shades are stored with it so that public/theme.js can apply them before
@@ -17,6 +18,14 @@ async function paintFavicon(tokens: Record<string, string>, standard: boolean) {
   const link = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
   if (!link) return;
   const turn = ++favicon;
+  // The bento interface has the halftone logo, drawn here in its colours.
+  if (document.documentElement.dataset.ui === "bento") {
+    const svg = logoSvg({
+      edge: tokens["--ac-dot-edge"], bone: tokens["--ac-dot-bone"], high: tokens["--ac-dot-high"], tile: tokens["--ac-dot-tile"],
+    });
+    link.href = `data:image/svg+xml,${encodeURIComponent(svg)}`;
+    return;
+  }
   if (standard) {
     link.href = "/favicon.svg";
     return;
@@ -66,6 +75,12 @@ function apply(choice: AccentChoice) {
 
 // Shades stored by an earlier version may lack ones added since: recalculate.
 if (!isDefault(read())) apply(read());
+
+/** Draw the browser-tab icon for the current choice (the bento interface calls this once). */
+export function paintCurrentFavicon() {
+  const choice = read();
+  void paintFavicon(accentTokens(choice), isDefault(choice));
+}
 
 /** The accent choice, a setter that applies it at once, and whether it is the default. */
 export function useAccent(): [AccentChoice, (choice: AccentChoice) => void, boolean] {

@@ -1,23 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { api, ApiError } from "../lib/api";
-import { duration, plural, qualityLabel, qualityNumbers, year } from "../lib/format";
-import { useStore } from "../lib/store";
-import type { AlbumDetail, Track } from "../lib/types";
+import { duration, plural, qualityLabel, year } from "../lib/format";
+import { blocked, useAlbumPage } from "../lib/hooks/album";
 import { type AlbumLinkState, OtherReleaseTag } from "../components/AlbumGrid";
 import { ArtistNames } from "../components/ArtistNames";
 import { CoverViewer } from "../components/CoverViewer";
 import { Icon } from "../components/Icon";
 import { StaleNote } from "../components/StaleNote";
-
-/** Why a song cannot be chosen, in words; null if it can. */
-// A song "in library" has a file of its name in the album's folder. When the
-// folder holds another edition, that file is the other edition's song.
-function blocked(track: Track, otherEdition = false): string | null {
-  if (!track.available) return "not available";
-  if (track.in_library) return otherEdition ? "other edition" : "in library";
-  return null;
-}
 
 export function AlbumPage() {
   const { id = "" } = useParams();
@@ -26,47 +14,10 @@ export function AlbumPage() {
   const navigate = useNavigate();
   // Opened from a card marked as an "other release"; see AlbumCard.
   const otherRelease = Boolean((useLocation().state as AlbumLinkState | null)?.otherRelease);
-  const { jobs, notify } = useStore();
-  const [album, setAlbum] = useState<AlbumDetail | null>(null);
-  const [error, setError] = useState("");
-  const [numbers, setNumbers] = useState("");
-  const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    let alive = true;
-    setAlbum(null);
-    setError("");
-    setNumbers("");
-    api
-      .album(id, storefront)
-      .then((loaded) => {
-        if (!alive) return;
-        setAlbum(loaded);
-        // The quality in numbers takes one more download from Apple, so it is
-        // asked for after the page is there; without it the tag stands alone.
-        if (qualityLabel(loaded.traits)) {
-          api
-            .albumQuality(id, storefront)
-            .then(({ quality }) => alive && quality && setNumbers(qualityNumbers(quality)))
-            .catch(() => undefined);
-        }
-        // Start with everything that can be downloaded selected: the common
-        // case is "the album", and unticking is quicker than ticking.
-        setSelected(new Set(loaded.edition === "other" ? [] : loaded.tracks.filter((t) => !blocked(t)).map((t) => t.id)));
-      })
-      .catch((e) => alive && setError(e instanceof ApiError ? e.message : "The album could not be loaded."));
-    return () => {
-      alive = false;
-    };
-  }, [id, storefront]);
-
-  const otherEdition = album?.edition === "other";
-  // Nothing goes into a folder of another edition, not even the songs it lacks.
-  const selectable = useMemo(
-    () => (otherEdition ? [] : (album?.tracks.filter((t) => !blocked(t)) ?? [])),
-    [album, otherEdition],
-  );
+  const {
+    album, error, numbers, selected, toggle, toggleAll, busy, download, label,
+    otherEdition, selectable, unavailable, owned, everything, queued,
+  } = useAlbumPage(id, storefront);
 
   // Go back to where the user came from; a directly opened link has no history.
   const back = (
@@ -97,44 +48,7 @@ export function AlbumPage() {
     );
   }
 
-  const unavailable = album.tracks.filter((t) => !t.available).length;
-  const owned = album.tracks.filter((t) => t.available && t.in_library).length;
-  const everything = selectable.length > 0 && selected.size === selectable.length;
-  const wholeAlbum = everything && selectable.length === album.tracks.length;
-  const queued = jobs.find((j) => j.apple_id === album.id && (j.status === "queued" || j.status === "running"));
   const quality = qualityLabel(album.traits);
-
-  function toggle(trackId: string) {
-    setSelected((current) => {
-      const next = new Set(current);
-      if (next.has(trackId)) next.delete(trackId);
-      else next.add(trackId);
-      return next;
-    });
-  }
-
-  async function download() {
-    if (!album) return;
-    setBusy(true);
-    try {
-      // The plain album link when nothing was left out and the album has no
-      // folder yet; otherwise the chosen songs, which may go into an existing
-      // folder. Songs Apple does not offer are skipped either way.
-      const result = everything && !album.in_library ? await api.addJobs([album.url]) : await api.addJobs([album.url], [...selected]);
-      if (result.rejected.length) {
-        notify(result.rejected[0].error, "error");
-      } else {
-        notify(`${album.name}: ${wholeAlbum ? "album" : plural(selected.size, "song")} added to the queue.`, "success");
-        navigate("/");
-      }
-    } catch (e) {
-      notify(e instanceof ApiError ? e.message : "Could not add that to the queue.", "error");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  const label = selected.size === 0 ? "Select songs to download" : wholeAlbum ? `Download album (${plural(selected.size, "song")})` : `Download ${plural(selected.size, "song")}`;
 
   return (
     <>
@@ -214,7 +128,7 @@ export function AlbumPage() {
           {selectable.length > 1 && (
             <button
               className="button button-small button-plain"
-              onClick={() => setSelected(everything ? new Set() : new Set(selectable.map((t) => t.id)))}
+              onClick={toggleAll}
             >
               {everything ? "Select none" : "Select all"}
             </button>

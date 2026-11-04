@@ -8,10 +8,12 @@ import { QueuePage } from "./pages/Queue";
 import { SearchPage } from "./pages/Search";
 import { SettingsPage } from "./pages/Settings";
 import { SongPage } from "./pages/Song";
+import "./styles.css";
 
-// To add a page: create it in pages/, add a <Route> here and, if it belongs
-// in the main navigation, an entry in NAV in components/Layout.tsx.
-export function App() {
+// The classic interface. To add a page: create it in pages/, add a <Route>
+// here and, if it belongs in the main navigation, an entry in NAV in
+// components/Layout.tsx. The bento interface has its own (bento/BentoApp.tsx).
+export default function ClassicApp() {
   return (
     <Routes>
       <Route element={<Layout />}>

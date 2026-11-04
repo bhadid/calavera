@@ -1,5 +1,5 @@
-import { useEffect, useState, type CSSProperties, type FormEvent } from "react";
-import { api, ApiError } from "../lib/api";
+import { type CSSProperties } from "react";
+import { useSettingsDraft } from "../lib/hooks/settings";
 import { bytes } from "../lib/format";
 import { useStore } from "../lib/store";
 import type { Settings } from "../lib/types";
@@ -7,6 +7,7 @@ import { useAccent } from "../lib/accent";
 import { DEFAULT_ACCENT, DEPTH, depthTrack, hueName, hueTrack } from "../lib/accentColour";
 import { Segmented, Switch } from "../components/Controls";
 import { Icon } from "../components/Icon";
+import { switchUi } from "../lib/ui";
 
 const RATES: { value: Settings["max_sample_rate"]; label: string }[] = [
   { value: 44100, label: "44.1" },
@@ -28,22 +29,9 @@ const COVERS: { value: Settings["cover_size"]; label: string }[] = [
 
 
 export function SettingsPage() {
-  const { status, notify } = useStore();
-  const [saved, setSaved] = useState<Settings | null>(null);
-  const [draft, setDraft] = useState<Settings | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
+  const { status } = useStore();
+  const { saved, draft, set, dirty, undo, save, saving, error } = useSettingsDraft();
   const [accent, setAccent, accentIsDefault] = useAccent();
-
-  useEffect(() => {
-    api
-      .settings()
-      .then((r) => {
-        setSaved(r.settings);
-        setDraft(r.settings);
-      })
-      .catch((e) => setError(e instanceof ApiError ? e.message : "The settings could not be loaded."));
-  }, []);
 
   const heading = (
     <div className="page-head">
@@ -72,26 +60,6 @@ export function SettingsPage() {
         )}
       </>
     );
-  }
-
-  const dirty = JSON.stringify(draft) !== JSON.stringify(saved);
-  const set = <K extends keyof Settings>(key: K, value: Settings[K]) => setDraft({ ...draft, [key]: value });
-
-  async function save(event: FormEvent) {
-    event.preventDefault();
-    if (!draft) return;
-    setSaving(true);
-    setError("");
-    try {
-      const result = await api.saveSettings(draft);
-      setSaved(result);
-      setDraft(result);
-      notify("Settings saved. They apply to downloads started from now on.", "success");
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : "The settings could not be saved.");
-    } finally {
-      setSaving(false);
-    }
   }
 
   return (
@@ -206,7 +174,7 @@ export function SettingsPage() {
           <div className="card savebar">
             <strong>Unsaved changes</strong>
             <div className="savebar-actions">
-              <button type="button" className="button button-small" disabled={saving} onClick={() => setDraft(saved)}>
+              <button type="button" className="button button-small" disabled={saving} onClick={undo}>
                 Undo
               </button>
               <button className="button button-small button-primary" disabled={saving}>
@@ -222,6 +190,23 @@ export function SettingsPage() {
         <h2 className="group-title" id="group-appearance">
           Appearance
         </h2>
+        <div className="setting setting-inline">
+          <div className="setting-text">
+            <strong>Interface</strong>
+            <span className="small muted">Classic terminal look, or bento tiles.</span>
+          </div>
+          <div className="setting-control">
+            <Segmented
+              label="Interface"
+              value="classic"
+              options={[
+                { value: "classic", label: "Classic" },
+                { value: "bento", label: "Bento" },
+              ]}
+              onChange={(v) => v === "bento" && switchUi("bento")}
+            />
+          </div>
+        </div>
         <div className="setting setting-inline">
           <div className="setting-text">
             <strong id="mono-label">Monochrome</strong>
