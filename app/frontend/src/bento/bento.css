@@ -28,7 +28,7 @@
   --fill: rgba(120, 120, 128, 0.12);
   --fill-2: rgba(120, 120, 128, 0.2);
   --material: rgba(249, 249, 251, 0.78);
-  --accent: var(--ac-b-l, #d70034);
+  --accent: var(--ac-b-l, #000000);
   --on-accent: #ffffff;
   --accent-soft: color-mix(in srgb, var(--accent) 12%, transparent);
   /* Status: all good in the accent, anything that needs attention in the
@@ -50,7 +50,8 @@
   --r-tile: 22px;
   --r-ctl: 12px;
   --pad: 18px;
-  --gap: 14px;
+  --gap: 12px; /* between tiles and between everything stacked on a page */
+  --section: 36px; /* above a section heading */
   --sidebar: 248px;
   --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", system-ui, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
   --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
@@ -69,7 +70,7 @@
     --fill: rgba(120, 120, 128, 0.24);
     --fill-2: rgba(120, 120, 128, 0.36);
     --material: rgba(22, 22, 24, 0.78);
-    --accent: var(--ac-b-d, #ff5e66);
+    --accent: var(--ac-b-d, #ffffff);
     --on-accent: #000000;
     --accent-soft: color-mix(in srgb, var(--accent) 18%, transparent);
     --second: var(--ac-b2-d, #f6c343);
@@ -92,7 +93,7 @@
   --fill: rgba(120, 120, 128, 0.24);
   --fill-2: rgba(120, 120, 128, 0.36);
   --material: rgba(22, 22, 24, 0.78);
-  --accent: var(--ac-b-d, #ff5e66);
+  --accent: var(--ac-b-d, #ffffff);
   --on-accent: #000000;
   --accent-soft: color-mix(in srgb, var(--accent) 18%, transparent);
   --second: var(--ac-b2-d, #f6c343);
@@ -352,13 +353,32 @@ a {
 }
 
 /* ---- page heads --------------------------------------------------------------- */
-.top {
-  padding: 52px 4px 18px;
+/* A page is one column of blocks (heading, search field, notices, grids,
+   section headings) with the same distance between any two of them. */
+.page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--gap);
+  padding-top: 44px;
+}
+/* Tiles placed straight on the page (a notice, the history) span its one column. */
+.page > *,
+.notices > * {
+  grid-column: 1 / -1;
+  grid-row: auto;
+}
+@container (min-width: 600px) {
+  .content {
+    --gap: 16px;
+  }
 }
 @media (min-width: 760px) {
-  .top {
-    padding-top: 40px;
+  .page {
+    padding-top: 28px;
   }
+}
+.top {
+  padding: 0 4px;
 }
 .eyebrow {
   margin-bottom: 2px;
@@ -384,12 +404,7 @@ h1 {
   display: flex;
   align-items: center;
   min-height: 44px;
-  padding-top: 40px;
-}
-@media (min-width: 760px) {
-  .backbar {
-    padding-top: 20px;
-  }
+  margin: -10px 0 -6px;
 }
 .back {
   display: inline-flex;
@@ -409,7 +424,9 @@ h1 {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 30px 4px 10px;
+  margin-top: calc(var(--section) - var(--gap));
+  padding: 0 4px;
+  min-height: 34px;
   font-size: 1.375rem;
   font-weight: 700;
   letter-spacing: 0.01em;
@@ -424,9 +441,6 @@ h1 {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   grid-auto-rows: minmax(132px, auto);
   gap: var(--gap);
-}
-.bento + .bento {
-  margin-top: var(--gap);
 }
 .tile {
   grid-column: span var(--w2, 2);
@@ -445,7 +459,6 @@ h1 {
 @container (min-width: 980px) {
   .bento {
     grid-template-columns: repeat(6, minmax(0, 1fr));
-    gap: 16px;
   }
   .tile {
     grid-column: span var(--w6, var(--w4, var(--w2, 2)));
@@ -638,10 +651,9 @@ a.tile:active {
 .notices {
   display: grid;
   gap: var(--gap);
-  margin-bottom: var(--gap);
 }
 .empty {
-  padding: 28px 4px;
+  padding: 12px 4px;
   color: var(--label-2);
 }
 
@@ -707,6 +719,18 @@ a.tile:active {
   .btn-icon {
     width: 44px;
   }
+}
+/* On artwork colours, buttons take them too: the accent may not show there. */
+.tinted .btn-filled {
+  background: var(--art-1);
+  color: var(--art-bg);
+}
+.tinted .btn-tinted {
+  background: color-mix(in srgb, var(--art-1) 22%, transparent);
+  color: var(--art-1);
+}
+.tinted .owned {
+  color: var(--art-1);
 }
 .tinted .btn-gray {
   background: color-mix(in srgb, var(--art-1) 16%, transparent);
@@ -1090,7 +1114,7 @@ button.row {
   color: var(--console-dim);
 }
 .console .ok {
-  color: var(--ac-b-d, #ff5e66);
+  color: var(--ac-b-d, #ffffff);
 }
 .console .err {
   color: var(--ac-b2-d, #f6c343);
@@ -1218,7 +1242,8 @@ button.row {
   z-index: 5;
   display: flex;
   gap: 10px;
-  margin: 0 -4px 18px;
+  /* The padding keeps room around the field once it sticks at the top. */
+  margin: -8px -4px;
   padding: 8px 4px;
   background: var(--bg);
 }
@@ -1298,8 +1323,7 @@ button.row {
   gap: 18px;
   overflow-x: auto;
   scrollbar-width: none;
-  margin: 0 calc(var(--pad) * -1);
-  padding: 4px var(--pad) 2px;
+  padding: 0 4px;
 }
 .artist-strip a {
   display: grid;
@@ -1363,17 +1387,29 @@ button.row {
   gap: var(--gap);
   overflow-x: auto;
   scroll-snap-type: x mandatory;
-  scroll-padding: 0 var(--pad);
   scrollbar-width: thin;
-  margin: 0 calc(var(--pad) * -1);
-  padding: 2px var(--pad) 6px;
+  /* Room for the tiles' shadows, which the scroller would cut off. */
+  margin: -8px -16px;
+  padding: 8px 16px 10px;
+  scroll-padding: 0 16px;
 }
 .shelf > * {
   scroll-snap-align: start;
 }
-.shelf .album-tile {
-  background: var(--tile-2);
-  box-shadow: none;
+/* A section on a page: its heading and what follows, at the page's distance. */
+.shelf-section {
+  display: grid;
+  gap: var(--gap);
+}
+.artist-hero {
+  flex-direction: row;
+  align-items: center;
+  gap: 20px;
+}
+.artist-hero .text {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
 }
 
 /* ---- album -------------------------------------------------------------------- */
@@ -1473,7 +1509,7 @@ button.row {
   display: flex;
   align-items: center;
   gap: 14px;
-  margin: 24px -16px 0;
+  margin: 0 -16px;
   padding: 10px 16px;
   background: var(--material);
   -webkit-backdrop-filter: saturate(180%) blur(24px);
@@ -1492,7 +1528,7 @@ button.row {
 @media (min-width: 760px) {
   .actionbar {
     bottom: 0;
-    margin: 24px -32px 0;
+    margin: 0 -32px;
     padding: 12px 32px calc(12px + env(safe-area-inset-bottom, 0px));
   }
   .actionbar p {
@@ -1606,6 +1642,56 @@ button.row {
   gap: 12px;
   text-align: center;
 }
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.swatch-option {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.15);
+}
+@media (pointer: coarse) {
+  .swatches {
+    gap: 14px;
+  }
+  .swatch-option {
+    width: 34px;
+    height: 34px;
+  }
+}
+/* Monochrome: half black, half white. */
+.swatch-mono {
+  background: linear-gradient(135deg, #000000 50%, #ffffff 50%);
+}
+.swatch-option input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.swatch-option:has(input:checked)::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid var(--label-2);
+}
+.swatch-option:has(input:focus-visible) {
+  outline: 3px solid var(--accent);
+  outline-offset: 5px;
+}
+.swatch-name {
+  min-width: 90px;
+  font-size: 0.875rem;
+  color: var(--label-2);
+}
 .logo-pair {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1665,7 +1751,7 @@ button.row {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin: 24px -16px 0;
+  margin: 0 -16px;
   padding: 10px 16px;
   background: var(--material);
   -webkit-backdrop-filter: saturate(180%) blur(24px);
@@ -1675,7 +1761,7 @@ button.row {
 @media (min-width: 760px) {
   .savebar {
     bottom: 0;
-    margin: 24px -32px 0;
+    margin: 0 -32px;
     padding: 12px 32px calc(12px + env(safe-area-inset-bottom, 0px));
   }
 }

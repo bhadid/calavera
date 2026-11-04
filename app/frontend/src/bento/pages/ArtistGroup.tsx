@@ -12,9 +12,9 @@ export function ArtistGroupPage() {
   if (!valid) return <Navigate to={`/artist/${id}`} replace />;
   const title = groupTitle(group as Shown);
   return (
-    <>
+    <div className="page">
       <BackBar fallback={`/artist/${id}`} />
-      <header className="top" style={{ paddingTop: 4 }}>
+      <header className="top">
         <h1>{title}</h1>
         {state.artist && (
           <p className="subtitle">
@@ -25,18 +25,14 @@ export function ArtistGroupPage() {
         )}
       </header>
       {state.staleSince && (
-        <div className="notices">
-          <Notice tone="warn" role="status">
-            Apple Music can't be reached right now. Showing what was loaded {atTime(state.staleSince)}.
-          </Notice>
-        </div>
+        <Notice tone="warn" role="status">
+          Apple Music can't be reached right now. Showing what was loaded {atTime(state.staleSince)}.
+        </Notice>
       )}
       {error && state.items.length === 0 && (
-        <div className="notices">
-          <Notice tone="bad" role="alert">{error}</Notice>
-        </div>
+        <Notice tone="bad" role="alert">{error}</Notice>
       )}
-      <section aria-label={title}>
+      <section className="shelf-section" aria-label={title}>
         {items.length > 0 && (
           <div className="bento-cards">
             {items.map((album) => (
@@ -56,6 +52,6 @@ export function ArtistGroupPage() {
           </p>
         )}
       </section>
-    </>
+    </div>
   );
 }

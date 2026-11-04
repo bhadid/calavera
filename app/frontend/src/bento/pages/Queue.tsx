@@ -7,7 +7,6 @@ import { api } from "../../lib/api";
 import type { Job, JobStatus } from "../../lib/types";
 import { useConfirm } from "../../components/Confirm";
 import { ArtistNames } from "../../components/ArtistNames";
-import { accountState, libraryState } from "../components/Layout";
 import { Icon, type IconName } from "../components/Icon";
 import { JobLog } from "../components/JobLog";
 import { Cover, Notice, span, tint } from "../components/tiles";
@@ -54,8 +53,6 @@ export function QueuePage() {
   const [now, ...next] = active;
   const finished = jobs.filter((j) => !active.includes(j));
   const [shown, setShown] = useState(HISTORY_STEP);
-  const account = accountState(status);
-  const library = libraryState(status);
   const wrapper = status?.wrapper;
 
   async function clearHistory() {
@@ -82,7 +79,7 @@ export function QueuePage() {
   }
 
   return (
-    <>
+    <div className="page">
       <header className="top">
         <p className="eyebrow">{new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" })}</p>
         <h1>Queue</h1>
@@ -111,28 +108,9 @@ export function QueuePage() {
         </div>
       )}
 
+      {now && (
       <div className="bento">
-        {now ? <NowTile job={now} /> : <IdleTile loaded={jobsLoaded} />}
-        <Link className="tile" to="/account" style={span(1, 2, 2)}>
-          <div className="tile-head">
-            <Icon name="note" size={16} />
-            Apple Music
-            <span className="chev"><Icon name="chevron" size={16} weight={2.4} /></span>
-          </div>
-          <p className={`big ${account.tone === "ok" ? "" : account.tone}`}>{account.text}</p>
-          <p className="foot">{wrapper?.ready ? `Store: ${wrapper.regions.join(", ")}` : "Tap to sign in"}</p>
-        </Link>
-        <Link className="tile" to="/settings" style={span(1, 2, 2)}>
-          <div className="tile-head">
-            <Icon name="drive" size={16} />
-            Library
-            <span className="chev"><Icon name="chevron" size={16} weight={2.4} /></span>
-          </div>
-          <p className={`big num ${library.tone === "ok" ? "" : library.tone}`}>
-            {status?.library.ok ? library.text.replace(" free", "") : library.text}
-          </p>
-          <p className="foot">{status?.library.ok ? "free" : (status?.library.problem ?? "")}</p>
-        </Link>
+        {now && <NowTile job={now} />}
         {next.length > 0 && (
           <section className="tile" style={span(2, 4, 6)} aria-labelledby="next-heading">
             <div className="tile-head" id="next-heading">
@@ -147,6 +125,18 @@ export function QueuePage() {
           </section>
         )}
       </div>
+      )}
+      {!now && (
+        <p className="empty">
+          {jobsLoaded ? (
+            <>
+              Nothing in the queue. Find albums and songs in <Link className="link" to="/search">Search</Link>.
+            </>
+          ) : (
+            "Loading…"
+          )}
+        </p>
+      )}
 
       {finished.length > 0 && (
         <>
@@ -180,26 +170,7 @@ export function QueuePage() {
           </section>
         </>
       )}
-    </>
-  );
-}
-
-function IdleTile({ loaded }: { loaded: boolean }) {
-  return (
-    <section className="tile idle" style={span(2, 4, 2)}>
-      <div className="tile-head">
-        <Icon name="download" size={16} />
-        Now downloading
-      </div>
-      <p className="big">{loaded ? "Nothing in the queue" : "Loading…"}</p>
-      <p className="muted">Find an album or paste Apple Music links in Search.</p>
-      <div className="actions">
-        <Link className="btn btn-filled btn-small" to="/search">
-          <Icon name="search" size={17} weight={2.2} />
-          Search
-        </Link>
-      </div>
-    </section>
+    </div>
   );
 }
 
@@ -211,7 +182,7 @@ function NowTile({ job }: { job: Job }) {
   const percent = Math.round(job.progress * 100);
   const stage = running ? [STAGE[job.stage] ?? "Working", job.detail].filter(Boolean).join(" · ") : "Waiting to start";
   return (
-    <section className={`tile${className}`} style={{ ...span(2, 4, 4, 1, 2, 2), ...style }} aria-labelledby="now-heading">
+    <section className={`tile${className}`} style={{ ...span(2, 4, 6), ...style }} aria-labelledby="now-heading">
       <div className="tile-head" id="now-heading">
         <Icon name="download" size={16} />
         {running ? "Now downloading" : "Starting"}

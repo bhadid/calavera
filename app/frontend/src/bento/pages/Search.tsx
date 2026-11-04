@@ -25,8 +25,8 @@ export function SearchPage() {
   }
 
   return (
-    <>
-      <header className="top" style={{ paddingBottom: 6 }}>
+    <div className="page">
+      <header className="top">
         <h1>Search</h1>
       </header>
       <form
@@ -73,7 +73,7 @@ export function SearchPage() {
       </form>
 
       {links.length > 0 && (
-        <div className="bento" style={{ marginBottom: "var(--gap)" }}>
+        <div className="bento">
           <section className="tile" style={span(2, 4, 6)} aria-labelledby="links-heading">
             <div className="tile-head" id="links-heading">
               <Icon name="link" size={16} />
@@ -122,7 +122,7 @@ export function SearchPage() {
       {!loading && !error && !results && !links.length && <p className="empty">Find albums and songs in the Apple Music catalogue, or paste one or more links.</p>}
       {!loading && empty && <p className="empty">Nothing found for “{query}”.</p>}
       {!loading && results && !empty && <Results results={results} />}
-    </>
+    </div>
   );
 }
 
@@ -135,7 +135,6 @@ function Results({ results }: { results: SearchResults }) {
   const [allSongs, setAllSongs] = useState(false);
   const top = topAlbum(results);
   const others = results.albums.filter((a) => a !== top);
-  const artist = results.artists[0];
   const songs = allSongs ? results.songs : results.songs.slice(0, 4);
   return (
     <>
@@ -179,23 +178,20 @@ function Results({ results }: { results: SearchResults }) {
             </div>
           </section>
         )}
-        {artist && <ArtistTile artist={artist} alone={results.artists.length === 1} />}
-        {results.artists.length > 1 && (
-          <section className="tile" style={span(2, 4, 4)} aria-labelledby="artists-heading">
-            <div className="tile-bar">
-              <h2 id="artists-heading">Artists</h2>
-            </div>
-            <div className="artist-strip">
-              {results.artists.slice(1, 12).map((a) => (
-                <Link key={a.id} to={`/artist/${a.id}`}>
-                  <Cover src={a.artwork} round />
-                  <span>{a.name}</span>
-                </Link>
-              ))}
-            </div>
-          </section>
-        )}
       </div>
+      {results.artists.length > 0 && (
+        <>
+          <h2 className="section-title">Artists</h2>
+          <div className="artist-strip">
+            {results.artists.slice(0, 12).map((a) => (
+              <Link key={a.id} to={`/artist/${a.id}`}>
+                <Cover src={a.artwork} round />
+                <span>{a.name}</span>
+              </Link>
+            ))}
+          </div>
+        </>
+      )}
       {others.length > 0 && (
         <>
           <h2 className="section-title">Albums</h2>
@@ -242,24 +238,5 @@ function TopResult({ album }: { album: Album }) {
         </div>
       </div>
     </section>
-  );
-}
-
-function ArtistTile({ artist, alone }: { artist: SearchResults["artists"][number]; alone: boolean }) {
-  const { className, style } = tint(artist.colors);
-  return (
-    <Link className={`tile artist-tile${className}`} to={`/artist/${artist.id}`} style={{ ...span(2, 4, alone ? 6 : 2), ...style }}>
-      <div className="tile-head">
-        Artist
-        <span className="chev"><Icon name="chevron" size={16} weight={2.4} /></span>
-      </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-        <Cover src={artist.artwork} className="avatar" round />
-        <div style={{ minWidth: 0 }}>
-          <p className="big">{artist.name}</p>
-          <p className="muted">Albums, singles and more</p>
-        </div>
-      </div>
-    </Link>
   );
 }

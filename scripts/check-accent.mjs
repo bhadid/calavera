@@ -3,7 +3,7 @@
 //
 //   docker run --rm -v "$PWD":/w -w /w node:22-alpine node scripts/check-accent.mjs
 import { readFileSync } from "node:fs";
-import { accentTokens, contrast, DEFAULT_ACCENT, DEPTH } from "../app/frontend/src/lib/accentColour.ts";
+import { accentTokens, BENTO_DEFAULT, contrast, DEFAULT_ACCENT, DEPTH } from "../app/frontend/src/lib/accentColour.ts";
 
 const SURFACES = { l: ["#fff8ee", "#ffffff", "#f6ecdd"], d: ["#0b0b0c", "#17171a", "#222226"] };
 let failed = false;
@@ -96,9 +96,12 @@ console.log(`bento accent text and fills: worst ${worstBento.toFixed(2)}:1`);
 const defaults = accentTokens(DEFAULT_ACCENT);
 const css = readFileSync(new URL("../app/frontend/src/styles.css", import.meta.url), "utf8");
 const bentoCss = readFileSync(new URL("../app/frontend/src/bento/bento.css", import.meta.url), "utf8");
+// The bento interface's default is monochrome (BENTO_DEFAULT).
+const bentoDefaults = accentTokens(BENTO_DEFAULT);
 for (const [name, value] of Object.entries(defaults)) {
   const bento = name.startsWith("--ac-b-") || name.startsWith("--ac-b2-") || name.startsWith("--ac-dot-");
-  if (!(bento ? bentoCss : css).includes(`var(${name}, ${value})`)) fail(`${bento ? "bento.css" : "styles.css"} default for ${name} should be ${value}`);
+  const expected = bento ? bentoDefaults[name] : value;
+  if (!(bento ? bentoCss : css).includes(`var(${name}, ${expected})`)) fail(`${bento ? "bento.css" : "styles.css"} default for ${name} should be ${expected}`);
 }
 // The halftone logo's default dark-theme colours are the drawing's own.
 const drawing = { "--ac-dot-edge-d": "#ef476f", "--ac-dot-high-d": "#ffd166", "--ac-dot-bone-d": "#f8f4e8" };

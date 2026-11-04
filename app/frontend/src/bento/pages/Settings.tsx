@@ -1,6 +1,5 @@
-import { type CSSProperties } from "react";
 import { useAccent } from "../../lib/accent";
-import { DEFAULT_ACCENT, DEPTH, depthTrack, hueName, hueTrack } from "../../lib/accentColour";
+import { accentTokens, DEFAULT_ACCENT, type AccentChoice } from "../../lib/accentColour";
 import { bytes } from "../../lib/format";
 import { useSettingsDraft } from "../../lib/hooks/settings";
 import { useStore } from "../../lib/store";
@@ -8,7 +7,6 @@ import { useTheme, type Theme } from "../../lib/theme";
 import type { Settings } from "../../lib/types";
 import { switchUi } from "../../lib/ui";
 import { Segmented, Switch } from "../../components/Controls";
-import { DotsLogo } from "../components/DotsLogo";
 import { Icon } from "../components/Icon";
 import { Notice, span } from "../components/tiles";
 
@@ -29,6 +27,45 @@ const THEMES: { value: Theme; label: string }[] = [
   { value: "dark", label: "Dark" },
 ];
 
+// A few accent colours to choose from, as in the Appearance settings of macOS.
+const ACCENTS: { name: string; hue: number }[] = [
+  { name: "Red", hue: 21 },
+  { name: "Orange", hue: 55 },
+  { name: "Yellow", hue: 95 },
+  { name: "Green", hue: 145 },
+  { name: "Teal", hue: 195 },
+  { name: "Blue", hue: 255 },
+  { name: "Purple", hue: 300 },
+  { name: "Pink", hue: 345 },
+];
+
+function AccentSwatches({ choice, onChange }: { choice: AccentChoice; onChange: (choice: AccentChoice) => void }) {
+  const options = [{ name: "Monochrome", hue: -1 }, ...ACCENTS];
+  const current = choice.mono ? "Monochrome" : (ACCENTS.find((a) => a.hue === choice.hue)?.name ?? "");
+  return (
+    <div className="swatches" role="radiogroup" aria-labelledby="accent-label">
+      {options.map((option) => {
+        const mono = option.hue < 0;
+        const colour = mono ? "" : accentTokens({ ...DEFAULT_ACCENT, hue: option.hue })["--ac-b-l"];
+        return (
+          <label key={option.name} className={`swatch-option${mono ? " swatch-mono" : ""}`} style={mono ? undefined : { background: colour }} title={option.name}>
+            <input
+              type="radio"
+              name="accent"
+              checked={current === option.name}
+              onChange={() => onChange(mono ? { ...choice, mono: true } : { ...DEFAULT_ACCENT, hue: option.hue })}
+            />
+            <span className="sr-only">{option.name}</span>
+          </label>
+        );
+      })}
+      <span className="swatch-name" aria-hidden="true">
+        {current || "Custom"}
+      </span>
+    </div>
+  );
+}
+
 // Where this copy's source code can be obtained. The licence (AGPL-3.0)
 // requires offering the source to everyone who uses the app over a network:
 // if you run a modified version for others, point this at your own source.
@@ -37,19 +74,15 @@ const SOURCE_URL = "https://github.com/bhadid/calavera";
 export function SettingsPage() {
   const { status } = useStore();
   const { saved, draft, set, dirty, undo, save, saving, error } = useSettingsDraft();
-  const [accent, setAccent, accentIsDefault] = useAccent();
+  const [accent, setAccent] = useAccent();
   const [theme, , setTheme] = useTheme();
 
   return (
-    <div>
+    <div className="page">
       <header className="top">
         <h1>Settings</h1>
       </header>
-      {error && (
-        <div className="notices">
-          <Notice tone="bad" role="alert">{error}</Notice>
-        </div>
-      )}
+      {error && <Notice tone="bad" role="alert">{error}</Notice>}
 
       {draft && saved ? (
         <form id="settings-form" onSubmit={save}>
@@ -156,10 +189,9 @@ export function SettingsPage() {
       )}
 
       <h2 className="section-title">Appearance</h2>
-      <p className="help" style={{ margin: "-6px 4px 12px" }}>Kept in this browser and applied at once.</p>
       {/* Kept in this browser, so outside the form above. */}
       <div className="bento">
-        <section className="tile" style={span(2, 4, 4)} aria-label="Appearance">
+        <section className="tile" style={span(2, 4, 6)} aria-label="Appearance">
           <div>
             <div className="setting">
               <div className="setting-text">
@@ -189,80 +221,14 @@ export function SettingsPage() {
             </div>
             <div className="setting">
               <div className="setting-text">
-                <strong id="mono-label">Monochrome</strong>
-                <span id="mono-help">No accent colour: black in the light appearance, white in the dark one.</span>
+                <strong id="accent-label">Accent colour</strong>
+                <span>Monochrome, or a colour for buttons, links and status. Kept in this browser.</span>
               </div>
               <div className="setting-control">
-                <Switch checked={accent.mono} onChange={(mono) => setAccent({ ...accent, mono })} labelledBy="mono-label" describedBy="mono-help" />
-              </div>
-            </div>
-            <div className="setting setting-wide">
-              <label className="setting-text" htmlFor="accent-hue">
-                <strong>Accent colour</strong>
-                <span>Colour on the upper slider, depth on the lower one. The logo's colours turn with it.</span>
-              </label>
-              <div className="setting-control">
-                <div className="accent-control">
-                  <input
-                    id="accent-hue"
-                    className="hue"
-                    type="range"
-                    min={0}
-                    max={359}
-                    step={1}
-                    value={accent.hue}
-                    disabled={accent.mono}
-                    aria-valuetext={`${hueName(accent.hue)}, ${accent.hue} degrees`}
-                    style={{ "--hue-track": hueTrack(accent.depth) } as CSSProperties}
-                    onChange={(e) => setAccent({ ...accent, hue: Number(e.target.value) })}
-                  />
-                  <input
-                    className="hue"
-                    type="range"
-                    min={DEPTH.min}
-                    max={DEPTH.max}
-                    step={1}
-                    value={accent.depth}
-                    disabled={accent.mono}
-                    aria-label="Depth of the accent colour"
-                    aria-valuetext={`depth ${accent.depth}`}
-                    style={{ "--hue-track": depthTrack(accent.hue) } as CSSProperties}
-                    onChange={(e) => setAccent({ ...accent, depth: Number(e.target.value) })}
-                  />
-                  <div className="accent-foot">
-                    <span>
-                      <span className="swatch" aria-hidden="true" />
-                      {accent.mono ? "Monochrome" : `${hueName(accent.hue)} · ${accent.hue}° · depth ${accent.depth}`}
-                    </span>
-                    <button type="button" className="btn btn-plain btn-small" disabled={accentIsDefault} onClick={() => setAccent(DEFAULT_ACCENT)}>
-                      Reset
-                    </button>
-                  </div>
-                </div>
+                <AccentSwatches choice={accent} onChange={setAccent} />
               </div>
             </div>
           </div>
-        </section>
-        <section className="tile logo-preview" style={span(2, 4, 2)} aria-label="Logo and status colours">
-          <div className="logo-pair" aria-hidden="true">
-            <div className="logo-on-light">
-              <DotsLogo size={96} />
-            </div>
-            <div className="logo-on-dark">
-              <DotsLogo size={96} />
-            </div>
-          </div>
-          <div className="pills" style={{ justifyContent: "center" }}>
-            <span className="pill pill-ok">
-              <Icon name="check" size={12} weight={3} />
-              All good
-            </span>
-            <span className="pill pill-bad">
-              <Icon name="warning" size={12} weight={2.4} />
-              Needs attention
-            </span>
-          </div>
-          <p className="help">The logo has a light and a dark set of colours. Status uses the accent and the logo's highlight colour.</p>
         </section>
       </div>
 

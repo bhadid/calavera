@@ -30,15 +30,9 @@ export function SongPage() {
   // Replace this address, so that Back on the album page skips it.
   if (target) return <Navigate to={target} replace />;
   return (
-    <>
+    <div className="page">
       <BackBar />
-      {error ? (
-        <div className="notices">
-          <Notice tone="bad" role="alert">{error}</Notice>
-        </div>
-      ) : (
-        <p className="empty">Loading…</p>
-      )}
-    </>
+      {error ? <Notice tone="bad" role="alert">{error}</Notice> : <p className="empty">Loading…</p>}
+    </div>
   );
 }

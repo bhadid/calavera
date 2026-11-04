@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { accentTokens, DEFAULT_ACCENT, DEPTH, type AccentChoice } from "./accentColour";
+import { accentTokens, BENTO_DEFAULT, DEFAULT_ACCENT, DEPTH, type AccentChoice } from "./accentColour";
 import { logoSvg } from "../bento/components/DotsLogo";
 
 // The accent choice is kept per browser, like the theme. The calculated
@@ -7,8 +7,14 @@ import { logoSvg } from "../bento/components/DotsLogo";
 // first paint without repeating the colour maths.
 const KEY = "calavera-accent";
 
+// Each interface has its own default: the classic one its red, the bento one
+// monochrome. The default needs nothing stored; its shades are in the stylesheet.
+const bento = () => document.documentElement.dataset.ui === "bento";
+export const uiDefault = (): AccentChoice => (bento() ? BENTO_DEFAULT : DEFAULT_ACCENT);
 const isDefault = (choice: AccentChoice) =>
-  !choice.mono && choice.fill && choice.hue === DEFAULT_ACCENT.hue && choice.depth === DEFAULT_ACCENT.depth;
+  bento()
+    ? choice.mono
+    : !choice.mono && choice.fill && choice.hue === DEFAULT_ACCENT.hue && choice.depth === DEFAULT_ACCENT.depth;
 
 const DEFAULT_TOKENS = accentTokens(DEFAULT_ACCENT);
 let favicon = 0;
@@ -54,7 +60,7 @@ function read(): AccentChoice {
   } catch {
     // Storage unavailable or damaged: use the default.
   }
-  return DEFAULT_ACCENT;
+  return uiDefault();
 }
 
 function apply(choice: AccentChoice) {

@@ -1,5 +1,5 @@
 import { useLocation, useParams, useSearchParams } from "react-router-dom";
-import { atTime, duration, plural, qualityLabel, year } from "../../lib/format";
+import { atTime, duration, plural, year } from "../../lib/format";
 import { blocked, useAlbumPage } from "../../lib/hooks/album";
 import { ArtistNames } from "../../components/ArtistNames";
 import { CoverViewer } from "../../components/CoverViewer";
@@ -21,38 +21,37 @@ export function AlbumPage() {
 
   if (error) {
     return (
-      <>
+      <div className="page">
         <BackBar />
-        <div className="notices">
-          <Notice tone="bad" role="alert">{error}</Notice>
-        </div>
-      </>
+        <Notice tone="bad" role="alert">{error}</Notice>
+      </div>
     );
   }
   if (!album) {
     return (
-      <>
+      <div className="page">
         <BackBar />
         <p className="empty">Loading…</p>
-      </>
+      </div>
     );
   }
 
   const { className, style } = tint(album.colors);
   const total = album.tracks.reduce((n, t) => n + t.duration_ms, 0);
-  const quality = qualityLabel(album.traits);
-  const libraryText = !album.in_library
-    ? "Not yet"
-    : otherEdition
-      ? "Other edition"
-      : selectable.length === 0
-        ? "In library"
-        : owned > 0
-          ? `${owned} of ${album.tracks.length}`
-          : "Folder exists";
+  // Only a library state worth knowing gets a label; "not there yet" is the usual case.
+  const libraryPill = !album.in_library ? null : otherEdition ? (
+    <span className="pill pill-bad">Other edition in library</span>
+  ) : selectable.length === 0 ? (
+    <span className="pill pill-ok">
+      <Icon name="check" size={12} weight={3} />
+      In library
+    </span>
+  ) : owned > 0 ? (
+    <span className="pill pill-ok">{owned} of {album.tracks.length} in library</span>
+  ) : null;
 
   return (
-    <div>
+    <div className="page">
       <BackBar />
       {album.stale_since && (
         <div className="notices">
@@ -62,7 +61,7 @@ export function AlbumPage() {
         </div>
       )}
       <div className="bento">
-        <section className={`tile hero${className}`} style={{ ...span(2, 4, 6, 1, 2, 2), ...style }}>
+        <section className={`tile hero${className}`} style={{ ...span(2, 4, 6), ...style }}>
           <div className="cover-wrap">
             <CoverViewer album={album} size={260} />
           </div>
@@ -73,53 +72,25 @@ export function AlbumPage() {
               <ArtistNames name={album.artist} artists={album.artists} />
             </p>
             <p className="muted num">
-              {[year(album.release_date), plural(album.tracks.length, "song"), `${Math.round(total / 60000)} min`].join(" · ")}
+              {[year(album.release_date), plural(album.tracks.length, "song"), `${Math.round(total / 60000)} min`, album.label]
+                .filter(Boolean)
+                .join(" · ")}
             </p>
             <div className="pills" style={{ marginTop: 4 }}>
               <QualityPill traits={album.traits} />
+              {/* The numbers arrive later; nothing moves when they do. */}
+              {numbers && <span className="pill num">{numbers}</span>}
+              {libraryPill}
               {otherRelease && <OtherReleasePill />}
               {album.explicit && <span className="pill">Explicit</span>}
             </div>
           </div>
         </section>
 
-        <section className="tile" style={span(1, 2, 2)}>
-          <div className="tile-head">
-            <Icon name="wave" size={16} />
-            Quality
-          </div>
-          <p className="big">{quality || "AAC only"}</p>
-          {/* The numbers arrive later; the tile keeps its size when they do. */}
-          <p className="foot num">{numbers || (quality ? "Checking…" : "No lossless version")}</p>
-        </section>
-        <section className="tile" style={span(1, 1, 1)}>
-          <div className="tile-head">
-            <Icon name="calendar" size={16} />
-            Released
-          </div>
-          <p className="big num">{year(album.release_date) || "—"}</p>
-          <p className="foot">{album.label}</p>
-        </section>
-        <section className="tile" style={span(1, 1, 1)}>
-          <div className="tile-head">
-            <Icon name="disc" size={16} />
-            Songs
-          </div>
-          <p className="big num">{album.tracks.length}</p>
-          <p className="foot num">{duration(total).replace(/:\d+$/, "")} min in total</p>
-        </section>
-        <section className="tile" style={span(1, 4, 2)}>
-          <div className="tile-head">
-            <Icon name="folder" size={16} />
-            Library
-          </div>
-          <p className={`big ${otherEdition ? "warn" : album.in_library && selectable.length === 0 ? "ok" : ""}`}>{libraryText}</p>
-          <p className="foot path">{album.library_path}/</p>
-        </section>
       </div>
 
       {(unavailable > 0 || otherEdition || (!otherEdition && selectable.length === 0 && unavailable < album.tracks.length)) && (
-        <div className="notices" style={{ marginTop: "var(--gap)" }}>
+        <div className="notices">
           {unavailable > 0 && (
             <Notice tone="warn">
               <strong>
@@ -141,7 +112,7 @@ export function AlbumPage() {
         </div>
       )}
 
-      <div className="bento" style={{ marginTop: "var(--gap)" }}>
+      <div className="bento">
         <section className="tile" style={span(2, 4, 6)} aria-labelledby="songs-heading">
           <div className="tile-bar">
             <h2 id="songs-heading">

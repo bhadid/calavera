@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useSecondsLeft, useSignIn } from "../../lib/hooks/signIn";
 import { Icon } from "../components/Icon";
 import { accountState } from "../components/Layout";
@@ -13,9 +14,11 @@ export function AccountPage() {
     email, setEmail, password, setPassword, code, setCode, error, busy, submitLogin, submitCode,
   } = useSignIn();
   const account = accountState(status);
+  // Signed in, the form waits behind a button: signing in again is rare.
+  const [again, setAgain] = useState(false);
 
   return (
-    <>
+    <div className="page">
       <header className="top">
         <h1>Account</h1>
       </header>
@@ -24,7 +27,7 @@ export function AccountPage() {
       ) : (
         <>
           {(login.state === "failed" || error || !wrapper.reachable || wrapper.phase === "needs_fix") && (
-            <div className="notices">
+            <>
               {!wrapper.reachable && (
                 <Notice tone="bad" role="alert">
                   The wrapper container is not answering. Check <code>docker compose ps</code> and <code>docker compose logs wrapper</code>.
@@ -37,17 +40,19 @@ export function AccountPage() {
               )}
               {login.state === "failed" && <Notice tone="bad" role="alert">{login.message}</Notice>}
               {error && <Notice tone="bad" role="alert">{error}</Notice>}
-            </div>
+            </>
           )}
 
           <div className="bento">
-            <section className="tile" style={span(2, 4, 2)} aria-labelledby="state-heading">
-              <div className="tile-head" id="state-heading">
+            <section className="tile" style={span(2, 4, 6)} aria-labelledby="signin-heading">
+              <div className="tile-head">
                 <Icon name="note" size={16} />
                 Apple Music
               </div>
-              <p className={`big ${account.tone === "ok" ? "ok" : account.tone}`}>{account.text}</p>
-              <p className="foot">
+              <p className={`big ${account.tone === "ok" ? "ok" : account.tone}`} id="signin-heading">
+                {account.text}
+              </p>
+              <p className="muted">
                 {wrapper.ready
                   ? `Store: ${wrapper.regions.join(", ")}. Downloads are ready.`
                   : wrapper.phase === "starting"
@@ -56,11 +61,16 @@ export function AccountPage() {
                       ? "Signing in…"
                       : "Sign in once; the session is kept until Apple ends it."}
               </p>
-            </section>
-
-            <section className="tile" style={span(2, 4, 4)} aria-labelledby="signin-heading">
-              <div className="tile-bar">
-                <h2 id="signin-heading">{wrapper.session ? "Sign in again" : "Sign in"}</h2>
+              {wrapper.ready && !again && login.state !== "running" && login.state !== "awaiting_2fa" ? (
+                <div className="actions">
+                  <button className="btn btn-gray btn-small" onClick={() => setAgain(true)}>
+                    Sign in again
+                  </button>
+                </div>
+              ) : (
+              <>
+              <div className="tile-bar" style={{ marginTop: 8 }}>
+                <h2>{wrapper.session ? "Sign in again" : "Sign in"}</h2>
                 <ol className="steps" aria-label="Sign-in steps">
                   {["Apple ID", "Code", "Done"].map((label, index) => (
                     <li
@@ -156,6 +166,8 @@ export function AccountPage() {
                   </p>
                 </form>
               )}
+              </>
+              )}
             </section>
 
             {logLines.length > 0 && (
@@ -172,6 +184,6 @@ export function AccountPage() {
           </div>
         </>
       )}
-    </>
+    </div>
   );
 }

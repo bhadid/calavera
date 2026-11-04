@@ -17,6 +17,9 @@ export type AccentChoice = { hue: number; depth: number; mono: boolean; fill: bo
 
 // The default: a red.
 export const DEFAULT_ACCENT: AccentChoice = { hue: 21, depth: 5, mono: false, fill: true };
+// The bento interface starts in monochrome; its logo and second colour keep
+// the default hue's shades, so they stay in colour.
+export const BENTO_DEFAULT: AccentChoice = { ...DEFAULT_ACCENT, mono: true };
 
 /** The depth slider: each step makes the accent fills this much darker. */
 export const DEPTH = { min: -5, max: 7, step: 0.011 };
@@ -84,14 +87,6 @@ const MONO: Record<string, string> = {
   "--ac-logo-bone-d": "#fdfdfd00",
   "--ac-b-l": "#000000",
   "--ac-b-d": "#ffffff",
-  "--ac-b2-l": "#636366",
-  "--ac-b2-d": "#aeaeb2",
-  "--ac-dot-edge-l": "#76767b",
-  "--ac-dot-high-l": "#636366",
-  "--ac-dot-bone-l": "#1c1c1e",
-  "--ac-dot-edge-d": "#8e8e93",
-  "--ac-dot-high-d": "#ffffff",
-  "--ac-dot-bone-d": "#c7c7cc",
 };
 
 const ON_ACCENT = "#0c0c0c";
@@ -139,7 +134,7 @@ export function shade(lightness: number, cap: number, hue: number): string {
 
 /** The CSS variables for a choice: light (`-l`) and dark (`-d`) theme shades. */
 export function accentTokens(choice: AccentChoice): Record<string, string> {
-  if (choice.mono) return { ...MONO };
+  if (choice.mono) return { ...MONO, ...logoAndSecond(DEFAULT_ACCENT.hue) };
   const tokens: Record<string, string> = { "--ac-on-l": ON_ACCENT, "--ac-on-d": ON_ACCENT };
   tokens["--ac-logo-bone-l"] = tokens["--ac-logo-bone-d"] = choice.fill ? "#fdfdfd" : "#fdfdfd00";
   for (const [name, [lightness, cap]] of Object.entries(SHADES)) {
@@ -155,7 +150,14 @@ export function accentTokens(choice: AccentChoice): Record<string, string> {
   let dark = Math.max(BENTO["--ac-b-d"].lowest, BENTO["--ac-b-d"].lightness - step);
   while (contrast(shade(dark, BENTO["--ac-b-d"].cap, choice.hue), BENTO_PAGE.d) < 4.6) dark += 0.005;
   tokens["--ac-b-d"] = shade(dark, BENTO["--ac-b-d"].cap, choice.hue);
-  const turned = (turn: number) => (choice.hue + turn + 360) % 360;
+  Object.assign(tokens, logoAndSecond(choice.hue));
+  return tokens;
+}
+
+/** The halftone logo's shades and the second colour, for an accent hue. */
+function logoAndSecond(hue: number): Record<string, string> {
+  const tokens: Record<string, string> = {};
+  const turned = (turn: number) => (hue + turn + 360) % 360;
   for (const [part, themes] of Object.entries(DOTS)) {
     for (const theme of ["l", "d"] as const) {
       let [lightness, cap, turn] = themes[theme];
