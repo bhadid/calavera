@@ -1,95 +1,51 @@
 // Accent colour maths. Pure functions, no browser APIs, so they can be checked
 // from Node (scripts/check-accent.mjs).
 //
-// The accent is chosen as a hue and a depth. Every shade is then calculated
-// in the OKLCH colour model, where lightness means the same to the eye at
-// every hue: the hue slider leaves it alone, the depth slider moves it within
-// limits, and that is what guarantees that the text on an accent fill stays
-// readable wherever the sliders are. Each shade is made as vivid as sRGB
-// allows for its hue, up to a cap.
+// The accent is monochrome (the default) or one hue. Every shade is
+// calculated in the OKLCH colour model, where lightness means the same to the
+// eye at every hue, and made as vivid as sRGB allows for its hue, up to a cap.
+// Where a hue still looks too light or too dark at that lightness (greens,
+// yellows), the shade is moved further until text in and on it is readable.
 //
-// The logo is tinted the same way: its lines are one more shade of the chosen
-// hue, on white bone unless the fill is switched off. Lightness and chroma of that shade come from the first
-// artwork (drawn in violet).
+// Three groups of shades, each for the light (-l) and the dark (-d) appearance:
+//   --ac-b-*    the accent: buttons, links, all-good status. Monochrome is
+//               black in the light appearance and white in the dark one.
+//   --ac-b2-*   the second colour, for status that needs attention: the hue of
+//               the logo's highlight.
+//   --ac-dot-*  the halftone logo's edge, bone and highlight dots.
+// In monochrome the second colour and the logo keep the default hue's shades,
+// so they stay in colour.
 
-/** `fill`: whether the logo has its white bone; monochrome never has it. */
-export type AccentChoice = { hue: number; depth: number; mono: boolean; fill: boolean };
+export type AccentChoice = { hue: number; mono: boolean };
 
-// The default: a red.
-export const DEFAULT_ACCENT: AccentChoice = { hue: 21, depth: 5, mono: false, fill: true };
-// The bento interface starts in monochrome; its logo and second colour keep
-// the default hue's shades, so they stay in colour.
-export const BENTO_DEFAULT: AccentChoice = { ...DEFAULT_ACCENT, mono: true };
+/** The hue the logo's drawing was made in (a red); its colours at this hue are the drawing's. */
+export const DEFAULT_HUE = 21;
+export const DEFAULT_ACCENT: AccentChoice = { hue: DEFAULT_HUE, mono: true };
 
-/** The depth slider: each step makes the accent fills this much darker. */
-export const DEPTH = { min: -5, max: 7, step: 0.011 };
-// Fills are never darker than this: below it, black text on them is too faint.
-const FLOOR = 0.615;
-const FILLS = ["--ac-l", "--ac-strong-l", "--ac-d", "--ac-strong-d"];
+// The accent: [lightness, highest chroma]. Accent fills carry white text in
+// the light appearance and black text in the dark one.
+const ACCENT = { l: [0.555, 0.24], d: [0.69, 0.2] } as const;
+/** The lightest surface accent text sits on in each appearance (grey page, raised dark fill). */
+const PAGE = { l: "#f2f2f7", d: "#2c2c2e" };
+const MONO = { "--ac-b-l": "#000000", "--ac-b-d": "#ffffff" };
 
-/** Lightness and highest chroma of each calculated shade. */
-const SHADES = {
-  "--ac-l": [0.694, 0.234],
-  "--ac-strong-l": [0.664, 0.246],
-  "--ac-soft-l": [0.916, 0.052],
-  "--ac-d": [0.713, 0.234],
-  "--ac-strong-d": [0.751, 0.174],
-  "--ac-soft-d": [0.262, 0.066],
-  "--ac-logo-l": [0.605, 0.193],
-  "--ac-logo-d": [0.605, 0.193],
-} as const;
-
-// The bento interface uses the accent as text on its grey page and as a fill
-// under white (light theme) or black (dark theme) text, as Apple's tint
-// colours are. Its shades are a step darker (light) and lighter (dark) than
-// the classic ones, and move with the depth slider within these bounds.
-const BENTO = {
-  "--ac-b-l": { lightness: 0.61, cap: 0.24, highest: 0.555 },
-  "--ac-b-d": { lightness: 0.74, cap: 0.2, lowest: 0.69 },
-} as const;
-/** The lightest surface accent text sits on in each theme (bento's grey page, raised dark fill). */
-const BENTO_PAGE = { l: "#f2f2f7", d: "#2c2c2e" };
-
-// The halftone logo: dots in three colours, edge, bone and highlight, with
-// no tile behind them. Each keeps the lightness, chroma and hue distance from
-// the accent that the drawing has at the default accent, so the dark-theme
-// shades at the default reproduce the drawing (3-halftone-dots.svg) and every
-// other hue turns all three together. On a light page the bone is dark and the
-// other two are deeper, so the skull shows on both. [lightness, chroma, turn]
+// The halftone logo: dots in three colours, edge, bone and highlight, with no
+// tile behind them. Each keeps the lightness, chroma and hue distance from the
+// accent that the drawing has at the default hue, so the dark-appearance
+// shades at the default reproduce the drawing (components/halftone-skull.svg)
+// and every other hue turns all three together. On a light page the bone is
+// dark and the other two are deeper, so the skull shows on both.
+// [lightness, chroma, turn from the accent hue]
 const DOTS: Record<"edge" | "high" | "bone", { l: [number, number, number]; d: [number, number, number] }> = {
   edge: { l: [0.6, 0.2, -9.9], d: [0.648, 0.204, -9.9] },
   high: { l: [0.68, 0.15, 65.1], d: [0.88, 0.135, 65.1] },
   bone: { l: [0.27, 0.035, 70.6], d: [0.967, 0.016, 70.6] },
 };
-/** The page surfaces the logo is drawn on; each dot colour keeps 3:1 against them. */
+/** The page surfaces the logo is drawn on; each dot colour keeps 3:1 against them (graphics). */
 const LOGO_PAGE = { l: "#f2f2f7", d: "#1c1c1e" };
 
-// The second colour: status that needs attention (a failure, a warning, not
-// signed in), where "all good" is shown in the accent. It is the hue of the
-// logo's highlight, made as dark (light theme) or light (dark theme) as text
-// needs on the tiles.
+// The second colour, at the hue of the logo's highlight. [lightness, chroma]
 const SECOND = { turn: 65.1, l: [0.56, 0.17], d: [0.84, 0.15] } as const;
-
-/** Monochrome: ink on paper in the light theme, paper on ink in the dark one. */
-const MONO: Record<string, string> = {
-  "--ac-l": "#0c0c0c",
-  "--ac-strong-l": "#3a3632",
-  "--ac-soft-l": "#e9e0d2",
-  "--ac-on-l": "#fff8ee",
-  "--ac-d": "#f4f1ea",
-  "--ac-strong-d": "#ffffff",
-  "--ac-soft-d": "#2e2e33",
-  "--ac-on-d": "#0b0b0c",
-  // Lines only, no bone: black in the light theme, white in the dark one.
-  "--ac-logo-l": "#0c0c0c",
-  "--ac-logo-d": "#f4f1ea",
-  "--ac-logo-bone-l": "#fdfdfd00",
-  "--ac-logo-bone-d": "#fdfdfd00",
-  "--ac-b-l": "#000000",
-  "--ac-b-d": "#ffffff",
-};
-
-const ON_ACCENT = "#0c0c0c";
 
 function toLinearRgb(l: number, c: number, h: number): [number, number, number] {
   const a = c * Math.cos((h * Math.PI) / 180);
@@ -132,79 +88,31 @@ export function shade(lightness: number, cap: number, hue: number): string {
   return toHex(toLinearRgb(lightness, high, hue));
 }
 
-/** The CSS variables for a choice: light (`-l`) and dark (`-d`) theme shades. */
-export function accentTokens(choice: AccentChoice): Record<string, string> {
-  if (choice.mono) return { ...MONO, ...logoAndSecond(DEFAULT_ACCENT.hue) };
-  const tokens: Record<string, string> = { "--ac-on-l": ON_ACCENT, "--ac-on-d": ON_ACCENT };
-  tokens["--ac-logo-bone-l"] = tokens["--ac-logo-bone-d"] = choice.fill ? "#fdfdfd" : "#fdfdfd00";
-  for (const [name, [lightness, cap]] of Object.entries(SHADES)) {
-    const moved = FILLS.includes(name) ? Math.max(FLOOR, lightness - choice.depth * DEPTH.step) : lightness;
-    tokens[name] = shade(moved, cap, choice.hue);
-  }
-  // Some hues (greens, yellows) look lighter at the same lightness: those
-  // are moved further until text in and on them is readable.
-  const step = choice.depth * DEPTH.step;
-  let light = Math.min(BENTO["--ac-b-l"].highest, BENTO["--ac-b-l"].lightness - step);
-  while (contrast(shade(light, BENTO["--ac-b-l"].cap, choice.hue), BENTO_PAGE.l) < 4.6) light -= 0.005;
-  tokens["--ac-b-l"] = shade(light, BENTO["--ac-b-l"].cap, choice.hue);
-  let dark = Math.max(BENTO["--ac-b-d"].lowest, BENTO["--ac-b-d"].lightness - step);
-  while (contrast(shade(dark, BENTO["--ac-b-d"].cap, choice.hue), BENTO_PAGE.d) < 4.6) dark += 0.005;
-  tokens["--ac-b-d"] = shade(dark, BENTO["--ac-b-d"].cap, choice.hue);
-  Object.assign(tokens, logoAndSecond(choice.hue));
-  return tokens;
+/** A shade moved lighter (`step` > 0) or darker until it has `ratio` against `surface`. */
+function readable(lightness: number, cap: number, hue: number, surface: string, ratio: number, step: number): string {
+  while (contrast(shade(lightness, cap, hue), surface) < ratio && lightness > 0 && lightness < 1) lightness += step;
+  return shade(lightness, cap, hue);
 }
 
-/** The halftone logo's shades and the second colour, for an accent hue. */
-function logoAndSecond(hue: number): Record<string, string> {
-  const tokens: Record<string, string> = {};
+/** The CSS variables for a choice. */
+export function accentTokens(choice: AccentChoice): Record<string, string> {
+  const hue = choice.mono ? DEFAULT_HUE : choice.hue;
   const turned = (turn: number) => (hue + turn + 360) % 360;
+  const tokens: Record<string, string> = choice.mono
+    ? { ...MONO }
+    : {
+        "--ac-b-l": readable(ACCENT.l[0], ACCENT.l[1], hue, PAGE.l, 4.6, -0.005),
+        "--ac-b-d": readable(ACCENT.d[0], ACCENT.d[1], hue, PAGE.d, 4.6, 0.005),
+      };
+  tokens["--ac-b2-l"] = readable(SECOND.l[0], SECOND.l[1], turned(SECOND.turn), PAGE.l, 4.6, -0.005);
+  tokens["--ac-b2-d"] = readable(SECOND.d[0], SECOND.d[1], turned(SECOND.turn), PAGE.d, 4.6, 0.005);
   for (const [part, themes] of Object.entries(DOTS)) {
     for (const theme of ["l", "d"] as const) {
-      let [lightness, cap, turn] = themes[theme];
-      const darker = theme === "l" ? -0.005 : 0.005;
-      while (contrast(shade(lightness, cap, turned(turn)), LOGO_PAGE[theme]) < 3) lightness += darker;
-      tokens[`--ac-dot-${part}-${theme}`] = shade(lightness, cap, turned(turn));
+      const [lightness, cap, turn] = themes[theme];
+      tokens[`--ac-dot-${part}-${theme}`] = readable(lightness, cap, turned(turn), LOGO_PAGE[theme], 3, theme === "l" ? -0.005 : 0.005);
     }
   }
-  let second: number = SECOND.l[0];
-  while (contrast(shade(second, SECOND.l[1], turned(SECOND.turn)), BENTO_PAGE.l) < 4.6) second -= 0.005;
-  tokens["--ac-b2-l"] = shade(second, SECOND.l[1], turned(SECOND.turn));
-  second = SECOND.d[0];
-  while (contrast(shade(second, SECOND.d[1], turned(SECOND.turn)), BENTO_PAGE.d) < 4.6) second += 0.005;
-  tokens["--ac-b2-d"] = shade(second, SECOND.d[1], turned(SECOND.turn));
   return tokens;
-}
-
-/** The hue slider track: the light-theme accent of this depth at evenly spaced hues. */
-export function hueTrack(depth: number): string {
-  const stops: string[] = [];
-  for (let hue = 0; hue <= 360; hue += 15) stops.push(accentTokens({ hue, depth, mono: false, fill: true })["--ac-l"]);
-  return `linear-gradient(to right, ${stops.join(", ")})`;
-}
-
-/** The depth slider track: the light-theme accent of this hue from lightest to deepest. */
-export function depthTrack(hue: number): string {
-  const ends = [DEPTH.min, 0, DEPTH.max].map((depth) => accentTokens({ hue, depth, mono: false, fill: true })["--ac-l"]);
-  return `linear-gradient(to right, ${ends.join(", ")})`;
-}
-
-const NAMES: [number, string][] = [
-  [15, "pink"],
-  [40, "red"],
-  [70, "orange"],
-  [110, "yellow"],
-  [160, "green"],
-  [200, "teal"],
-  [235, "cyan"],
-  [275, "blue"],
-  [310, "violet"],
-  [340, "magenta"],
-  [360, "pink"],
-];
-
-/** A plain name for a hue, for the value shown beside the slider. */
-export function hueName(hue: number): string {
-  return (NAMES.find(([end]) => hue < end) ?? NAMES[0])[1];
 }
 
 /** WCAG contrast ratio of two #rrggbb colours. */

@@ -13,8 +13,8 @@ original, and files it under `Artist/Album/` in your library without ever
 overwriting what is already there.
 
 <p>
-  <img src="docs/screenshots/artist-light.png" alt="Calavera's artist page in the light theme: a row of the artist's albums and one of the singles and EPs, each with See all; each album has its quality and a download button, two are marked as in the library" width="560">
-  <img src="docs/screenshots/album-dark.png" alt="Calavera's album page on a phone in the dark theme: an album with its quality in numbers, its songs with checkboxes, and a download button" width="200">
+  <img src="docs/screenshots/search-light.png" alt="Calavera's search page in the light appearance: the top result in its cover's colours beside a list of songs, a row of artists, and album tiles with their quality and a download button; two are marked as in the library" width="560">
+  <img src="docs/screenshots/album-dark.png" alt="Calavera's album page on a phone in the dark appearance: the album in its cover's colours with its quality in numbers, its songs with checkmarks, and a download button" width="200">
 </p>
 
 ## Before you use it
@@ -52,8 +52,9 @@ overwriting what is already there.
 - **Careful with your library.** Nothing existing is overwritten, renamed or
   deleted; an album whose folder already exists is skipped.
 - **Sign in from the UI**, with two-factor code. The password is not stored.
-- A neo-brutalist, terminal-flavoured interface with light and dark themes,
-  a phone layout and an accent colour you choose (or none).
+- An interface of tiles after Apple's design guidelines, with light and dark
+  appearances, a phone layout, the albums' own cover colours, and an optional
+  accent colour.
 - **Considerate towards Apple's servers.** A page costs one or two catalogue
   requests, pages you return to are remembered for a while instead of asked
   for again, and if Apple asks for a pause, Calavera keeps it.
@@ -142,10 +143,9 @@ the 6-digit code.
 
 ## Using it
 
-- **Queue:** paste one or more album or song links (one per line) and press
-  *Add to queue*. With a single album link, *Choose songs* opens the album
-  instead.
-- **Search:** type an artist, album or song, or paste a link. *In library*
+- **Search** (the start page): type an artist, album or song, or paste a
+  link. Paste several links at once and they go to the queue together with
+  *Add to the queue*. *In library*
   marks albums whose folder already exists. Tap a cover or title to open the
   album, an artist's name to open the artist's page. It is laid out
   as in Apple's Music app: a row each for albums, singles and EPs, live
@@ -158,8 +158,10 @@ the 6-digit code.
   a while (a search or an artist page for 15 minutes, an album for an hour)
   instead of asked for again. Reloading the page in your browser, or
   pressing *Search*, asks Apple afresh.
-- **Album page:** year, label and quality under the title, then every song
-  with a checkbox. Everything downloadable starts selected; untick what you
+- **Queue:** what is downloading, with its progress, what is up next, and the
+  history by day; tap an entry for its details, actions and log.
+- **Album page:** year, label, quality and library state under the title,
+  then every song with a checkmark. Everything downloadable starts selected; untick what you
   do not want. Songs that are not available or are
   already in your library cannot be ticked and say why. Next to the download
   button is the album's folder in the library. Calavera recognises an album
@@ -167,9 +169,9 @@ the 6-digit code.
   elsewhere is found once its folder is renamed to match. Click the cover to
   see it large; right-click to save it as `Artist - Album.jpg`.
 - **Settings:** FLAC on/off, highest sample rate, lyrics, cover size, metadata
-  language, store for search. Under *Appearance*, the accent colour (a hue
-  and a depth slider, or monochrome), whether the logo has its white fill,
-  and a reset. These choices are kept in your browser, not on the server.
+  language, store for search. Under *Appearance*, light, dark or automatic,
+  and the accent colour: monochrome or one of eight colours. These choices
+  are kept in your browser, not on the server.
 
 Job outcomes:
 

@@ -88,7 +88,7 @@ export function useAlbumPage(id: string, storefront?: string) {
         notify(result.rejected[0].error, "error");
       } else {
         notify(`${album.name}: ${wholeAlbum ? "album" : plural(selected.size, "song")} added to the queue.`, "success");
-        navigate("/");
+        navigate("/queue");
       }
     } catch (e) {
       notify(e instanceof ApiError ? e.message : "Could not add that to the queue.", "error");

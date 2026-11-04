@@ -65,16 +65,22 @@ account status).
 
 ## Accent colour check
 
-After changing `app/frontend/src/lib/accentColour.ts` or the accent tokens in
-`styles.css`:
+After changing `app/frontend/src/lib/accentColour.ts`, the accent tokens in
+`styles.css` or the logo:
 
 ```bash
 docker run --rm -v "$PWD":/w -w /w node:22-alpine node scripts/check-accent.mjs
 ```
 
-It fails if any slider position, or monochrome, gives text on an accent fill
-less than 4.5:1 contrast, or if the default shades written into `styles.css`
-differ from the calculated ones.
+It fails if any hue, or monochrome, gives accent or second-colour text less
+than 4.5:1 contrast or logo dots less than 3:1, if the default shades written
+into `styles.css` differ from the calculated ones, or if
+`app/frontend/public/favicon.svg` is out of date. After changing the logo's
+drawing or shades, rewrite the favicon with:
+
+```bash
+docker run --rm -u "$(id -u):$(id -g)" -v "$PWD":/w -w /w node:22-alpine node scripts/favicon.mjs
+```
 
 ### Python dependencies
 
@@ -156,7 +162,7 @@ Errors are `{"error": "<message>"}` with a fitting status code.
   them); interactive elements are at least 44 px tall on touch devices;
   destructive actions go through `useConfirm()`; status is never shown by
   colour alone; icons come from `components/Icon.tsx`, not from typed
-  symbols (the exceptions are listed in ARCHITECTURE.md).
+  symbols.
 - **Library safety:** anything that writes to the library goes through
   `library.py` and keeps its rules. Add a test for every new rule.
 - Pin versions. No `latest`.

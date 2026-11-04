@@ -23,19 +23,12 @@ function apply(next: Theme) {
   }
 }
 
-/** The theme preference, a function that cycles system -> light -> dark, and one that sets it. */
-export function useTheme(): [Theme, () => void, (theme: Theme) => void] {
+/** The appearance preference (system, light or dark) and a function that sets it. */
+export function useTheme(): [Theme, (theme: Theme) => void] {
   const [theme, setTheme] = useState<Theme>(read);
-  const cycle = useCallback(() => {
-    setTheme((current) => {
-      const next: Theme = current === "system" ? "light" : current === "light" ? "dark" : "system";
-      apply(next);
-      return next;
-    });
-  }, []);
   const set = useCallback((next: Theme) => {
     apply(next);
     setTheme(next);
   }, []);
-  return [theme, cycle, set];
+  return [theme, set];
 }

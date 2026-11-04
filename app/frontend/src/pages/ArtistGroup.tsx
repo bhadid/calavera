@@ -1,46 +1,57 @@
 import { Link, Navigate, useParams } from "react-router-dom";
-import { groupTitle as title, useArtistGroup } from "../lib/hooks/artistGroup";
-import { AlbumGrid } from "../components/AlbumGrid";
-import { BackButton, LoadError } from "../components/BackButton";
-import { StaleNote } from "../components/StaleNote";
+import { groupTitle, useArtistGroup, type Shown } from "../lib/hooks/artistGroup";
+import { atTime } from "../lib/format";
+import { AlbumTile } from "../components/AlbumTile";
+import { BackBar } from "../components/Layout";
+import { Notice } from "../components/tiles";
 
+/** All releases of one group of an artist, loaded page by page while scrolling. */
 export function ArtistGroupPage() {
   const { id = "", group = "" } = useParams();
   const { state, items, error, setError, more, end, finished, valid } = useArtistGroup(id, group);
-
   if (!valid) return <Navigate to={`/artist/${id}`} replace />;
-  if (error && state.items.length === 0) return <LoadError message={error} fallback={`/artist/${id}`} />;
-  const shown = group as Parameters<typeof title>[0];
+  const title = groupTitle(group as Shown);
   return (
-    <>
-      <div className="section">
-        <BackButton fallback={`/artist/${id}`} />
-        <StaleNote since={state.staleSince} />
-        <div>
-          <h1>{title(shown)}</h1>
-          {state.artist && (
-            <p className="muted">
-              <Link to={`/artist/${id}`} className="quiet-link">
-                {state.artist}
-              </Link>
-            </p>
-          )}
-        </div>
-      </div>
-      <section className="section" aria-label={title(shown)}>
-        {items.length > 0 && <AlbumGrid albums={items} artistId={id} />}
-        {finished && state.items.length === 0 && <p className="empty">Apple Music lists nothing here.</p>}
+    <div className="page">
+      <BackBar fallback={`/artist/${id}`} />
+      <header className="top">
+        <h1>{title}</h1>
+        {state.artist && (
+          <p className="subtitle">
+            <Link to={`/artist/${id}`} className="quiet-link">
+              {state.artist}
+            </Link>
+          </p>
+        )}
+      </header>
+      {state.staleSince && (
+        <Notice tone="warn" role="status">
+          Apple Music can't be reached right now. Showing what was loaded {atTime(state.staleSince)}.
+        </Notice>
+      )}
+      {error && state.items.length === 0 && (
+        <Notice tone="bad" role="alert">{error}</Notice>
+      )}
+      <section className="shelf-section" aria-label={title}>
+        {items.length > 0 && (
+          <div className="bento-cards">
+            {items.map((album) => (
+              <AlbumTile key={album.id} album={album} showArtist={group === "appears_on"} />
+            ))}
+          </div>
+        )}
+        {finished && state.items.length === 0 && !error && <p className="empty">Apple Music lists nothing here.</p>}
         <div ref={end} />
-        {!finished && <p className="empty">Loading…</p>}
+        {!finished && !error && <p className="empty">Loading…</p>}
         {error && state.items.length > 0 && (
-          <p className="small muted" role="status">
+          <p className="empty" role="status">
             {error}{" "}
-            <button className="button button-plain button-small" onClick={() => (setError(""), void more())}>
+            <button className="btn btn-plain btn-small" onClick={() => (setError(""), void more())}>
               Try again
             </button>
           </p>
         )}
       </section>
-    </>
+    </div>
   );
 }

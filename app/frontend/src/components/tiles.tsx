@@ -1,6 +1,6 @@
 import { useState, type CSSProperties, type ReactNode } from "react";
-import { contrast } from "../../lib/accentColour";
-import type { ArtworkColors } from "../../lib/types";
+import { contrast } from "../lib/accentColour";
+import type { ArtworkColors } from "../lib/types";
 import { DotsLogo } from "./DotsLogo";
 import { Icon } from "./Icon";
 

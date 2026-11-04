@@ -62,12 +62,15 @@ app/
       main.tsx, App.tsx   entry and routes
       lib/                api client, types, store (jobs, status, toasts), theme,
                           accent colour
-      components/         Layout (top bar, tab bar, status line), JobCard,
-                          AlbumGrid, ArtistNames, StaleNote, Cover, Icon, Skull (logo),
-                          Controls (switch, segmented control), Confirm
-                          (confirmation dialog)
-      pages/              Queue, Search, Album (song selection), Artist,
-                          Song (forwards to the album), Settings, Account
+      lib/hooks/          page logic: search, album selection, artist pages,
+                          adding links, job actions, settings, sign-in
+      components/         Layout (sidebar, tab bar, banners), tiles (grid spans,
+                          artwork colours, Cover, Notice), AlbumTile, JobLog,
+                          ArtistNames, DotsLogo (logo), Icon, Controls (switch,
+                          segmented control), Confirm (alert), CoverViewer
+      pages/              Search (start page), Queue, Album (song selection),
+                          Artist, ArtistGroup, Song (forwards to the album),
+                          Settings, Account
       styles.css          design tokens and all styles
 ```
 
@@ -296,59 +299,77 @@ to it.
 
 ## Interface design
 
-The look combines three things, all implemented in `styles.css`:
+Pages are grids of rounded tiles ("bento"), following Apple's Human Interface
+Guidelines. All styles are in `styles.css`, built on the tokens at its top.
 
-- **Neo-brutalism:** 2 px ink borders, hard offset shadows without blur, flat
-  status colours, buttons that move when pressed.
-- **Terminal:** a single monospace family from the system (no web fonts),
-  prompt glyphs, a status line under the top bar, text progress bars and a
-  terminal pane for logs.
-- **Apple's Human Interface Guidelines** for behaviour: 44 pt touch targets,
-  16 px inputs, a bottom tab bar with safe-area insets on phones, switches and
-  segmented controls for settings, status given as text and symbol as well as
-  colour, a confirmation before destructive actions, reduced motion
-  respected, light and dark themes following the system.
+- **Colour:** iOS's semantic colours: a grey page, tiles a step lighter,
+  labels at full and 60 % strength, hairline separators. Light and dark follow
+  the system unless chosen in Settings.
+- **Type:** the system font (SF Pro on Apple devices; no web fonts), sizes in
+  rem and `-apple-system-body` on Safari, so the device's text size applies.
+  Large page titles; hierarchy by size and weight, not borders.
+- **Layout:** a page is one column of blocks (title, search field, notices,
+  grids, section headings) with the same distance `--gap` between any two;
+  section headings get a larger space above. Grids have 2, 4 or 6 columns
+  depending on the width of the content (container queries), and every tile
+  states its span at each (`span()` in `components/tiles.tsx`). The document
+  order is the reading order at every width. Few tiles: a tile is one piece of
+  information or one task, and facts that belong to something (an album's
+  year, quality, library state) sit in its tile as text and labels.
+- **Navigation:** a translucent sidebar on wide screens, with the status of
+  Apple Music, the library and the live connection at its foot; a tab bar on
+  phones. Search is the start page.
+- **Artwork colours:** tiles showing one cover (the album page, the top
+  search result, the download in progress) take the background and text
+  colours Apple picked from it, when the text has 4.5:1 contrast on it.
+- **Behaviour:** 44 pt touch targets, 17 px inputs, safe-area insets, iOS
+  switches, segmented controls and alerts, a confirmation before destructive
+  actions, status in words and symbols as well as colour,
+  `prefers-reduced-motion`, `prefers-reduced-transparency` and
+  `prefers-contrast` respected.
 
-Symbols follow one rule. Actions and notices use drawn icons from
-`components/Icon.tsx` (one rounded stroke style), so they look the same on
-every device. Status tags are words; the green ones (done, in library) also carry the
-drawn check mark. A few marks are typed characters
-on purpose, because they should look like terminal output: the status-line
-marks, the prompt before page titles, the log toggle and the text progress
-bar.
+Icons are drawn in `components/Icon.tsx` in the manner of SF Symbols (SF
+Symbols themselves may only be used in apps on Apple platforms).
 
-The accent colour is the user's choice (Settings → Appearance): a hue
-slider and a depth slider, or monochrome. `lib/accentColour.ts` calculates
-every shade from them in the OKLCH colour model, where a fixed lightness
-looks equally light at every hue. Each shade has its own lightness; the depth
-slider moves that of the accent fills, down to a floor below which black
-text on them would be too faint, so text on an accent fill stays readable
-wherever the sliders are. Each shade is as vivid as sRGB allows for its hue,
-up to a cap. The result is set as `--ac-*` variables on the root element,
-which the tokens in `styles.css` read, with the default (hue 21, depth 5: a
-red) as their fallback. The choice is kept in
-the browser's local storage together with the calculated shades, so
-`public/theme.js` can apply them before first paint.
-`scripts/check-accent.mjs` checks the contrast of all 360 hues at every
-depth and of monochrome, and that the fallbacks in `styles.css` match the
-calculation.
+The accent is monochrome by default, or one of a few colours (Settings →
+Appearance). `lib/accentColour.ts` calculates every shade in the OKLCH colour
+model, where a fixed lightness looks equally light at every hue, and moves a
+shade further where a hue still needs it for contrast:
 
-The logo (`components/Skull.tsx`) is a skull with headphones: white bone,
-and lines in a further shade of the chosen hue calculated like the others.
-The areas outside the outer contour are see-through. With monochrome there
-is no bone, only the lines: black in the light theme, white in the dark one.
-The "Logo fill" switch removes the bone with a colour as well. `public/favicon.svg`
-is the same drawing in the default colour and always keeps its bone, so that
-it shows on any tab bar. When another accent is chosen, `lib/accent.ts` recolours
-that file and sets the result as the
-browser-tab icon; a browser that ignores the change keeps the default one.
+- `--ac-b-*`: the accent, for buttons, links and all-good status. Text on it
+  is white in the light appearance and black in the dark one.
+- `--ac-b2-*`: the second colour, for status that needs attention, at the hue
+  of the logo's highlight.
+- `--ac-dot-*`: the logo's three dot colours, a light and a dark set.
+
+In monochrome the second colour and the logo keep the shades of the default
+hue, so they stay in colour. The shades are set as variables on the root
+element, which the tokens in `styles.css` read, with monochrome as their
+fallback. The choice is kept in the browser's local storage together with the
+calculated shades, so `public/theme.js` can apply them before first paint.
+
+The logo (`components/DotsLogo.tsx`, drawn from
+`components/halftone-skull.svg`) is a halftone skull and crossbones in dots of
+three colours: edge, bone and highlight. Each keeps the distance in hue,
+lightness and chroma from the accent that the drawing has at the default hue,
+so the default's dark set is the drawing's own colours and every other hue
+turns all three together. On a light page the bone is dark and the other two
+are deeper, so it shows on both. `public/favicon.svg` is the logo in the
+default shades, with the light or dark set chosen by the browser's own
+appearance; with a colour chosen, `lib/accent.ts` draws the tab icon in its
+shades.
+
+`scripts/check-accent.mjs` checks the contrast of every hue and of
+monochrome, that the fallbacks in `styles.css` match the calculation, that the
+logo's default shades are the drawing's, and that `public/favicon.svg` is up
+to date (`scripts/favicon.mjs` writes it).
 
 ## Extending
 
 | To add… | Touch |
 |---|---|
 | a setting | `settings.py` (field + default), where it is used, `pages/Settings.tsx`, `lib/types.ts` |
-| a pipeline stage | a method in `jobs.py`, called from `_run`; a label in `STAGE` in `JobCard.tsx` |
+| a pipeline stage | a method in `jobs.py`, called from `_run`; a label in `STAGE` in `pages/Queue.tsx` |
 | a link type (e.g. playlists) | `urls.py` (`SUPPORTED_KINDS`), `JobManager._collect` (folder layout), `_describe` |
 | an API endpoint | `api.py`, `lib/api.ts`, `lib/types.ts` |
 | a page | `pages/`, a `<Route>` in `App.tsx`, optionally `NAV` in `Layout.tsx` |

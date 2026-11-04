@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import type { AlbumDetail } from "../lib/types";
-import { Cover } from "./Cover";
 import { Icon } from "./Icon";
+import { Cover } from "./tiles";
 
 /**
  * An album's cover that shows itself large over the page when clicked, as

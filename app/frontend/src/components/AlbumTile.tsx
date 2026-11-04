@@ -1,8 +1,8 @@
 import { useId, useRef } from "react";
 import { Link } from "react-router-dom";
-import { albumPath, qualityLabel, year } from "../../lib/format";
-import { useQueueItem } from "../../lib/hooks/queueItem";
-import type { Album } from "../../lib/types";
+import { albumPath, qualityLabel, year } from "../lib/format";
+import { useQueueItem } from "../lib/hooks/queueItem";
+import type { Album } from "../lib/types";
 import { Icon } from "./Icon";
 import { Cover } from "./tiles";
 

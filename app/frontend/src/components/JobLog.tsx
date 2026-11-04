@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
-import { timeOfDay } from "../../lib/format";
-import { useJobLog } from "../../lib/hooks/jobActions";
+import { timeOfDay } from "../lib/format";
+import { useJobLog } from "../lib/hooks/jobActions";
 
 function lineClass(line: string): string | undefined {
   if (line.startsWith("✔")) return "ok";
