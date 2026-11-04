@@ -23,8 +23,8 @@ FROM debian:13.7-slim AS amdl
 # The pinned amdl release and the SHA-256 of its amdl_linux_amd64. Updating
 # them: see README, "Updating the pinned components"
 # (.github/scripts/check-upstream.sh reads these two lines).
-ARG AMDL_VERSION=v0.1.0
-ARG AMDL_SHA256=949e287d0fd92d0960ae9b14a0582c1056afaa78a7f66d486648d80673ef8d59
+ARG AMDL_VERSION=v0.1.4
+ARG AMDL_SHA256=1a3a4000edd74be98efccf7f611b97d47ef822d8e059805c6aaaef98f0477747
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl \
     && curl -fsSL -o /amdl "https://github.com/zhaarey/apple-music-downloader/releases/download/${AMDL_VERSION}/amdl_linux_amd64" \
     && echo "${AMDL_SHA256}  /amdl" | sha256sum -c - \

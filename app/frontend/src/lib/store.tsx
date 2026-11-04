@@ -57,7 +57,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   // Live job updates. The browser reconnects by itself; on every (re)connect
   // the full list is reloaded so nothing missed while offline stays stale.
+  //
+  // A browser opens at most six connections to a site over plain HTTP, and
+  // each open stream holds one. So a tab in the background closes its stream
+  // and opens it again when shown: otherwise a few open tabs use up all six,
+  // and every further request waits (pages stop loading).
   useEffect(() => {
+    let source: EventSource | null = null;
     const load = () =>
       api
         .jobs()
@@ -66,30 +72,46 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           setJobsLoaded(true);
         })
         .catch(() => undefined);
+    const open = () => {
+      if (source) return;
+      const stream = new EventSource("/api/events");
+      source = stream;
+      stream.onopen = () => {
+        setConnected(true);
+        load();
+      };
+      stream.onerror = () => source === stream && setConnected(false);
+      stream.onmessage = (message) => {
+        const event = JSON.parse(message.data) as ServerEvent;
+        if (event.type === "job") {
+          setJobs((all) => {
+            const index = all.findIndex((j) => j.id === event.job.id);
+            if (index === -1) return [event.job, ...all];
+            const copy = all.slice();
+            copy[index] = event.job;
+            return copy;
+          });
+        } else if (event.type === "removed") {
+          setJobs((all) => all.filter((j) => j.id !== event.id));
+        } else if (event.type === "log") {
+          logListeners.current.get(event.id)?.forEach((listener) => listener(event.line, event.ts));
+        }
+      };
+    };
+    // Closed on purpose, not lost: "connected" keeps its value, so no
+    // "reconnecting" note shows while the tab comes back.
+    const close = () => {
+      source?.close();
+      source = null;
+    };
+    const onVisibility = () => (document.visibilityState === "hidden" ? close() : open());
     load(); // do not depend on the event stream for the first paint
-    const source = new EventSource("/api/events");
-    source.onopen = () => {
-      setConnected(true);
-      load();
+    if (document.visibilityState !== "hidden") open();
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      close();
     };
-    source.onerror = () => setConnected(false);
-    source.onmessage = (message) => {
-      const event = JSON.parse(message.data) as ServerEvent;
-      if (event.type === "job") {
-        setJobs((all) => {
-          const index = all.findIndex((j) => j.id === event.job.id);
-          if (index === -1) return [event.job, ...all];
-          const copy = all.slice();
-          copy[index] = event.job;
-          return copy;
-        });
-      } else if (event.type === "removed") {
-        setJobs((all) => all.filter((j) => j.id !== event.id));
-      } else if (event.type === "log") {
-        logListeners.current.get(event.id)?.forEach((listener) => listener(event.line, event.ts));
-      }
-    };
-    return () => source.close();
   }, []);
 
   // Status changes slowly, except during a sign-in.
