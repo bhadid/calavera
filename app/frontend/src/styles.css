@@ -289,6 +289,31 @@ a {
     padding: 0 32px 120px;
   }
 }
+/* A page ending in a bar that sticks to the bottom (download, save) has no
+   room below the bar: at the end of the page it rests on the window's edge,
+   or on the tab bar on phones. */
+.main:has(.actionbar, .savebar) {
+  padding-bottom: calc(58px + env(safe-area-inset-bottom, 0px));
+}
+/* Such a page fills the window, so the bar reaches its bottom edge also when
+   the page is shorter than the window. */
+.page:has(> .actionbar, > .savebar) {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100dvh - 58px - env(safe-area-inset-bottom, 0px));
+}
+.page > .actionbar,
+.page > .savebar {
+  margin-top: auto;
+}
+@media (min-width: 760px) {
+  .main:has(.actionbar, .savebar) {
+    padding-bottom: 0;
+  }
+  .page:has(> .actionbar, > .savebar) {
+    min-height: 100dvh;
+  }
+}
 .brand {
   display: flex;
   align-items: center;
@@ -477,6 +502,10 @@ h1 {
   grid-column: auto;
   grid-row: auto;
 }
+/* Inside a tile, content keeps --pad from all four edges: lists reach the
+   side edges (for their separators and highlight), never the bottom one. A
+   tile taller than its content (beside a taller one) keeps the content under
+   its heading; the extra height stays below. */
 .tile {
   position: relative;
   min-width: 0;
@@ -523,7 +552,11 @@ a.tile:active {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  min-height: 34px;
+}
+/* A heading's buttons keep their size to tap, without making the bar taller
+   than the heading. */
+.tile-bar .btn {
+  margin-block: -10px;
 }
 .tile-bar h2,
 .tile-bar h3 {
@@ -984,8 +1017,9 @@ textarea.field-input {
   display: grid;
   margin: 0 calc(var(--pad) * -1);
 }
+/* The last row ends --pad from the tile's edge: its own padding (8 px) and the rest. */
 .list:last-child {
-  margin-bottom: calc(var(--pad) * -1);
+  margin-bottom: -8px;
 }
 .row {
   position: relative;
@@ -1291,7 +1325,6 @@ button.row {
   display: grid;
   gap: 14px;
   grid-template-columns: minmax(0, 1fr);
-  height: 100%;
 }
 .top-result .cover {
   max-width: 260px;
@@ -1550,6 +1583,13 @@ button.row {
 }
 .setting + .setting {
   border-top: 0.5px solid var(--sep);
+}
+/* The first and last setting in a tile keep only the tile's own padding. */
+.tile > div:first-child > .setting:first-child {
+  padding-top: 0;
+}
+.setting:last-child {
+  padding-bottom: 0;
 }
 .setting-text {
   flex: 1 1 220px;
