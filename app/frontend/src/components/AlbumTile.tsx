@@ -96,8 +96,9 @@ export function OtherReleasePill() {
   const id = useId();
   const card = useRef<HTMLDivElement>(null);
   const explanation =
-    "Apple Music lists this release too, but leaves it out of its own grouping of the artist's releases, usually because " +
-    "another release has the same title. It can be a different version, such as a radio edit.";
+    "Apple Music lists this release but leaves it out of its overview of the artist, usually because it counts it as " +
+    "another edition of a release shown there: a deluxe or standard edition, a remaster, a re-release on another label, " +
+    "or a single next to the EP with the same song.";
   return (
     <>
       <button type="button" className="pill" aria-controls={id} title={explanation} onClick={() => card.current?.togglePopover?.()}>

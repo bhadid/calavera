@@ -12,10 +12,11 @@ export function AlbumPage() {
   const { id = "" } = useParams();
   const [params] = useSearchParams();
   const storefront = params.get("sf") ?? undefined;
-  // Opened from a tile marked as an "other release"; see AlbumTile.
-  const otherRelease = Boolean((useLocation().state as AlbumLinkState | null)?.otherRelease);
+  // Opened from a tile marked as an "other release" (see AlbumTile), the
+  // label shows at once; otherwise once the page has asked.
+  const markedByLink = Boolean((useLocation().state as AlbumLinkState | null)?.otherRelease);
   const {
-    album, error, numbers, selected, toggle, toggleAll, busy, download, label,
+    album, error, numbers, otherRelease: asked, selected, toggle, toggleAll, busy, download, label,
     otherEdition, selectable, unavailable, owned, everything, queued,
   } = useAlbumPage(id, storefront);
 
@@ -37,6 +38,7 @@ export function AlbumPage() {
   }
 
   const { className, style } = tint(album.colors);
+  const otherRelease = markedByLink || asked;
   const total = album.tracks.reduce((n, t) => n + t.duration_ms, 0);
   // Only a library state worth knowing gets a label; "not there yet" is the usual case.
   const libraryPill = !album.in_library ? null : otherEdition ? (

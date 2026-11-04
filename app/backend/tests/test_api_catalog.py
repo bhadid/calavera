@@ -22,13 +22,16 @@ def apple(monkeypatch):
 
     async def artist_albums(self, storefront, artist_id, language=""):
         state["asked"] += 1
+        if state["down"]:
+            raise CatalogError("Apple Music asked for a pause.")
         grouped = {"id": "1", "name": "Album", "artist": "Artist", "grouped": True}
         other = {"id": "2", "name": "Album", "artist": "Artist", "grouped": False, "group": "albums", "other_release": True}
         return {"id": artist_id, "name": "Artist", "albums": [grouped, other], "more": False}
 
     async def album(self, storefront, album_id, language=""):
         state["asked"] += 1
-        return {"id": album_id, "name": "While(1<2)", "artist": "deadmau5", "artwork": state.get("artwork", "https://is1.mzstatic.com/a.jpg/600x600bb.jpg")}
+        return {"id": album_id, "name": "While(1<2)", "artist": "deadmau5", "artists": state.get("artists", []),
+                "artwork": state.get("artwork", "https://is1.mzstatic.com/a.jpg/600x600bb.jpg")}
 
     async def cover(self, url):
         state["cover"] = url
@@ -87,6 +90,30 @@ def test_others_are_only_the_releases_outside_apples_grouping(apple, client):
     http, _ = client
     answer = http.get("/api/catalog/artists/7/others").json()
     assert [a["id"] for a in answer["items"]] == ["2"] and answer["more"] is False
+
+
+def test_an_album_page_learns_whether_it_is_an_other_release(apple, client):
+    http, _ = client
+    apple["artists"] = [{"id": "7", "name": "Artist"}]
+    assert http.get("/api/catalog/albums/2/other-release?sf=de").json() == {"other_release": True}
+    assert http.get("/api/catalog/albums/1/other-release?sf=de").json() == {"other_release": False}
+    # Album 1 was asked of Apple once more; the artist's releases were remembered.
+    asked = apple["asked"]
+    http.get("/api/catalog/albums/2/other-release?sf=de")
+    assert apple["asked"] == asked
+
+
+def test_an_album_without_artists_is_no_other_release_and_asks_nothing_more(apple, client):
+    http, _ = client
+    assert http.get("/api/catalog/albums/2/other-release?sf=de").json() == {"other_release": False}
+    assert apple["asked"] == 1  # the album only
+
+
+def test_an_artist_apple_cannot_be_asked_about_is_left_out(apple, client):
+    http, _ = client
+    apple["artists"] = [{"id": "7", "name": "Artist"}]
+    apple["down"] = True  # for the artist's releases; the stand-in still answers for the album
+    assert http.get("/api/catalog/albums/2/other-release?sf=de").json() == {"other_release": False}
 
 
 def test_an_unknown_group_is_not_asked_of_apple(apple, client):
