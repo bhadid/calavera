@@ -110,7 +110,10 @@ build uses `npm ci`.
 
 ## API
 
-Interactive reference while the app runs: `http://<host>:<port>/api/docs`.
+Interactive reference: start the app with `CALAVERA_API_DOCS=1` (for
+example under `environment:` in a `compose.override.yaml`) and open
+`http://<host>:<port>/api/docs`. It is off by default because it loads its
+scripts from a CDN, so its page cannot carry the Content-Security-Policy.
 
 | Method and path | Purpose |
 |---|---|

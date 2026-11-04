@@ -21,6 +21,10 @@ services:
     # and the like stay read-only for it, also from inside its namespaces.
     cap_drop:
       - ALL
+    # Upper bounds, well above normal use; they keep a runaway process from
+    # taking the host down with it.
+    mem_limit: 1g
+    pids_limit: 256
     security_opt:
       - no-new-privileges:true
       - seccomp:unconfined
@@ -47,6 +51,12 @@ services:
       - ALL
     security_opt:
       - no-new-privileges:true
+    # The image is read-only; the app writes only to its mounts below and /tmp.
+    read_only: true
+    tmpfs:
+      - /tmp
+    mem_limit: 2g
+    pids_limit: 256
     depends_on:
       - wrapper
     environment:
@@ -54,6 +64,9 @@ services:
       CALAVERA_WRAPPER_URL: http://wrapper:12340
       CALAVERA_SUPERVISOR_URL: http://wrapper:12341
       CALAVERA_CONTROL_TOKEN_FILE: /control/token
+      # Host names the UI answers to; any other is refused (DNS rebinding).
+      # localhost and 127.0.0.1 are always accepted.
+      CALAVERA_ALLOWED_HOSTS: "${BIND_ADDRESS},${ALLOWED_HOSTS:-}"
     ports:
       - "${BIND_ADDRESS:?set BIND_ADDRESS in .env}:${WEB_PORT:-8080}:8080"
     volumes:

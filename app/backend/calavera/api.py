@@ -14,13 +14,13 @@ from urllib.parse import quote, urlparse
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, ValidationError
 
 from . import __version__, library, urls
 from .catalog import GROUPS, Catalog, CatalogError, NotInCatalog
-from .config import Config
+from .config import LOCAL_HOSTS, Config
 from .config import load as load_config
 from .db import Database
 from .jobs import JobError, JobManager
@@ -66,6 +66,14 @@ class Code(BaseModel):
     code: str = Field(pattern=r"^\d{6}$")
 
 
+def request_host(header: str) -> str:
+    """The host name in a Host header, without port and brackets, lower case."""
+    header = header.strip().lower()
+    if header.startswith("["):
+        return header[1:].split("]", 1)[0]
+    return header.rsplit(":", 1)[0] if header.count(":") == 1 else header
+
+
 def create_app(config: Config | None = None) -> FastAPI:
     config = config or load_config()
     db = Database(config.db_path)
@@ -87,7 +95,14 @@ def create_app(config: Config | None = None) -> FastAPI:
         await wrapper.close()
         db.close()
 
-    app = FastAPI(title="Calavera", version=__version__, lifespan=lifespan, docs_url="/api/docs", openapi_url="/api/openapi.json", redoc_url=None)
+    # The API explorer is off unless asked for: it loads its scripts from a
+    # CDN, so its page cannot have the Content-Security-Policy.
+    docs = config.api_docs
+    app = FastAPI(
+        title="Calavera", version=__version__, lifespan=lifespan, redoc_url=None,
+        docs_url="/api/docs" if docs else None, openapi_url="/api/openapi.json" if docs else None,
+    )
+    allowed_hosts = {h.strip("[]") for h in (*LOCAL_HOSTS, *config.allowed_hosts)}
 
     # -- errors and request guard ------------------------------------------------
     def error(status: int, message: str) -> JSONResponse:
@@ -105,8 +120,16 @@ def create_app(config: Config | None = None) -> FastAPI:
 
     @app.middleware("http")
     async def _same_origin_only(request: Request, call_next):
-        # The UI has no login. Without this check any web page open in the
-        # user's browser could send state-changing requests to it.
+        # The UI has no login. Without these checks any web page open in the
+        # user's browser could use it. A page on another site is refused by
+        # the Origin check. A page that rebinds its own domain to this
+        # address (DNS rebinding) passes that check, as both headers then name
+        # its domain; it is refused by the Host check.
+        host = request_host(request.headers.get("host", ""))
+        if host not in allowed_hosts:
+            return PlainTextResponse(
+                f"Calavera does not answer to the host name {host!r}. If that is how you reach it, add it to "
+                "ALLOWED_HOSTS in .env and run: docker compose up -d", status_code=421)
         if request.method not in ("GET", "HEAD", "OPTIONS"):
             origin = request.headers.get("origin")
             if origin and urlparse(origin).netloc != request.headers.get("host"):
@@ -115,7 +138,7 @@ def create_app(config: Config | None = None) -> FastAPI:
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["Referrer-Policy"] = "same-origin"
-        if not request.url.path.startswith("/api/docs"):  # the API explorer loads its assets from a CDN
+        if not (docs and request.url.path.startswith("/api/docs")):
             response.headers["Content-Security-Policy"] = CONTENT_SECURITY_POLICY
         return response
 

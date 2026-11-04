@@ -9,6 +9,11 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
+# Always accepted as Host: requests from this machine or container (the
+# health check uses 127.0.0.1). A DNS-rebinding page cannot send these, as
+# its requests carry its own domain.
+LOCAL_HOSTS = ("localhost", "127.0.0.1", "::1")
+
 
 @dataclass(frozen=True)
 class Config:
@@ -21,6 +26,10 @@ class Config:
     control_token_file: Path
     amdl_bin: str
     ffmpeg_bin: str
+    # Host names the UI may be reached by, besides LOCAL_HOSTS. Requests with
+    # any other Host header are refused (DNS rebinding).
+    allowed_hosts: tuple[str, ...] = ()
+    api_docs: bool = False      # serve /api/docs, which loads assets from a CDN
 
     @property
     def db_path(self) -> Path:
@@ -39,4 +48,6 @@ def load() -> Config:
         control_token_file=Path(env("CALAVERA_CONTROL_TOKEN_FILE", "/control/token")),
         amdl_bin=env("CALAVERA_AMDL_BIN", "amdl"),
         ffmpeg_bin=env("CALAVERA_FFMPEG_BIN", "ffmpeg"),
+        allowed_hosts=tuple(h.strip().lower() for h in env("CALAVERA_ALLOWED_HOSTS", "").split(",") if h.strip()),
+        api_docs=env("CALAVERA_API_DOCS", "") == "1",
     )
