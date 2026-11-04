@@ -110,6 +110,7 @@ the wrapper does not start without its three relaxed options.
 |---|---|
 | `BIND_ADDRESS` | Address the UI is published on: the host's LAN IP, or `127.0.0.1`. |
 | `WEB_PORT` | Port of the UI. Default `8080`. |
+| `ALLOWED_HOSTS` | Other host names you open the UI by, comma-separated: a local DNS name, or your reverse proxy's host name. Empty by default. |
 | `LIBRARY_PATH` | Your music library. Must exist, must not be empty, and be writable by `PUID:PGID`. |
 | `STAGING_PATH` | Scratch space for downloads in progress. Default `./data/staging`. |
 | `TZ` | Timezone, e.g. `Europe/Berlin`. |
@@ -118,7 +119,7 @@ the wrapper does not start without its three relaxed options.
 **The UI has no login of its own.** Anyone who can reach it can queue
 downloads and start an Apple sign-in. Publish it on a trusted LAN address or on
 `127.0.0.1` behind your own authenticating reverse proxy, never on a public
-interface.
+interface. Behind a reverse proxy, put its host name into `ALLOWED_HOSTS`.
 
 ## Signing in
 

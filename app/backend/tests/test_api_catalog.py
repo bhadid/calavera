@@ -50,7 +50,7 @@ def client(tmp_path):
         static_dir=tmp_path / "none", wrapper_url="http://127.0.0.1:9", supervisor_url="http://127.0.0.1:9",
         control_token_file=tmp_path / "token", amdl_bin="amdl", ffmpeg_bin="ffmpeg",
     )
-    client = TestClient(api.create_app(config))
+    client = TestClient(api.create_app(config), base_url="http://localhost")
     assert client.put("/api/settings", json={"storefront": "de"}).status_code == 200
     return client, tmp_path / "library"
 

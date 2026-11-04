@@ -270,12 +270,19 @@ to it.
 ## Security model
 
 - No user accounts. Protection is network placement (`BIND_ADDRESS`).
+- Requests whose `Host` header is not `BIND_ADDRESS`, a name in
+  `ALLOWED_HOSTS` or `localhost`/`127.0.0.1` are refused with 421. This stops
+  DNS rebinding: a page whose domain is made to resolve to Calavera's address
+  sends its own domain as `Host` (and `Origin`), so the Origin check alone
+  would let it through.
 - State-changing requests whose `Origin` header names another site are
   refused, so a web page open in the same browser cannot drive Calavera.
 - A Content-Security-Policy allows the page's own files and artwork from
   Apple's image CDN only, and forbids framing.
 - Both containers run without Linux capabilities and with
   `no-new-privileges`: the app as `PUID:PGID`, the wrapper as user `10001`.
+  Both have memory and process limits. The app's image is read-only; it
+  writes only to `/data`, `/staging`, `/library` and a `/tmp` in memory.
 - The wrapper container is not privileged but runs with seccomp and AppArmor
   unconfined and unmasked `/proc`, which wrapper-lite's rootless launcher
   needs to create its namespaces (it maps its own user to root inside them).

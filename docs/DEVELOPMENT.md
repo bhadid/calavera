@@ -45,11 +45,17 @@ search from the URL, an artist page, the account page, and console errors
 (which includes Content-Security-Policy violations). It is read-only. Run it
 after changing frontend dependencies or routing:
 
+Chrome and the script run on the host network and open the UI at
+`BIND_ADDRESS:WEB_PORT` from `.env`, a host name the UI always answers to
+(any other name, such as `app` on the compose network, gets 421). Chrome's
+debugging port stays on 127.0.0.1:
+
 ```bash
-docker run -d --name chrome --network calavera_default --shm-size=512m zenika/alpine-chrome \
+BASE="http://$(sed -n 's/^BIND_ADDRESS=//p' .env):$(sed -n 's/^WEB_PORT=//p' .env)"
+docker run -d --name chrome --network host --shm-size=512m zenika/alpine-chrome \
   --no-sandbox --disable-gpu --disable-dev-shm-usage \
-  --remote-debugging-address=0.0.0.0 --remote-debugging-port=9222 --remote-allow-origins='*' about:blank
-docker run --rm --network calavera_default -e BASE=http://app:8080 \
+  --remote-debugging-address=127.0.0.1 --remote-debugging-port=9222 --remote-allow-origins='*' about:blank
+docker run --rm --network host -e BASE="$BASE" -e CHROME_HOST=127.0.0.1 \
   -v "$PWD/scripts/browser-smoke.mjs":/t.mjs:ro node:22-alpine node /t.mjs
 docker rm -f chrome
 ```
@@ -110,7 +116,10 @@ build uses `npm ci`.
 
 ## API
 
-Interactive reference while the app runs: `http://<host>:<port>/api/docs`.
+Interactive reference: start the app with `CALAVERA_API_DOCS=1` (for
+example under `environment:` in a `compose.override.yaml`) and open
+`http://<host>:<port>/api/docs`. It is off by default because it loads its
+scripts from a CDN, so its page cannot carry the Content-Security-Policy.
 
 | Method and path | Purpose |
 |---|---|

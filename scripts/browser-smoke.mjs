@@ -5,7 +5,10 @@
 // Needs Node 22+ (built-in fetch and WebSocket) and a Chrome started with
 // --remote-debugging-port=9222. See docs/DEVELOPMENT.md for the two commands.
 //
-//   BASE=http://app:8080 CHROME_HOST=chrome node scripts/browser-smoke.mjs
+//   BASE=http://127.0.0.1:8080 CHROME_HOST=127.0.0.1 node scripts/browser-smoke.mjs
+//
+// BASE must use a host name the UI answers to (BIND_ADDRESS, ALLOWED_HOSTS or
+// localhost); any other name gets 421.
 import dns from "node:dns/promises";
 const host = (await dns.lookup(process.env.CHROME_HOST ?? "chrome")).address;
 const base = process.env.BASE;

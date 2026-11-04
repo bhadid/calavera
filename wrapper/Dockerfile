@@ -15,7 +15,11 @@ ARG WRAPPER_REPO=https://github.com/WorldObservationLog/wrapper
 # The pinned wrapper-lite commit. Updating it: see README, "Updating the
 # pinned components" (.github/scripts/check-upstream.sh reads this line).
 ARG WRAPPER_REF=2fd7e0eaef081f93cf687428b965674937832ba4
+# Android NDK r23b and the SHA-256 of android-ndk-r23b-linux.zip (Google
+# publishes the SHA-1, f47ec4c4badd11e9f593a8450180884a927c330d, which this
+# file also matches). Change both together.
 ARG NDK_VERSION=23
+ARG NDK_SHA256=c6e97f9c8cfe5b7be0a9e6c15af8e7a179475b7ded23e2d1c1fa0945d6fb4382
 SHELL ["/bin/bash", "-c"]
 WORKDIR /app
 RUN apt-get update \
@@ -26,6 +30,7 @@ RUN git init -q . \
     && git fetch -q --depth 1 origin "${WRAPPER_REF}" \
     && git checkout -q FETCH_HEAD
 RUN aria2c -q -o ndk.zip "https://dl.google.com/android/repository/android-ndk-r${NDK_VERSION}b-linux.zip" \
+    && echo "${NDK_SHA256}  ndk.zip" | sha256sum -c - \
     && unzip -q -d /app ndk.zip \
     && rm ndk.zip
 RUN cmake -S /app -B /app/build -DCMAKE_BUILD_TYPE=Release -DBUILD_HOST_LAUNCHERS=ON \
