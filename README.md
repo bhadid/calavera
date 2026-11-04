@@ -13,8 +13,8 @@ original, and files it under `Artist/Album/` in your library without ever
 overwriting what is already there.
 
 <p>
-  <img src="docs/screenshots/search-light.png" alt="Calavera's search page in the light appearance: the top result in its cover's colours beside a list of songs, a row of artists, and album tiles with their quality and a download button; two are marked as in the library" width="560">
-  <img src="docs/screenshots/album-dark.png" alt="Calavera's album page on a phone in the dark appearance: the album in its cover's colours with its quality in numbers, its songs with checkmarks, and a download button" width="200">
+  <img src="docs/screenshots/search-dark.png" alt="Calavera's search page in the dark appearance, searching for Skrillex: the top result in its cover's colours beside a list of songs, a row of artists, and album tiles" width="560">
+  <img src="docs/screenshots/album-light.png" alt="Calavera's album page on a phone in the light appearance: the single Mirage by MPH and Skrillex in its cover's colours, with its quality in numbers, its song with a checkmark, and a download button" width="200">
 </p>
 
 ## Before you use it
