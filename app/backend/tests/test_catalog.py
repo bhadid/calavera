@@ -26,6 +26,14 @@ def test_no_relationship_means_no_artists():
     assert _song({"id": "1", "relationships": {"artists": {"data": []}}})["artists"] == []
 
 
+def test_a_song_knows_its_albums_artist():
+    song = {"id": "1", "attributes": {"name": "Boui", "artistName": "Monstergetdown", "albumName": "mau5ville: Level 2 - EP"},
+            "relationships": {"albums": {"data": [{"id": "2", "attributes": {"artistName": "deadmau5"}}]}}}
+    assert _song(song)["album_artist"] == "deadmau5"
+    del song["relationships"]
+    assert _song(song)["album_artist"] == "Monstergetdown"
+
+
 def test_artists_without_a_name_are_left_out():
     # Apple sends bare references when the relationship was not asked for.
     assert _artists({"relationships": related(("10", None), ("11", "B"))}) == [{"id": "11", "name": "B"}]

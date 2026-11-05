@@ -171,7 +171,7 @@ function Results({ results }: { results: SearchResults }) {
                         {duration(song.duration_ms)}
                       </span>
                     </div>
-                    <QueueButton url={song.url} appleId={song.id} compact label={`Download ${song.name}`} />
+                    <QueueButton url={song.url} appleId={song.id} inLibrary={song.in_library} compact label={`Download ${song.name}`} />
                   </div>
                 );
               })}
