@@ -142,3 +142,60 @@ def test_single_files_count_once_every_song_was_sent(setup):
 ])
 def test_reaches_end(header, size, whole):
     assert api.reaches_end(header, size) is whole
+
+
+@pytest.fixture
+def from_library(tmp_path, monkeypatch):
+    """Finished jobs whose album is in the library, and a stand-in for Apple."""
+    from calavera.catalog import Catalog
+
+    async def song(self, storefront, song_id, language=""):
+        return {"id": song_id, "name": "Second", "artist": "Guest", "track_number": 2}
+
+    monkeypatch.setattr(Catalog, "song", song)
+    for name in ("data", "staging"):
+        (tmp_path / name).mkdir()
+    album = tmp_path / "library" / "The Artist" / "The Album"
+    album.mkdir(parents=True)
+    (album / "01. First.flac").write_bytes(TRACK)
+    (album / "02. Second.flac").write_bytes(TRACK[::-1])
+    (album / "cover.jpg").write_bytes(b"jpeg")
+    imported = [{"status": "imported", "path": "The Artist/The Album"}]
+    db = Database(tmp_path / "data" / "calavera.db")
+    db.insert_job(job("album", status="done", options={}, result=imported))
+    db.insert_job(job("song", status="skipped", kind="song", options={}, result=[{"status": "exists", "path": "The Artist/The Album"}]))
+    db.insert_job(job("moved", status="done", options={}, result=[{"status": "imported", "path": "The Artist/Gone"}]))
+    db.insert_job(job("escape", status="done", options={}, result=[{"status": "imported", "path": "../data"}]))
+    db.close()
+    config = Config(
+        data_dir=tmp_path / "data", staging_dir=tmp_path / "staging", library_dir=tmp_path / "library",
+        static_dir=tmp_path / "none", wrapper_url="http://127.0.0.1:9", supervisor_url="http://127.0.0.1:9",
+        control_token_file=tmp_path / "token", amdl_bin="amdl", ffmpeg_bin="ffmpeg",
+    )
+    return TestClient(api.create_app(config), base_url="http://localhost"), tmp_path / "library"
+
+
+def test_an_album_in_the_library_comes_from_there(from_library):
+    http, lib = from_library
+    before = sorted(p.name for p in (lib / "The Artist" / "The Album").iterdir())
+    r = http.get("/api/jobs/album/download")
+    assert r.status_code == 200 and int(r.headers["content-length"]) == len(r.content)
+    assert "filename*=UTF-8''The%20Artist%20-%20The%20Album.zip" in r.headers["content-disposition"]
+    with zipfile.ZipFile(io.BytesIO(r.content)) as z:
+        assert z.namelist() == [
+            "The Artist - The Album/01. First.flac", "The Artist - The Album/02. Second.flac", "The Artist - The Album/cover.jpg",
+        ]
+    assert sorted(p.name for p in (lib / "The Artist" / "The Album").iterdir()) == before
+
+
+def test_a_song_in_the_library_comes_as_its_file(from_library):
+    http, _ = from_library
+    r = http.get("/api/jobs/song/download")
+    assert r.status_code == 200 and r.content == TRACK[::-1]
+    assert "filename*=UTF-8''Guest%20-%20Second.flac" in r.headers["content-disposition"]
+
+
+def test_a_folder_gone_from_the_library_or_outside_it_is_not_sent(from_library):
+    http, _ = from_library
+    assert http.get("/api/jobs/moved/download").status_code == 410
+    assert http.get("/api/jobs/escape/download").status_code == 410

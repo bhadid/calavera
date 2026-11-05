@@ -359,6 +359,9 @@ function HistoryRow({ job, policy }: { job: Job; policy: Keep }) {
   // Downloaded to a device is done as much as being in the library is.
   const succeeded = (job.status === "done" && !partial) || (job.status === "ready" && Boolean(job.fetched_at));
   const expired = job.status === "ready" && !job.has_files && !job.fetched_at;
+  // In the library (added, or found there): it downloads straight from there.
+  const inLibrary =
+    (job.status === "done" || job.status === "skipped") && job.result.some((r) => r.status === "imported" || r.status === "exists");
   const tracks = job.result.reduce((n, r) => n + (r.tracks ?? 0), 0);
   const facts = [job.artist, job.kind === "album" ? "Album" : "Song", tracks ? plural(tracks, "track") : ""].filter(Boolean).join(" · ");
   const id = `job-${job.id}`;
@@ -415,6 +418,12 @@ function HistoryRow({ job, policy }: { job: Job; policy: Keep }) {
                 Download
               </a>
             )}
+            {inLibrary && (
+              <a className="btn btn-gray btn-small" href={api.downloadUrl(job.id)} download title="Download from the library to this device">
+                <Icon name="download" size={16} weight={2.2} />
+                Download
+              </a>
+            )}
             <Link className="btn btn-gray btn-small" to={jobPage(job)}>
               Go to album
             </Link>
@@ -439,10 +448,11 @@ function HistoryRow({ job, policy }: { job: Job; policy: Keep }) {
                 Add missing tracks
               </button>
             )}
-            {job.status !== "done" && !fetchable && (
+            {/* Not for a download that reached the device: the album page is the place for it again. */}
+            {job.status !== "done" && !fetchable && !(job.status === "ready" && job.fetched_at) && (
               <button className="btn btn-gray btn-small" disabled={busy} onClick={retry}>
-                <Icon name="retry" size={16} />
-                Retry
+                <Icon name={expired ? "download" : "retry"} size={16} />
+                {expired ? "Download again" : "Retry"}
               </button>
             )}
             {job.has_files && (
