@@ -448,8 +448,9 @@ function HistoryRow({ job, policy }: { job: Job; policy: Keep }) {
                 Add missing tracks
               </button>
             )}
-            {/* Not for a download that reached the device: the album page is the place for it again. */}
-            {job.status !== "done" && !fetchable && !(job.status === "ready" && job.fetched_at) && (
+            {/* Only where running again can change something: not for what is in the library
+                (done, already there) or reached the device; the album page is the place for those. */}
+            {(job.status === "failed" || job.status === "interrupted" || job.status === "canceled" || expired) && (
               <button className="btn btn-gray btn-small" disabled={busy} onClick={retry}>
                 <Icon name={expired ? "download" : "retry"} size={16} />
                 {expired ? "Download again" : "Retry"}
