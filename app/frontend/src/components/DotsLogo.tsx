@@ -19,7 +19,7 @@ const ICON_MIN_RADIUS = 0.26;
 type Part = keyof typeof DOTS;
 const parse = (part: Part) => DOTS[part].split(",").map((dot) => dot.split(" ").map(Number));
 
-type Colours = Record<Part, string>;
+export type Colours = Record<Part, string>;
 
 /**
  * The drawing as SVG markup for the browser-tab icon, in the light set and,
@@ -36,6 +36,29 @@ export function logoSvg(light: Colours, dark: Colours): string {
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${VIEW}"><style>${style(light)}` +
     `@media (prefers-color-scheme: dark){${style(dark)}}</style>${groups}</svg>`
   );
+}
+
+/**
+ * A repeating tile of the logo, `width` × `height` px, as SVG markup: each
+ * skull is `{x, y, size}` in px (top-left corner), and skulls over an edge
+ * are drawn again on the other side so the tile repeats without seams.
+ */
+export function logoTileSvg(width: number, height: number, skulls: { x: number; y: number; size: number; opacity?: number }[], colours: Colours): string {
+  const parts = Object.keys(DOTS) as Part[];
+  const [vx, vy, vs] = VIEW.split(" ").map(Number);
+  const drawing = parts
+    .map((part) => `<g fill="${colours[part]}">${parse(part).map(([x, y, r]) => `<circle cx="${x / 2}" cy="${y / 2}" r="${r}"/>`).join("")}</g>`)
+    .join("");
+  const placed: string[] = [];
+  for (const s of skulls)
+    for (const dx of [-width, 0, width])
+      for (const dy of [-height, 0, height]) {
+        const x = s.x + dx, y = s.y + dy;
+        const opacity = s.opacity === undefined ? "" : ` opacity="${s.opacity.toFixed(2)}"`;
+        if (x < width && x + s.size > 0 && y < height && y + s.size > 0)
+          placed.push(`<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${(s.size / vs).toFixed(4)}) translate(${-vx} ${-vy})"${opacity}>${drawing}</g>`);
+      }
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${placed.join("")}</svg>`;
 }
 
 /** The logo, coloured by the --dot-* variables of the theme, in a square of `size`. */

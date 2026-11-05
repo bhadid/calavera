@@ -198,6 +198,28 @@ a {
 .app {
   min-height: 100vh;
 }
+/* The drifting skulls behind everything (components/Backdrop.tsx). */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0.3;
+}
+.backdrop > div {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  will-change: transform;
+  animation: backdrop-fall linear infinite;
+}
+@keyframes backdrop-fall {
+  to {
+    transform: translate3d(0, var(--tile), 0);
+  }
+}
 .sidebar {
   display: none;
 }
