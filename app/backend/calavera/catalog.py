@@ -121,6 +121,11 @@ def _group_by_title(album: dict) -> str:
     return "albums"
 
 
+def _album_artist(song: dict) -> str:
+    albums = ((song.get("relationships") or {}).get("albums") or {}).get("data") or []
+    return ((albums[0].get("attributes") or {}).get("artistName", "")) if albums else ""
+
+
 def _song(item: dict) -> dict:
     a = item.get("attributes") or {}
     return {
@@ -129,6 +134,9 @@ def _song(item: dict) -> dict:
         "artist": a.get("artistName", ""),
         "artists": _artists(item),
         "album": a.get("albumName", ""),
+        # The album's artist, under whom its folder is: a song on a label
+        # compilation is by its own artist. Asked for with include=albums.
+        "album_artist": _album_artist(item) or a.get("artistName", ""),
         "artwork": _artwork(a),
         "colors": _colors(a),
         "url": a.get("url", ""),
@@ -316,7 +324,7 @@ class Catalog:
         return resp.content, kind
 
     async def song(self, storefront: str, song_id: str, language: str = "") -> dict:
-        data = await self._get(f"{storefront}/songs/{song_id}", {"l": language, "include": "artists"})
+        data = await self._get(f"{storefront}/songs/{song_id}", {"l": language, "include": "artists,albums"})
         items = data.get("data") or []
         if not items:
             raise NotInCatalog("Song not found.")
@@ -436,7 +444,7 @@ class Catalog:
                 "limit": limit,
                 "l": language,
                 "include[albums]": "artists",
-                "include[songs]": "artists",
+                "include[songs]": "artists,albums",
             },
         )
         results = data.get("results") or {}

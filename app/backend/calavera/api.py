@@ -423,6 +423,17 @@ def create_app(config: Config | None = None) -> FastAPI:
         for album in albums:
             album["in_library"] = library.find_album(config.library_dir, album["artist"], album["name"])
 
+    def mark_owned_songs(songs: list[dict]) -> None:
+        """`in_library`: the album folder, when it has a file of the song's
+        name (the same test the album page makes for each track)."""
+        present: dict[str, set[str]] = {}
+        for song in songs:
+            folder = library.find_album(config.library_dir, song.get("album_artist") or song["artist"], song["album"])
+            if folder and folder not in present:
+                present[folder] = library.track_keys(config.library_dir / folder)
+            owned = folder and library.stem_key(track_file_stem(song)) in present[folder]
+            song["in_library"] = folder if owned else None
+
     async def remembered(key: tuple, lifetime: float, fetch, fresh: bool) -> tuple:
         """A catalogue answer from the memory or from Apple; see memory.py.
         Also returns since when the answer is old, if Apple could not be
@@ -451,6 +462,7 @@ def create_app(config: Config | None = None) -> FastAPI:
 
         results, results["stale_since"] = await remembered(("search", await storefront(), language, term), SEARCH, find, fresh)
         await asyncio.to_thread(mark_owned, results["albums"])
+        await asyncio.to_thread(mark_owned_songs, results["songs"])
         return results
 
     def mark_owned_tracks(album: dict) -> None:

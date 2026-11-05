@@ -150,11 +150,12 @@ export interface Album {
 
 export type ReleaseGroup = "albums" | "singles" | "compilations" | "live" | "appears_on";
 
-export interface Track extends Song {
+export interface Track extends Omit<Song, "in_library"> {
   track_number: number;
   disc_number: number;
   /** False for songs Apple lists but does not offer (greyed out in its apps). */
   available: boolean;
+  /** On an album page: whether the album's folder has this track. */
   in_library: boolean;
 }
 
@@ -184,12 +185,16 @@ export interface Song {
   artist: string;
   artists: ArtistRef[];
   album: string;
+  /** The album's artist, under whom its folder is. */
+  album_artist?: string;
   artwork: string;
   colors?: ArtworkColors | null;
   url: string;
   duration_ms: number;
   traits: string[];
   explicit: boolean;
+  /** The album folder holding this song, if the library has it. */
+  in_library?: string | null;
 }
 
 export interface Artist {

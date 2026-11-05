@@ -136,3 +136,20 @@ def test_a_cover_of_no_album_is_not_asked_for(apple, client):
     http, _ = client
     assert http.get("/api/catalog/albums/abc/cover/x.jpg").status_code == 422
     assert "cover" not in apple
+
+
+def test_a_song_in_search_is_marked_when_its_albums_folder_has_it(apple, client, monkeypatch):
+    http, library = client
+
+    async def search(self, storefront, term, language="", limit=20):
+        song = {"id": "9", "name": "Boui", "artist": "Monstergetdown", "album_artist": "deadmau5",
+                "album": "mau5ville: Level 2 - EP", "track_number": 8, "disc_number": 1, "artists": []}
+        other = {**song, "id": "10", "name": "Sunlight", "track_number": 7}
+        return {"albums": [], "songs": [song, other], "artists": []}
+
+    monkeypatch.setattr(Catalog, "search", search)
+    folder = library / "deadmau5" / "mau5ville_ Level 2 - EP"
+    folder.mkdir(parents=True)
+    (folder / "08. Boui.flac").write_bytes(b"x")
+    songs = http.get("/api/catalog/search?q=boui").json()["songs"]
+    assert [s["in_library"] for s in songs] == ["deadmau5/mau5ville_ Level 2 - EP", None]
