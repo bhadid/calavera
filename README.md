@@ -163,9 +163,10 @@ the 6-digit code.
   pressing *Search*, asks Apple afresh.
 - **Queue:** what is downloading, with its progress, what is up next, what
   is ready to download to your device, and the history by day; tap an entry
-  for its details, actions and log. A download for your device is kept for a
-  day (see Settings), then its files are deleted. If the ZIP download breaks
-  off, *Single files* offers the songs one by one, and *Add to library* puts
+  for its details, actions and log. A download for your device is deleted
+  from the server 10 minutes after you downloaded it completely, and after a
+  day if you never do (both in Settings). If the ZIP download breaks off,
+  *Show single files* offers the songs one by one, and *Add to library* puts
   them into the library after all.
 - **Album page:** year, label, quality and library state under the title,
   then every song with a checkmark. Everything not yet in your library

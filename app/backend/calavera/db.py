@@ -33,7 +33,8 @@ CREATE TABLE IF NOT EXISTS jobs (
     options     TEXT NOT NULL DEFAULT '{}',
     created_at  REAL NOT NULL,
     started_at  REAL,
-    finished_at REAL
+    finished_at REAL,
+    fetched_at  REAL
 );
 CREATE INDEX IF NOT EXISTS jobs_created ON jobs (created_at);
 CREATE TABLE IF NOT EXISTS job_logs (
@@ -55,6 +56,7 @@ _JSON_COLUMNS = ("result", "options", "artists", "artwork_colors")
 _ADDED_COLUMNS = {
     "artists": "TEXT NOT NULL DEFAULT '[]'",
     "artwork_colors": "TEXT NOT NULL DEFAULT 'null'",
+    "fetched_at": "REAL",
 }
 
 

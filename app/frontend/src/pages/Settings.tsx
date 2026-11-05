@@ -21,7 +21,7 @@ const COVERS: { value: Settings["cover_size"]; label: string }[] = [
   { value: 5000, label: "5000 px" },
 ];
 const KEEP: { value: number; label: string }[] = [
-  { value: 6, label: "6 h" },
+  { value: 2, label: "2 h" },
   { value: 24, label: "1 day" },
   { value: 72, label: "3 days" },
   { value: 168, label: "1 week" },
@@ -121,8 +121,24 @@ export function SettingsPage() {
                 </div>
                 <div className="setting">
                   <div className="setting-text">
+                    <strong id="after-download-label">Delete after download</strong>
+                    <span id="after-download-help">
+                      Files downloaded to a device are deleted from the server 10 minutes after they were downloaded completely.
+                    </span>
+                  </div>
+                  <div className="setting-control">
+                    <Switch
+                      checked={draft.delete_after_download}
+                      onChange={(v) => set("delete_after_download", v)}
+                      labelledBy="after-download-label"
+                      describedBy="after-download-help"
+                    />
+                  </div>
+                </div>
+                <div className="setting">
+                  <div className="setting-text">
                     <strong>Keep downloads for</strong>
-                    <span>How long songs downloaded for a device wait in the queue before their files are deleted.</span>
+                    <span>Files not downloaded yet{draft.delete_after_download ? "" : ", or all of them,"} are deleted after this time.</span>
                   </div>
                   <div className="setting-control">
                     <Segmented label="Keep downloads for" value={draft.keep_ready_hours} options={KEEP} onChange={(v) => set("keep_ready_hours", v)} />

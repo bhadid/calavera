@@ -18,6 +18,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.types import Receive, Scope, Send
 from pydantic import BaseModel, Field, ValidationError
 
 from . import __version__, audio, bundle, library, urls
@@ -77,6 +78,61 @@ class Code(BaseModel):
 def audio_type(suffix: str) -> str:
     return {".flac": "audio/flac", ".m4a": "audio/mp4", ".jpg": "image/jpeg", ".lrc": "text/plain"}.get(
         suffix.lower(), "application/octet-stream")
+
+
+class WhenSent(Response):
+    """A response that calls `done` once it went out to its end, and not if
+    the browser left before. (The server cannot tell more: not whether the
+    browser saved what it got.)
+
+    Starlette's background tasks run in both cases, so this watches for the
+    browser leaving itself, while the response is sent.
+    """
+
+    def __init__(self, response: Response, done) -> None:  # noqa: D107 (wraps, so no super().__init__)
+        self.response = response
+        self.done = done
+        self.status_code = response.status_code
+        self.raw_headers = response.raw_headers
+        self.background = None
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        state = {"complete": False, "left": False}
+
+        async def watch() -> None:
+            while (await receive())["type"] != "http.disconnect":
+                pass
+            if not state["complete"]:
+                state["left"] = True
+
+        async def tracked(message) -> None:
+            await send(message)
+            if message["type"] == "http.response.body" and not message.get("more_body", False):
+                await asyncio.sleep(0)  # let `watch` see a disconnect that came first
+                state["complete"] = not state["left"]
+
+        watcher = asyncio.create_task(watch())
+        try:
+            await self.response(scope, receive, tracked)
+        finally:
+            watcher.cancel()
+        if state["complete"] and not state["left"]:
+            self.done()
+
+
+def reaches_end(range_header: str | None, size: int) -> bool:
+    """Whether a request for a file of `size` bytes asks for it up to its
+    last byte: the whole file, or the rest of it when a download resumes."""
+    if not range_header:
+        return True
+    unit, _, spec = range_header.partition("=")
+    if unit.strip().lower() != "bytes":
+        return True  # not a range FileResponse honours: the whole file is sent
+    for part in spec.split(","):
+        start, _, end = part.strip().partition("-")
+        if start and (not end or (end.isdigit() and int(end) >= size - 1)):
+            return True
+    return False
 
 
 def create_app(config: Config | None = None) -> FastAPI:
@@ -257,12 +313,13 @@ def create_app(config: Config | None = None) -> FastAPI:
     def attachment(name: str) -> dict[str, str]:
         return {"Content-Disposition": f"attachment; filename*=UTF-8''{quote(name)}", "Cache-Control": "no-store"}
 
-    def send_file(entry: bundle.Entry, name: str) -> FileResponse:
+    def send_file(request: Request, entry: bundle.Entry, name: str, done) -> Response:
         # FileResponse answers Range requests, so an interrupted file resumes.
-        return FileResponse(entry.path, headers=attachment(name), media_type=audio_type(entry.path.suffix))
+        response = FileResponse(entry.path, headers=attachment(name), media_type=audio_type(entry.path.suffix))
+        return WhenSent(response, done) if reaches_end(request.headers.get("range"), entry.size) else response
 
     @app.get("/api/jobs/{job_id}/download")
-    async def download_job(job_id: str):
+    async def download_job(job_id: str, request: Request):
         """A ready job's files: the file itself when there is one track,
         otherwise a ZIP made while it is sent."""
         job, albums, entries = await asyncio.to_thread(ready_files, job_id)
@@ -270,15 +327,16 @@ def create_app(config: Config | None = None) -> FastAPI:
         if len(tracks) == 1:
             track = tracks[0]
             title = re.sub(r"^\d+[-. ]*\s*", "", track.path.stem) or track.path.stem
-            return send_file(track, library.folder_name(f"{track.path.parent.parent.name} - {title}") + track.path.suffix)
+            name = library.folder_name(f"{track.path.parent.parent.name} - {title}") + track.path.suffix
+            return send_file(request, track, name, lambda: jobs.fetched(job_id))
         if len(albums) == 1:
             name = library.folder_name(f"{albums[0].artist} - {albums[0].album}")
         else:
             name = library.folder_name(job["title"] or "Calavera")
-        return StreamingResponse(
+        return WhenSent(StreamingResponse(
             bundle.zip_stream(entries), media_type="application/zip",
             headers={**attachment(f"{name}.zip"), "Content-Length": str(bundle.zip_size(entries))},
-        )
+        ), lambda: jobs.fetched(job_id))
 
     @app.get("/api/jobs/{job_id}/files")
     async def list_job_files(job_id: str):
@@ -287,14 +345,15 @@ def create_app(config: Config | None = None) -> FastAPI:
         return {"files": [{"index": i, "name": e.name, "size": e.size} for i, e in enumerate(entries)]}
 
     @app.get("/api/jobs/{job_id}/files/{index}")
-    async def download_job_file(job_id: str, index: int):
+    async def download_job_file(job_id: str, index: int, request: Request):
         # Files are addressed by their place in the list, never by a path
         # taken from the request.
         _job, _albums, entries = await asyncio.to_thread(ready_files, job_id)
         if not 0 <= index < len(entries):
             raise HTTPException(404, "No such file.")
         entry = entries[index]
-        return send_file(entry, entry.path.name)
+        audio_files = {i for i, e in enumerate(entries) if e.path.suffix.lower() in audio.AUDIO_EXTS}
+        return send_file(request, entry, entry.path.name, lambda: jobs.file_sent(job_id, index, audio_files))
 
     @app.delete("/api/jobs/{job_id}")
     async def remove_job(job_id: str):

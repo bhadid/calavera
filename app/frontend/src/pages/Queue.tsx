@@ -38,23 +38,36 @@ const jobTitle = (job: Job) => job.title || (job.kind === "album" ? "Album" : "S
 const forDevice = (job: Job) => job.options.destination === "device";
 const readyToFetch = (job: Job) => job.status === "ready" && job.has_files;
 
-/** How long a ready job's files are kept, from the setting (24 h until it is known). */
-function useKeepHours(): number {
-  const [hours, setHours] = useState(24);
+/** When ready jobs' files are deleted: the two settings (defaults until they are known). */
+interface Keep {
+  hours: number;
+  afterDownload: boolean;
+}
+// The server keeps a download this long after it was sent completely (jobs.FETCHED_GRACE).
+const FETCHED_GRACE = 600;
+
+function useKeep(): Keep {
+  const [keep, setKeep] = useState<Keep>({ hours: 24, afterDownload: true });
   useEffect(() => {
     let alive = true;
     api
       .settings()
-      .then((r) => alive && setHours(r.settings.keep_ready_hours))
+      .then((r) => alive && setKeep({ hours: r.settings.keep_ready_hours, afterDownload: r.settings.delete_after_download }))
       .catch(() => undefined);
     return () => {
       alive = false;
     };
   }, []);
-  return hours;
+  return keep;
 }
 
-const keptUntil = (job: Job, hours: number) => (job.finished_at ? `Kept ${until(job.finished_at + hours * 3600)}` : "");
+/** "Kept until 14:05", or once downloaded "Downloaded · kept until 13:20". */
+function keptUntil(job: Job, keep: Keep): string {
+  if (!job.finished_at) return "";
+  const byTime = job.finished_at + keep.hours * 3600;
+  if (!job.fetched_at) return `Kept ${until(byTime)}`;
+  return `Downloaded · kept ${until(keep.afterDownload ? Math.min(byTime, job.fetched_at + FETCHED_GRACE) : byTime)}`;
+}
 
 function day(seconds: number): string {
   const then = new Date(seconds * 1000);
@@ -74,7 +87,7 @@ export function QueuePage() {
   const [now, ...next] = active;
   const finished = jobs.filter((j) => !active.includes(j));
   const ready = finished.filter(readyToFetch);
-  const hours = useKeepHours();
+  const keep = useKeep();
   const [shown, setShown] = useState(HISTORY_STEP);
   const wrapper = status?.wrapper;
 
@@ -133,7 +146,7 @@ export function QueuePage() {
 
       {(now || ready.length > 0) && (
       <div className="bento bento-fit">
-        {ready.length > 0 && <ReadyTile jobs={ready} hours={hours} />}
+        {ready.length > 0 && <ReadyTile jobs={ready} keep={keep} />}
         {now && <NowTile job={now} />}
         {next.length > 0 && (
           <section className="tile" style={span(2, 4, 6)} aria-labelledby="next-heading">
@@ -176,7 +189,7 @@ export function QueuePage() {
                 <div key={group.day} role="group" aria-label={group.day}>
                   <div className="group-label">{group.day}</div>
                   {group.jobs.map((job) => (
-                    <HistoryRow key={job.id} job={job} hours={hours} />
+                    <HistoryRow key={job.id} job={job} policy={keep} />
                   ))}
                 </div>
               ))}
@@ -199,7 +212,7 @@ export function QueuePage() {
 }
 
 /** Jobs whose files wait for the browser, newest first, each a tap from the download. */
-function ReadyTile({ jobs, hours }: { jobs: Job[]; hours: number }) {
+function ReadyTile({ jobs, keep }: { jobs: Job[]; keep: Keep }) {
   return (
     <section className="tile" style={span(2, 4, 6)} aria-labelledby="ready-heading">
       <div className="tile-head" id="ready-heading">
@@ -213,7 +226,7 @@ function ReadyTile({ jobs, hours }: { jobs: Job[]; hours: number }) {
             <Link className="text" to={jobPage(job)}>
               <strong>{jobTitle(job)}</strong>
               {job.artist && <span>{job.artist}</span>}
-              <span>{keptUntil(job, hours)}</span>
+              <span>{keptUntil(job, keep)}</span>
             </Link>
             <a className="btn btn-filled btn-small" href={api.downloadUrl(job.id)} download aria-label={`Download ${jobTitle(job)}`}>
               <Icon name="download" size={16} weight={2.2} />
@@ -326,7 +339,7 @@ function UpNextItem({ job, first }: { job: Job; first: boolean }) {
 }
 
 /** A finished job: one row that opens to its details, actions and log. */
-function HistoryRow({ job, hours }: { job: Job; hours: number }) {
+function HistoryRow({ job, policy }: { job: Job; policy: Keep }) {
   const [open, setOpen] = useState(false);
   const [log, setLog] = useState(false);
   const [files, setFiles] = useState(false);
@@ -364,7 +377,7 @@ function HistoryRow({ job, hours }: { job: Job; hours: number }) {
           {job.status === "ready" && (
             <p className="muted">
               {fetchable
-                ? `${keptUntil(job, hours)}, then the files are deleted.`
+                ? `${keptUntil(job, policy)}, then the files are deleted.`
                 : "The downloaded files were deleted. Retry to download again."}
             </p>
           )}
@@ -399,7 +412,7 @@ function HistoryRow({ job, hours }: { job: Job; hours: number }) {
             </Link>
             {fetchable && (
               <button className="btn btn-gray btn-small" aria-expanded={files} onClick={() => setFiles(!files)}>
-                {files ? "Hide single files" : "Single files"}
+                {files ? "Hide single files" : "Show single files"}
               </button>
             )}
             {fetchable && (

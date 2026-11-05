@@ -123,10 +123,17 @@ files stay in staging for the browser to fetch.
   Content-Length. A ZIP cannot resume, hence
 - `GET /api/jobs/{id}/files` and `/files/{index}`: the same files one by one,
   addressed by their place in the list, never by a path from the request.
-- The files are deleted `keep_ready_hours` (a setting, 24 by default) after
-  the job finished, by a sweep at start and every 10 minutes, or earlier with
-  *Discard*. The server cannot know that a browser saved a file, only that it
-  was sent, so it does not delete on download.
+- A download sent to its end sets the job's `fetched_at` (a background task
+  of the response: if the browser leaves early, sending fails and it never
+  runs). One by one, that is once every audio file was sent; a Range request
+  counts when it reaches the file's last byte, so a resumed file counts. The
+  server cannot know that the browser saved the file, only that it was sent,
+  so with `delete_after_download` (on by default) the files go
+  `FETCHED_GRACE` (10 minutes) later: time to download again, or on another
+  device.
+- Otherwise they go `keep_ready_hours` (24 by default) after the job
+  finished. A sweep at start and every 2 minutes deletes them; *Discard*
+  does at once.
 - *Add to library* on a ready job is the import above with the destination
   dropped: it resumes from the staged files.
 

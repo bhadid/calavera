@@ -61,6 +61,8 @@ export interface Job {
   created_at: number;
   started_at: number | null;
   finished_at: number | null;
+  /** When the browser got all of a ready job's files; null before. */
+  fetched_at: number | null;
   has_files: boolean;
   /** Finished tracks sitting in staging that could still be imported. */
   staged_tracks: number;
@@ -117,7 +119,9 @@ export interface Settings {
   storefront: string;
   lyrics: boolean;
   cover_size: 1400 | 3000 | 5000;
-  /** Hours a download for the device waits before its files are deleted. */
+  /** Delete a download for the device shortly after it was downloaded completely. */
+  delete_after_download: boolean;
+  /** Hours a download for the device waits before its files are deleted otherwise. */
   keep_ready_hours: number;
 }
 

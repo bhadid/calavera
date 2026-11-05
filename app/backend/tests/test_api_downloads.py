@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 from calavera import api
 from calavera.config import Config
 from calavera.db import Database
-from calavera.jobs import expired
+from calavera.jobs import FETCHED_GRACE, expired
 
 TRACK = b"fLaC" + bytes(range(256)) * 40
 
@@ -104,5 +104,41 @@ def test_expired_picks_ready_jobs_kept_too_long():
         {"id": "fresh", "status": "ready", "finished_at": now - 3600},
         {"id": "done", "status": "done", "finished_at": now - 100 * 3600},
         {"id": "unfinished", "status": "ready", "finished_at": None},
+        {"id": "fetched", "status": "ready", "finished_at": now - 3600, "fetched_at": now - FETCHED_GRACE},
+        {"id": "just-fetched", "status": "ready", "finished_at": now - 3600, "fetched_at": now - 60},
     ]
-    assert expired(jobs, now, 24) == ["old", "edge"]
+    assert expired(jobs, now, 24, True) == [("old", "time"), ("edge", "time"), ("fetched", "fetched")]
+    assert expired(jobs, now, 24, False) == [("old", "time"), ("edge", "time")]
+
+
+def fetched_at(client, job_id):
+    return client.get(f"/api/jobs/{job_id}").json()["job"]["fetched_at"]
+
+
+def test_a_complete_download_counts_as_fetched(setup):
+    assert fetched_at(setup, "album") is None
+    setup.get("/api/jobs/album/download")
+    assert fetched_at(setup, "album") is not None
+
+
+def test_part_of_a_file_does_not_count_but_its_rest_does(setup):
+    setup.get("/api/jobs/song/download", headers={"range": "bytes=0-99"})
+    assert fetched_at(setup, "song") is None
+    setup.get("/api/jobs/song/download", headers={"range": "bytes=100-"})
+    assert fetched_at(setup, "song") is not None
+
+
+def test_single_files_count_once_every_song_was_sent(setup):
+    setup.get("/api/jobs/album/files/0")
+    setup.get("/api/jobs/album/files/2")  # the cover is not needed
+    assert fetched_at(setup, "album") is None
+    setup.get("/api/jobs/album/files/1")
+    assert fetched_at(setup, "album") is not None
+
+
+@pytest.mark.parametrize("header,size,whole", [
+    (None, 10, True), ("bytes=0-", 10, True), ("bytes=5-", 10, True), ("bytes=0-9", 10, True),
+    ("bytes=0-8", 10, False), ("bytes=-5", 10, False), ("bytes=0-1, 5-", 10, True), ("items=0-1", 10, True),
+])
+def test_reaches_end(header, size, whole):
+    assert api.reaches_end(header, size) is whole

@@ -27,6 +27,9 @@ class Settings(BaseModel):
     lyrics: bool = True
     # Embedded cover size in pixels (square).
     cover_size: Literal[1400, 3000, 5000] = 3000
+    # Delete a download for the user's device shortly after it was sent
+    # completely (see jobs.FETCHED_GRACE).
+    delete_after_download: bool = True
     # Hours a download for the user's device waits in staging before its
-    # files are deleted.
+    # files are deleted, when it is not downloaded (or the above is off).
     keep_ready_hours: int = Field(default=24, ge=1, le=168)

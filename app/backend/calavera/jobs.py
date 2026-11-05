@@ -32,7 +32,8 @@ library already has when merging.
 Staging: each job owns `<staging>/<job id>/`. It is deleted when the job ends
 `done`, and kept otherwise so the files can be inspected or imported after
 all, until the job is retried or removed. A `ready` job's files are deleted
-`keep_ready_hours` after it finished (see `expired`).
+`keep_ready_hours` after it finished, or with `delete_after_download`
+`FETCHED_GRACE` seconds after the browser got all of them (see `expired`).
 """
 from __future__ import annotations
 
@@ -54,7 +55,10 @@ from .wrapper import WrapperClient
 
 ACTIVE = ("queued", "running")
 MIN_FREE_BYTES = 1 << 30  # refuse to start a download with less than 1 GiB free in staging
-SWEEP_SECONDS = 600  # how often expired downloads are looked for
+SWEEP_SECONDS = 120  # how often expired downloads are looked for
+# A download sent completely is kept this much longer: time to download it
+# again if saving failed, or to fetch it on another device.
+FETCHED_GRACE = 600
 DESTINATIONS = ("library", "device")
 
 
@@ -82,12 +86,18 @@ def for_device(job: dict[str, Any]) -> bool:
     return job["options"].get("destination") == "device"
 
 
-def expired(jobs: list[dict[str, Any]], now: float, hours: int) -> list[str]:
-    """Ids of `ready` jobs kept longer than `hours`."""
-    return [
-        j["id"] for j in jobs
-        if j["status"] == "ready" and j.get("finished_at") and now - j["finished_at"] >= hours * 3600
-    ]
+def expired(jobs: list[dict[str, Any]], now: float, hours: int, after_download: bool) -> list[tuple[str, str]]:
+    """`ready` jobs whose files are due for deletion, with why: "fetched"
+    (downloaded, and the grace time is over) or "time" (kept `hours`)."""
+    due = []
+    for j in jobs:
+        if j["status"] != "ready":
+            continue
+        if after_download and j.get("fetched_at") and now - j["fetched_at"] >= FETCHED_GRACE:
+            due.append((j["id"], "fetched"))
+        elif j.get("finished_at") and now - j["finished_at"] >= hours * 3600:
+            due.append((j["id"], "time"))
+    return due
 
 
 @dataclass(frozen=True)
@@ -115,6 +125,8 @@ class JobManager:
         self._wake = asyncio.Event()
         self._task: asyncio.Task | None = None
         self._sweeper: asyncio.Task | None = None
+        # Files of a ready job sent completely one by one, by their index.
+        self._sent: dict[str, set[int]] = {}
         self._current: str | None = None
         self._runner: amdl.Runner | None = None
         self._cancel_requested = False
@@ -140,12 +152,36 @@ class JobManager:
 
     def sweep(self, now: float | None = None) -> None:
         """Delete the files of `ready` jobs that were kept long enough."""
-        hours = self._get_settings().keep_ready_hours
-        for job_id in expired(self._db.list_jobs(["ready"]), now or time.time(), hours):
+        settings = self._get_settings()
+        hours = settings.keep_ready_hours
+        for job_id, why in expired(self._db.list_jobs(["ready"]), now or time.time(), hours, settings.delete_after_download):
+            self._sent.pop(job_id, None)
             if self.staging_dir(job_id).exists():
                 shutil.rmtree(self.staging_dir(job_id), ignore_errors=True)
-                self._log(job_id, f"The downloaded files were kept {_plural(hours, 'hour')} and are now removed. Retry to download again.")
+                self._log(job_id, (
+                    "The files were downloaded and are now removed from staging." if why == "fetched"
+                    else f"The files were kept {_plural(hours, 'hour')} and are now removed."
+                ) + " Retry to download again.")
                 self._update(job_id)
+
+    def fetched(self, job_id: str) -> None:
+        """The browser got all of a ready job's files."""
+        job = self._db.get_job(job_id)
+        if not job or job["status"] != "ready" or job.get("fetched_at"):
+            return
+        if self._get_settings().delete_after_download:
+            self._log(job_id, f"Downloaded. The files are removed from staging in {FETCHED_GRACE // 60} minutes.")
+        else:
+            self._log(job_id, "Downloaded.")
+        self._update(job_id, fetched_at=time.time())
+
+    def file_sent(self, job_id: str, index: int, needed: set[int]) -> None:
+        """One file of a ready job was sent completely; once every one in
+        `needed` (the audio files) was, the job counts as fetched."""
+        sent = self._sent.setdefault(job_id, set())
+        sent.add(index)
+        if needed <= sent:
+            self.fetched(job_id)
 
     async def _sweep_forever(self) -> None:
         while True:
@@ -291,8 +327,9 @@ class JobManager:
         self._db.clear_logs(job_id)
         self._update(
             job_id, status="queued", stage="", progress=0, detail="", error="", result=[],
-            options=options, started_at=None, finished_at=None,
+            options=options, started_at=None, finished_at=None, fetched_at=None,
         )
+        self._sent.pop(job_id, None)
         self._wake.set()
 
     def retry(self, job_id: str) -> None:
