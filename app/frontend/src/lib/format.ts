@@ -28,15 +28,15 @@ export function atTime(seconds: number): string {
   return `${then.toDateString() === new Date().toDateString() ? "" : "yesterday "}at ${time}`;
 }
 
-/** "until 14:05", "until tomorrow 09:30", "until Fri 12 Dec 09:30". */
-export function until(seconds: number): string {
-  const then = new Date(seconds * 1000);
-  const time = then.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  if (then.toDateString() === new Date().toDateString()) return `until ${time}`;
-  if (then.toDateString() === tomorrow.toDateString()) return `until tomorrow ${time}`;
-  return `until ${then.toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" })} ${time}`;
+/** "9 min", "3 h 12 min", "2 days": time left, rounded up to the minute. */
+export function timeLeft(seconds: number): string {
+  const minutes = Math.max(1, Math.ceil(seconds / 60));
+  if (minutes < 60) return `${minutes} min`;
+  if (minutes < 48 * 60) {
+    const hours = Math.floor(minutes / 60);
+    return minutes % 60 ? `${hours} h ${minutes % 60} min` : `${hours} h`;
+  }
+  return plural(Math.round(minutes / 1440), "day");
 }
 
 /**

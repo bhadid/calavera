@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { bytes, plural, until } from "../lib/format";
+import { bytes, plural, timeLeft } from "../lib/format";
 import { useJobActions } from "../lib/hooks/jobActions";
 import { useStore } from "../lib/store";
 import { api } from "../lib/api";
@@ -42,12 +42,19 @@ const readyToFetch = (job: Job) => job.status === "ready" && job.has_files;
 interface Keep {
   hours: number;
   afterDownload: boolean;
+  /** The time now, in seconds; moves on every 30 seconds for the countdowns. */
+  now: number;
 }
 // The server keeps a download this long after it was sent completely (jobs.FETCHED_GRACE).
 const FETCHED_GRACE = 600;
 
 function useKeep(): Keep {
-  const [keep, setKeep] = useState<Keep>({ hours: 24, afterDownload: true });
+  const [keep, setKeep] = useState({ hours: 24, afterDownload: true });
+  const [now, setNow] = useState(() => Date.now() / 1000);
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now() / 1000), 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
   useEffect(() => {
     let alive = true;
     api
@@ -58,15 +65,16 @@ function useKeep(): Keep {
       alive = false;
     };
   }, []);
-  return keep;
+  return { ...keep, now };
 }
 
-/** "Kept until 14:05", or once downloaded "Downloaded · kept until 13:20". */
+/** "Deleted in 23 h 59 min", or once downloaded "Downloaded · deleted in 9 min". */
 function keptUntil(job: Job, keep: Keep): string {
   if (!job.finished_at) return "";
   const byTime = job.finished_at + keep.hours * 3600;
-  if (!job.fetched_at) return `Kept ${until(byTime)}`;
-  return `Downloaded · kept ${until(keep.afterDownload ? Math.min(byTime, job.fetched_at + FETCHED_GRACE) : byTime)}`;
+  if (!job.fetched_at) return `Deleted in ${timeLeft(byTime - keep.now)}`;
+  const at = keep.afterDownload ? Math.min(byTime, job.fetched_at + FETCHED_GRACE) : byTime;
+  return `Downloaded · deleted in ${timeLeft(at - keep.now)}`;
 }
 
 function day(seconds: number): string {
@@ -97,9 +105,9 @@ export function QueuePage() {
     const ok = await confirm({
       title: "Clear history?",
       message:
-        `${removable.length} finished ${removable.length === 1 ? "entry" : "entries"} will be removed from this list. ` +
-        (kept ? `${kept} with files still in staging will be kept. ` : "") +
-        "Your library is not touched.",
+        `Removes ${removable.length} ${removable.length === 1 ? "entry" : "entries"} from this list` +
+        (kept ? `, but keeps ${kept} with files.` : ".") +
+        " Your library stays as it is.",
       action: "Clear",
       destructive: true,
     });
@@ -377,7 +385,7 @@ function HistoryRow({ job, policy }: { job: Job; policy: Keep }) {
           {job.status === "ready" && (
             <p className="muted">
               {fetchable
-                ? `${keptUntil(job, policy)}, then the files are deleted.`
+                ? `${keptUntil(job, policy)}.`
                 : "The downloaded files were deleted. Retry to download again."}
             </p>
           )}
@@ -442,9 +450,12 @@ function HistoryRow({ job, policy }: { job: Job; policy: Keep }) {
                 Discard files
               </button>
             )}
-            <button className="btn btn-plain btn-small" disabled={busy} onClick={remove}>
-              Remove
-            </button>
+            {/* While the files wait, Discard deletes them; the entry goes with Remove after. */}
+            {!fetchable && (
+              <button className="btn btn-plain btn-small" disabled={busy} onClick={remove}>
+                Remove
+              </button>
+            )}
             <button className="btn btn-plain btn-small" aria-expanded={log} onClick={() => setLog(!log)}>
               {log ? "Hide log" : "Show log"}
             </button>
