@@ -55,6 +55,7 @@ app/
       library.py          the never-overwrite library import and merge
       plan.py             which tracks of an album to download (pure functions)
       jobs.py             queue, worker and the pipeline
+      bundle.py           the ZIP of a download for the device, made while it is sent
       api.py              HTTP routes, events, static files, request guard
     tests/                pytest; runs in the Dockerfile's `test` stage
   frontend/
@@ -107,7 +108,34 @@ app/
 
 Job options, stored with the job: `track_ids` (only these songs), `merge`
 (may add to an existing album folder; set for song selections, single songs
-and the "add missing" / "keep tracks" actions) and `resume`.
+and the "add missing" / "keep tracks" actions), `resume`, and `destination`.
+
+**Downloads to the device.** A job with `destination: "device"` skips
+everything that asks the library (the preflight check, the existing folder,
+the barcode, tracks already there) and stops after step 5 as `ready`: the
+files stay in staging for the browser to fetch.
+
+- `GET /api/jobs/{id}/download` sends the file itself when the job has one
+  track, so it can resume (Range), and otherwise a ZIP of the album folders
+  (`bundle.py`). The ZIP is *stored*, since FLAC and ALAC are compressed
+  already, and made while it is sent: nothing more is written to disk, and
+  `bundle.zip_size` works out its exact length beforehand for the
+  Content-Length. A ZIP cannot resume, hence
+- `GET /api/jobs/{id}/files` and `/files/{index}`: the same files one by one,
+  addressed by their place in the list, never by a path from the request.
+- A download sent to its end sets the job's `fetched_at` (a background task
+  of the response: if the browser leaves early, sending fails and it never
+  runs). One by one, that is once every audio file was sent; a Range request
+  counts when it reaches the file's last byte, so a resumed file counts. The
+  server cannot know that the browser saved the file, only that it was sent,
+  so with `delete_after_download` (on by default) the files go
+  `FETCHED_GRACE` (10 minutes) later: time to download again, or on another
+  device.
+- Otherwise they go `keep_ready_hours` (24 by default) after the job
+  finished. A sweep at start and every 2 minutes deletes them; *Discard*
+  does at once.
+- *Add to library* on a ready job is the import above with the destination
+  dropped: it resumes from the staged files.
 
 **Resuming.** `POST /api/jobs/{id}/import` re-runs a finished job in merge
 mode. If the job still has tracks in staging, nothing is downloaded: tracks

@@ -60,11 +60,12 @@ if (albumHref) {
   p = await page(base + albumHref); await p.wait(5000);
   const rows = await p.ev(`document.querySelectorAll(".track").length`);
   const selectable = await p.ev(`document.querySelectorAll(".track input:not(:disabled)").length`);
-  const label = await p.ev(`document.querySelector(".actionbar .btn")?.innerText.replace(/\\s+/g, " ").trim()`);
-  check("album page lists its songs with a download button", rows > 0 && Boolean(label), `${rows} songs, ${selectable} selectable, button "${label}"`);
+  const label = await p.ev(`document.querySelector(".actionbar .btn-filled")?.innerText.replace(/\\s+/g, " ").trim()`);
+  const device = await p.ev(`document.querySelector(".actionbar .btn-device")?.innerText.replace(/\\s+/g, " ").trim()`);
+  check("album page lists its songs with both buttons", rows > 0 && Boolean(label) && device === "Download", `${rows} songs, ${selectable} selectable, buttons "${device}" and "${label}"`);
   if (selectable > 1) {
     await p.ev(`document.querySelector(".track input:not(:disabled)").closest("label").click()`); await p.wait(300);
-    const after = await p.ev(`document.querySelector(".actionbar .btn")?.innerText.replace(/\\s+/g, " ").trim()`);
+    const after = await p.ev(`document.querySelector(".actionbar .btn-filled")?.innerText.replace(/\\s+/g, " ").trim()`);
     check("unticking a song changes the button", after !== label, `"${after}"`);
   }
   check("no errors on the album page", p.errors.length === 0, p.errors.join(" ; ")); await p.close();

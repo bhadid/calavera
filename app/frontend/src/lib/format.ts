@@ -28,6 +28,17 @@ export function atTime(seconds: number): string {
   return `${then.toDateString() === new Date().toDateString() ? "" : "yesterday "}at ${time}`;
 }
 
+/** "9 min", "3 h 12 min", "2 days": time left, rounded up to the minute. */
+export function timeLeft(seconds: number): string {
+  const minutes = Math.max(1, Math.ceil(seconds / 60));
+  if (minutes < 60) return `${minutes} min`;
+  if (minutes < 48 * 60) {
+    const hours = Math.floor(minutes / 60);
+    return minutes % 60 ? `${hours} h ${minutes % 60} min` : `${hours} h`;
+  }
+  return plural(Math.round(minutes / 1440), "day");
+}
+
 /**
  * The page for an album, from its Apple Music link, e.g.
  * https://music.apple.com/de/album/some-name/123 -> /album/123?sf=de.

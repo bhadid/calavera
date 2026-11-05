@@ -17,7 +17,10 @@ Calavera is built to run on a private network. These points are by design
 and described in the [README](README.md) and in
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md); they are not vulnerabilities:
 
-- The web UI has no login. Anyone who can reach its port can use it.
+- The web UI has no login. Anyone who can reach its port can use it,
+  including downloading to their own device what was fetched with your
+  Apple account. Keep it on your own network, or behind a proxy that asks
+  for a login.
 - The web UI is served over plain HTTP.
 - The wrapper container runs with relaxed seccomp, AppArmor and `/proc`
   settings, which wrapper-lite's launcher needs to create its namespaces. It

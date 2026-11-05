@@ -34,7 +34,7 @@ export function useSettingsDraft() {
       const result = await api.saveSettings(draft);
       setSaved(result);
       setDraft(result);
-      notify("Settings saved. They apply to downloads started from now on.", "success");
+      notify("Settings saved.", "success");
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "The settings could not be saved.");
     } finally {

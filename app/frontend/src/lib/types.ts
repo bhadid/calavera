@@ -1,7 +1,10 @@
-export type JobStatus = "queued" | "running" | "done" | "skipped" | "failed" | "canceled" | "interrupted";
+export type JobStatus = "queued" | "running" | "done" | "ready" | "skipped" | "failed" | "canceled" | "interrupted";
+
+/** Where a job puts what it downloads: the library, or staging for the browser to fetch. */
+export type Destination = "library" | "device";
 
 export interface JobResult {
-  status: "imported" | "exists" | "failed";
+  status: "imported" | "exists" | "failed" | "ready";
   message: string;
   path: string;
   artist?: string;
@@ -20,6 +23,8 @@ export interface JobOptions {
   track_ids?: string[];
   merge?: boolean;
   resume?: boolean;
+  /** Absent: the library. */
+  destination?: Destination;
 }
 
 /** Colours Apple picked from a cover: its background and four text colours for it. */
@@ -56,9 +61,19 @@ export interface Job {
   created_at: number;
   started_at: number | null;
   finished_at: number | null;
+  /** When the browser got all of a ready job's files; null before. */
+  fetched_at: number | null;
   has_files: boolean;
   /** Finished tracks sitting in staging that could still be imported. */
   staged_tracks: number;
+}
+
+/** One file of a job that is ready to download. */
+export interface JobFile {
+  index: number;
+  /** "Artist - Album/01 Song.flac" */
+  name: string;
+  size: number;
 }
 
 export interface LogLine {
@@ -104,6 +119,10 @@ export interface Settings {
   storefront: string;
   lyrics: boolean;
   cover_size: 1400 | 3000 | 5000;
+  /** Delete a download for the device shortly after it was downloaded completely. */
+  delete_after_download: boolean;
+  /** Hours a download for the device waits before its files are deleted otherwise. */
+  keep_ready_hours: number;
 }
 
 export interface Album {

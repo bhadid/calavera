@@ -11,6 +11,8 @@ Job statuses
     queued       waiting for its turn
     running      in the pipeline (see `stage`)
     done         what the job set out to get is in the library
+    ready        downloaded for the user's device; the files wait in staging
+                 until they are fetched, discarded or expire
     skipped      the library already had it; nothing was changed
     failed       something went wrong (see `error`); files may remain in staging
     canceled     stopped by the user
@@ -20,6 +22,8 @@ Job options (stored with the job)
     track_ids  list of song ids: download only these songs of the album
     merge      add tracks to an album folder that already exists
     resume     skip the download and continue with the files in staging
+    destination  "device": end as `ready` instead of importing; the library
+               is not consulted. Absent: the library.
 
 What a job downloads is decided in `_plan`: songs Apple does not offer are
 left out up front (that is expected, not a failure), and so are tracks the
@@ -27,7 +31,9 @@ library already has when merging.
 
 Staging: each job owns `<staging>/<job id>/`. It is deleted when the job ends
 `done`, and kept otherwise so the files can be inspected or imported after
-all, until the job is retried or removed.
+all, until the job is retried or removed. A `ready` job's files are deleted
+`keep_ready_hours` after it finished, or with `delete_after_download`
+`FETCHED_GRACE` seconds after the browser got all of them (see `expired`).
 """
 from __future__ import annotations
 
@@ -35,6 +41,7 @@ import asyncio
 import shutil
 import time
 import uuid
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable
 
@@ -48,6 +55,11 @@ from .wrapper import WrapperClient
 
 ACTIVE = ("queued", "running")
 MIN_FREE_BYTES = 1 << 30  # refuse to start a download with less than 1 GiB free in staging
+SWEEP_SECONDS = 120  # how often expired downloads are looked for
+# A download sent completely is kept this much longer: time to download it
+# again if saving failed, or to fetch it on another device.
+FETCHED_GRACE = 600
+DESTINATIONS = ("library", "device")
 
 
 class JobError(Exception):
@@ -70,6 +82,31 @@ def _codec(track: Path) -> str:
     return "flac" if track.suffix.lower() == ".flac" else "alac"
 
 
+def for_device(job: dict[str, Any]) -> bool:
+    return job["options"].get("destination") == "device"
+
+
+def expired(jobs: list[dict[str, Any]], now: float, hours: int, after_download: bool) -> list[tuple[str, str]]:
+    """`ready` jobs whose files are due for deletion, with why: "fetched"
+    (downloaded, and the grace time is over) or "time" (kept `hours`)."""
+    due = []
+    for j in jobs:
+        if j["status"] != "ready":
+            continue
+        if after_download and j.get("fetched_at") and now - j["fetched_at"] >= FETCHED_GRACE:
+            due.append((j["id"], "fetched"))
+        elif j.get("finished_at") and now - j["finished_at"] >= hours * 3600:
+            due.append((j["id"], "time"))
+    return due
+
+
+@dataclass(frozen=True)
+class StagedAlbum:
+    artist: str  # folder names as amdl wrote them
+    album: str
+    path: Path
+
+
 class JobManager:
     def __init__(
         self,
@@ -87,6 +124,9 @@ class JobManager:
         self._subscribers: set[asyncio.Queue] = set()
         self._wake = asyncio.Event()
         self._task: asyncio.Task | None = None
+        self._sweeper: asyncio.Task | None = None
+        # Files of a ready job sent completely one by one, by their index.
+        self._sent: dict[str, set[int]] = {}
         self._current: str | None = None
         self._runner: amdl.Runner | None = None
         self._cancel_requested = False
@@ -100,13 +140,56 @@ class JobManager:
                 error="Calavera was restarted while this job was running. Retry to run it again.",
             )
         self._task = asyncio.create_task(self._worker(), name="job-worker")
+        self._sweeper = asyncio.create_task(self._sweep_forever(), name="job-sweeper")
 
     async def stop(self) -> None:
         if self._runner:
             self._runner.cancel()
-        if self._task:
-            self._task.cancel()
-            await asyncio.gather(self._task, return_exceptions=True)
+        for task in (self._task, self._sweeper):
+            if task:
+                task.cancel()
+                await asyncio.gather(task, return_exceptions=True)
+
+    def sweep(self, now: float | None = None) -> None:
+        """Delete the files of `ready` jobs that were kept long enough."""
+        settings = self._get_settings()
+        hours = settings.keep_ready_hours
+        for job_id, why in expired(self._db.list_jobs(["ready"]), now or time.time(), hours, settings.delete_after_download):
+            self._sent.pop(job_id, None)
+            if self.staging_dir(job_id).exists():
+                shutil.rmtree(self.staging_dir(job_id), ignore_errors=True)
+                self._log(job_id, (
+                    "The files were downloaded and are now removed from staging." if why == "fetched"
+                    else f"The files were kept {_plural(hours, 'hour')} and are now removed."
+                ) + " Retry to download again.")
+                self._update(job_id)
+
+    def fetched(self, job_id: str) -> None:
+        """The browser got all of a ready job's files."""
+        job = self._db.get_job(job_id)
+        if not job or job["status"] != "ready" or job.get("fetched_at"):
+            return
+        if self._get_settings().delete_after_download:
+            self._log(job_id, f"Downloaded. The files are removed from staging in {FETCHED_GRACE // 60} minutes.")
+        else:
+            self._log(job_id, "Downloaded.")
+        self._update(job_id, fetched_at=time.time())
+
+    def file_sent(self, job_id: str, index: int, needed: set[int]) -> None:
+        """One file of a ready job was sent completely; once every one in
+        `needed` (the audio files) was, the job counts as fetched."""
+        sent = self._sent.setdefault(job_id, set())
+        sent.add(index)
+        if needed <= sent:
+            self.fetched(job_id)
+
+    async def _sweep_forever(self) -> None:
+        while True:
+            try:
+                await asyncio.to_thread(self.sweep)
+            except Exception:  # never let a sweep failure end the loop
+                pass
+            await asyncio.sleep(SWEEP_SECONDS)
 
     # -- events ----------------------------------------------------------------
     def subscribe(self) -> asyncio.Queue:
@@ -158,6 +241,12 @@ class JobManager:
         job["staged_tracks"] = len(self._staged_tracks(job["id"])) if job["has_files"] and finished else 0
         return job
 
+    def staged_albums(self, job_id: str) -> list[StagedAlbum]:
+        music = self.staging_dir(job_id) / "music"
+        if not music.is_dir():
+            return []
+        return [StagedAlbum(*found) for found in self._collect(music, required=False)]
+
     def list(self) -> list[dict[str, Any]]:
         return [self._view(j) for j in self._db.list_jobs()]
 
@@ -169,9 +258,12 @@ class JobManager:
         return self._db.get_logs(job_id)
 
     # -- commands ----------------------------------------------------------------
-    def enqueue(self, raw_url: str, track_ids: list[str] | None = None) -> dict[str, Any]:
-        """Add a job. `track_ids` limits an album job to those songs.
-        Raises urls.UnsupportedUrl or JobError (duplicate)."""
+    def enqueue(self, raw_url: str, track_ids: list[str] | None = None, destination: str = "library") -> dict[str, Any]:
+        """Add a job. `track_ids` limits an album job to those songs;
+        `destination` "device" keeps the files for the browser instead of
+        importing them. Raises urls.UnsupportedUrl or JobError (duplicate)."""
+        if destination not in DESTINATIONS:
+            raise JobError(f"Unknown destination {destination!r}.")
         parsed = urls.parse(raw_url)
         options: dict[str, Any] = {}
         if parsed.kind == "album" and track_ids:
@@ -179,9 +271,14 @@ class JobManager:
         # Choosing specific songs is an explicit wish to have them, also when
         # the album folder is already there.
         options["merge"] = parsed.kind == "song" or "track_ids" in options
+        if destination == "device":
+            options["destination"] = "device"
         for job in self._db.list_jobs(ACTIVE):
             same_target = (job["kind"], job["apple_id"]) == (parsed.kind, parsed.apple_id)
-            if same_target and job["options"].get("track_ids") == options.get("track_ids"):
+            if (
+                same_target and job["options"].get("track_ids") == options.get("track_ids")
+                and for_device(job) == (destination == "device")
+            ):
                 raise JobError("That is already in the queue.")
         job = {
             "id": uuid.uuid4().hex[:12],
@@ -230,8 +327,9 @@ class JobManager:
         self._db.clear_logs(job_id)
         self._update(
             job_id, status="queued", stage="", progress=0, detail="", error="", result=[],
-            options=options, started_at=None, finished_at=None,
+            options=options, started_at=None, finished_at=None, fetched_at=None,
         )
+        self._sent.pop(job_id, None)
         self._wake.set()
 
     def retry(self, job_id: str) -> None:
@@ -257,7 +355,8 @@ class JobManager:
         resume = bool(self._staged_tracks(job_id))
         if not resume:
             self.discard_files(job_id)
-        self._requeue(job_id, {**job["options"], "merge": True, "resume": resume})
+        options = {k: v for k, v in job["options"].items() if k != "destination"}
+        self._requeue(job_id, {**options, "merge": True, "resume": resume})
 
     def remove(self, job_id: str) -> None:
         job = self._db.get_job(job_id)
@@ -323,12 +422,14 @@ class JobManager:
         music_dir = job_dir / "music"
 
         plan: Plan | None = None
+        device = for_device(job)
         if options.get("resume") and self._staged_tracks(job_id):
-            await self._check_library()
+            if not device:
+                await self._check_library()
             self._log(job_id, "Continuing with the files already downloaded; nothing is downloaded again.")
             await asyncio.to_thread(self._drop_unfinished, job_id)
         else:
-            await self._preflight()
+            await self._preflight(check_library=not device)
             plan = await self._plan(job)
             shutil.rmtree(job_dir, ignore_errors=True)
             music_dir.mkdir(parents=True)
@@ -350,6 +451,13 @@ class JobManager:
             await self._convert(job_id, [t for t in self._staged_tracks(job_id) if t.suffix.lower() == ".m4a"])
         await asyncio.to_thread(self._make_readable, music_dir)
         self._check_cancel()
+
+        if device:
+            results = [self._describe_result(path, quality, plan, len(albums)) for _, _, path in albums]
+            for (artist, album, _), r in zip(albums, results):
+                self._log(job_id, f"✔ {artist} / {album}: {_plural(r['tracks'], 'track')} ready to download.")
+            self._finish(job_id, "ready", progress=1, result=results, detail=plan.note() if plan else "")
+            return
 
         merge = bool(options.get("merge"))
         results = await self._import(job_id, albums, quality, merge, plan)
@@ -377,11 +485,12 @@ class JobManager:
         if problem:
             raise JobError(problem)
 
-    async def _preflight(self) -> None:
+    async def _preflight(self, check_library: bool = True) -> None:
         """Fail before downloading anything if the job cannot succeed."""
         if not await self._wrapper.regions():
             raise JobError("Not signed in to Apple Music, or the wrapper is not running. Open Account to sign in.")
-        await self._check_library()
+        if check_library:
+            await self._check_library()
         self._config.staging_dir.mkdir(parents=True, exist_ok=True)
         if shutil.disk_usage(self._config.staging_dir).free < MIN_FREE_BYTES:
             raise JobError("Less than 1 GB is free in the staging folder.")
@@ -409,7 +518,10 @@ class JobManager:
                 artwork_colors=album.get("colors"),
             )
 
-        existing = await asyncio.to_thread(library.find_album, self._config.library_dir, album["artist"], album["name"])
+        if for_device(job):
+            existing = None
+        else:
+            existing = await asyncio.to_thread(library.find_album, self._config.library_dir, album["artist"], album["name"])
         merge = bool(options.get("merge"))
         if existing and not merge:
             # A plain album download never touches an album folder that exists.
@@ -500,7 +612,7 @@ class JobManager:
                 track.unlink(missing_ok=True)
 
     @staticmethod
-    def _collect(music_dir: Path) -> list[tuple[str, str, Path]]:
+    def _collect(music_dir: Path, required: bool = True) -> list[tuple[str, str, Path]]:
         """(artist folder, album folder, path) for every album in staging."""
         albums = [
             (artist.name, album.name, album)
@@ -508,7 +620,7 @@ class JobManager:
             for album in sorted(artist.iterdir())
             if album.is_dir() and any(p.suffix.lower() in audio.AUDIO_EXTS for p in album.iterdir())
         ]
-        if not albums:
+        if not albums and required:
             raise JobError("There are no downloaded tracks to import.")
         return albums
 
@@ -536,6 +648,25 @@ class JobManager:
         for path in music_dir.rglob("*"):
             path.chmod(0o755 if path.is_dir() else 0o644)
 
+    @staticmethod
+    def _describe_result(
+        path: Path, quality: list[tuple[int, int]], plan: Plan | None, album_count: int
+    ) -> dict[str, Any]:
+        """What a job got for one album folder in staging."""
+        tracks = [p for p in path.iterdir() if p.suffix.lower() in audio.AUDIO_EXTS]
+        known = plan is not None and album_count == 1
+        return {
+            "artist": path.parent.name, "album": path.name, "status": "ready", "message": "", "path": "",
+            "tracks": len(tracks),
+            "format": "flac" if all(t.suffix.lower() == ".flac" for t in tracks) else "alac",
+            "quality": [f"{bits}-bit / {rate / 1000:g} kHz" for bits, rate in quality],
+            # For "10 of 16" in the interface: how many tracks the album
+            # has and how many Apple does not offer. Known only when the
+            # download was planned from the catalogue.
+            "album_tracks": plan.album_tracks if known else 0,
+            "unavailable": len(plan.unavailable) if known else 0,
+        }
+
     async def _import(
         self, job_id: str, albums: list[tuple[str, str, Path]], quality: list[tuple[int, int]],
         merge: bool, plan: Plan | None,
@@ -545,21 +676,12 @@ class JobManager:
         results = []
         for artist, album, path in albums:
             self._check_cancel()
-            tracks = [p for p in path.iterdir() if p.suffix.lower() in audio.AUDIO_EXTS]
+            result = self._describe_result(path, quality, plan, len(albums))
             outcome = await asyncio.to_thread(importer, path, self._config.library_dir, artist, album)
-            known = plan is not None and len(albums) == 1
-            results.append({
-                "artist": artist, "album": album, "status": outcome.status, "message": outcome.message,
-                "path": outcome.path,
-                "tracks": outcome.added if outcome.status == "imported" else len(tracks),
-                "format": "flac" if all(t.suffix.lower() == ".flac" for t in tracks) else "alac",
-                "quality": [f"{bits}-bit / {rate / 1000:g} kHz" for bits, rate in quality],
-                # For "10 of 16" in the interface: how many tracks the album
-                # has and how many Apple does not offer. Known only when the
-                # download was planned from the catalogue.
-                "album_tracks": plan.album_tracks if known else 0,
-                "unavailable": len(plan.unavailable) if known else 0,
-            })
+            result.update(status=outcome.status, message=outcome.message, path=outcome.path)
+            if outcome.status == "imported":
+                result["tracks"] = outcome.added
+            results.append(result)
             mark = {"imported": "✔", "exists": "⏭", "failed": "✖"}[outcome.status]
             self._log(job_id, f"{mark} {artist} / {album}: {outcome.message}")
         return results

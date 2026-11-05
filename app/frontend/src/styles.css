@@ -512,6 +512,23 @@ h1 {
     grid-row: span var(--h6, var(--h4, var(--h2, 1)));
   }
 }
+/* A tile placed straight on the page spans its one column. Without this,
+   .tile's "span 2" adds an empty second column, and everything else on the
+   page ends one gap short of the tile's edge. */
+.page > .tile {
+  grid-column: 1 / -1;
+}
+/* Tiles that each take a whole row (the queue) are as tall as their content:
+   the minimum row height would only leave a gap under a short list. */
+.bento-fit {
+  grid-auto-rows: auto;
+}
+@container (min-width: 600px) {
+  .bento-fit {
+    grid-auto-rows: auto;
+  }
+}
+
 /* A grid of equal small tiles (albums), filling the width. */
 .bento-cards {
   display: grid;
@@ -1283,6 +1300,50 @@ button.row {
     height: 64px;
   }
 }
+/* Ready downloads have a button each, so they get wider columns. */
+@container (min-width: 700px) {
+  .next.ready-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@container (min-width: 1100px) {
+  .next.ready-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+.ready-list .btn span {
+  font-size: inherit;
+  color: inherit;
+}
+/* On a phone the text needs the room; the icon says it (and the label is read out). */
+@container (max-width: 520px) {
+  .ready-list .btn-text {
+    display: none;
+  }
+}
+/* A ready job's files one by one (the fallback to the whole download). */
+.file-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.875rem;
+}
+.file-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+.file-list a {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.file-list .num {
+  flex: none;
+}
 .more {
   display: flex;
   align-items: center;
@@ -1579,6 +1640,10 @@ button.row {
 }
 .actionbar .btn {
   flex: 1;
+}
+/* Next to the main action, sized to its label. */
+.actionbar .btn-device {
+  flex: none;
 }
 @media (min-width: 760px) {
   .actionbar {

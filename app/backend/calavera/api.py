@@ -8,22 +8,25 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 import shutil
 from contextlib import asynccontextmanager
+from typing import Literal
 from urllib.parse import quote, urlparse
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.types import Receive, Scope, Send
 from pydantic import BaseModel, Field, ValidationError
 
-from . import __version__, library, urls
+from . import __version__, audio, bundle, library, urls
 from .catalog import GROUPS, Catalog, CatalogError, NotInCatalog
 from .config import LOCAL_HOSTS, Config, host_name
 from .config import load as load_config
 from .db import Database
-from .jobs import JobError, JobManager
+from .jobs import JobError, JobManager, StagedAlbum
 from .memory import ALBUM, ARTIST, QUALITY, SEARCH, Memory
 from .plan import track_file_stem
 from .settings import Settings
@@ -52,11 +55,14 @@ class NewJobItem(BaseModel):
     url: str
     # Song ids to download from an album link. Empty or absent: the whole album.
     track_ids: list[str] | None = Field(default=None, max_length=500)
+    # "device": keep the files for the browser instead of adding them to the library.
+    destination: Literal["library", "device"] = "library"
 
 
 class NewJobs(BaseModel):
     """Either plain links, or items when specific songs of an album are wanted."""
     urls: list[str] = Field(default_factory=list, max_length=50)
+    destination: Literal["library", "device"] = "library"
     items: list[NewJobItem] = Field(default_factory=list, max_length=50)
 
 
@@ -67,6 +73,66 @@ class Login(BaseModel):
 
 class Code(BaseModel):
     code: str = Field(pattern=r"^\d{6}$")
+
+
+def audio_type(suffix: str) -> str:
+    return {".flac": "audio/flac", ".m4a": "audio/mp4", ".jpg": "image/jpeg", ".lrc": "text/plain"}.get(
+        suffix.lower(), "application/octet-stream")
+
+
+class WhenSent(Response):
+    """A response that calls `done` once it went out to its end, and not if
+    the browser left before. (The server cannot tell more: not whether the
+    browser saved what it got.)
+
+    Starlette's background tasks run in both cases, so this watches for the
+    browser leaving itself, while the response is sent.
+    """
+
+    def __init__(self, response: Response, done) -> None:  # noqa: D107 (wraps, so no super().__init__)
+        self.response = response
+        self.done = done
+        self.status_code = response.status_code
+        self.raw_headers = response.raw_headers
+        self.background = None
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        state = {"complete": False, "left": False}
+
+        async def watch() -> None:
+            while (await receive())["type"] != "http.disconnect":
+                pass
+            if not state["complete"]:
+                state["left"] = True
+
+        async def tracked(message) -> None:
+            await send(message)
+            if message["type"] == "http.response.body" and not message.get("more_body", False):
+                await asyncio.sleep(0)  # let `watch` see a disconnect that came first
+                state["complete"] = not state["left"]
+
+        watcher = asyncio.create_task(watch())
+        try:
+            await self.response(scope, receive, tracked)
+        finally:
+            watcher.cancel()
+        if state["complete"] and not state["left"]:
+            self.done()
+
+
+def reaches_end(range_header: str | None, size: int) -> bool:
+    """Whether a request for a file of `size` bytes asks for it up to its
+    last byte: the whole file, or the rest of it when a download resumes."""
+    if not range_header:
+        return True
+    unit, _, spec = range_header.partition("=")
+    if unit.strip().lower() != "bytes":
+        return True  # not a range FileResponse honours: the whole file is sent
+    for part in spec.split(","):
+        start, _, end = part.strip().partition("-")
+        if start and (not end or (end.isdigit() and int(end) >= size - 1)):
+            return True
+    return False
 
 
 def create_app(config: Config | None = None) -> FastAPI:
@@ -175,13 +241,14 @@ def create_app(config: Config | None = None) -> FastAPI:
 
     @app.post("/api/jobs")
     async def add_jobs(body: NewJobs):
-        wanted = [NewJobItem(url=u) for u in dict.fromkeys(u.strip() for u in body.urls if u.strip())] + body.items
+        plain = dict.fromkeys(u.strip() for u in body.urls if u.strip())
+        wanted = [NewJobItem(url=u, destination=body.destination) for u in plain] + body.items
         if not wanted:
             raise HTTPException(422, "No links were given.")
         added, rejected = [], []
         for item in wanted:
             try:
-                added.append(jobs.enqueue(item.url, item.track_ids))
+                added.append(jobs.enqueue(item.url, item.track_ids, item.destination))
             except (urls.UnsupportedUrl, JobError) as e:
                 rejected.append({"url": item.url, "error": str(e)})
         return JSONResponse({"added": added, "rejected": rejected}, status_code=201 if added else 422)
@@ -231,6 +298,62 @@ def create_app(config: Config | None = None) -> FastAPI:
         except JobError as e:
             raise HTTPException(409, str(e)) from e
         return {"job": jobs.get(job_id)}
+
+    # -- downloads to the user's device ------------------------------------------
+    def ready_files(job_id: str) -> tuple[dict, list[StagedAlbum], list[bundle.Entry]]:
+        job = require_job(job_id)
+        if job["status"] != "ready":
+            raise HTTPException(409, "This job has nothing to download.")
+        albums = jobs.staged_albums(job_id)
+        entries = bundle.entries_for((library.folder_name(f"{a.artist} - {a.album}"), a.path) for a in albums)
+        if not entries:
+            raise HTTPException(410, "The downloaded files were removed. Retry the job to download them again.")
+        return job, albums, entries
+
+    def attachment(name: str) -> dict[str, str]:
+        return {"Content-Disposition": f"attachment; filename*=UTF-8''{quote(name)}", "Cache-Control": "no-store"}
+
+    def send_file(request: Request, entry: bundle.Entry, name: str, done) -> Response:
+        # FileResponse answers Range requests, so an interrupted file resumes.
+        response = FileResponse(entry.path, headers=attachment(name), media_type=audio_type(entry.path.suffix))
+        return WhenSent(response, done) if reaches_end(request.headers.get("range"), entry.size) else response
+
+    @app.get("/api/jobs/{job_id}/download")
+    async def download_job(job_id: str, request: Request):
+        """A ready job's files: the file itself when there is one track,
+        otherwise a ZIP made while it is sent."""
+        job, albums, entries = await asyncio.to_thread(ready_files, job_id)
+        tracks = [e for e in entries if e.path.suffix.lower() in audio.AUDIO_EXTS]
+        if len(tracks) == 1:
+            track = tracks[0]
+            title = re.sub(r"^\d+[-. ]*\s*", "", track.path.stem) or track.path.stem
+            name = library.folder_name(f"{track.path.parent.parent.name} - {title}") + track.path.suffix
+            return send_file(request, track, name, lambda: jobs.fetched(job_id))
+        if len(albums) == 1:
+            name = library.folder_name(f"{albums[0].artist} - {albums[0].album}")
+        else:
+            name = library.folder_name(job["title"] or "Calavera")
+        return WhenSent(StreamingResponse(
+            bundle.zip_stream(entries), media_type="application/zip",
+            headers={**attachment(f"{name}.zip"), "Content-Length": str(bundle.zip_size(entries))},
+        ), lambda: jobs.fetched(job_id))
+
+    @app.get("/api/jobs/{job_id}/files")
+    async def list_job_files(job_id: str):
+        """A ready job's files one by one, for when the ZIP will not do."""
+        _job, _albums, entries = await asyncio.to_thread(ready_files, job_id)
+        return {"files": [{"index": i, "name": e.name, "size": e.size} for i, e in enumerate(entries)]}
+
+    @app.get("/api/jobs/{job_id}/files/{index}")
+    async def download_job_file(job_id: str, index: int, request: Request):
+        # Files are addressed by their place in the list, never by a path
+        # taken from the request.
+        _job, _albums, entries = await asyncio.to_thread(ready_files, job_id)
+        if not 0 <= index < len(entries):
+            raise HTTPException(404, "No such file.")
+        entry = entries[index]
+        audio_files = {i for i, e in enumerate(entries) if e.path.suffix.lower() in audio.AUDIO_EXTS}
+        return send_file(request, entry, entry.path.name, lambda: jobs.file_sent(job_id, index, audio_files))
 
     @app.delete("/api/jobs/{job_id}")
     async def remove_job(job_id: str):

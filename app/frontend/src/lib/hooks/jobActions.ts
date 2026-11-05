@@ -32,9 +32,9 @@ export function useJobActions(job: Job) {
 
   async function discard() {
     const ok = await confirm({
-      title: "Discard downloaded files?",
-      message: `The files this job left in the staging folder for “${name}” will be deleted. Your library is not touched.`,
-      action: "Discard files",
+      title: "Discard files?",
+      message: `Deletes the downloaded files of “${name}”. Your library stays as it is.`,
+      action: "Discard",
       destructive: true,
     });
     if (ok) await act(() => api.discardFiles(job.id));
@@ -44,9 +44,9 @@ export function useJobActions(job: Job) {
     // Removing a job that left nothing behind loses only a history entry.
     if (job.has_files) {
       const ok = await confirm({
-        title: "Remove this job?",
-        message: `“${name}” still has downloaded files in the staging folder. Removing the job deletes them. Your library is not touched.`,
-        action: "Remove and delete files",
+        title: "Remove from the queue?",
+        message: `Removes “${name}” and deletes its downloaded files. Your library stays as it is.`,
+        action: "Remove",
         destructive: true,
       });
       if (!ok) return;

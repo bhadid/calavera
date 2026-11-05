@@ -2,8 +2,10 @@ import type {
   AlbumDetail,
   AlbumQuality,
   ArtistDetail,
+  Destination,
   GroupPage,
   Job,
+  JobFile,
   LogLine,
   OtherReleases,
   ReleaseGroup,
@@ -72,8 +74,8 @@ export const api = {
    * Queue links. `trackIds` (for a single album link) limits the job to
    * those songs. Resolves with both lists even when every link was rejected.
    */
-  addJobs: async (urls: string[], trackIds?: string[]): Promise<AddJobsResponse> => {
-    const body = trackIds ? { items: urls.map((url) => ({ url, track_ids: trackIds })) } : { urls };
+  addJobs: async (urls: string[], trackIds?: string[], destination: Destination = "library"): Promise<AddJobsResponse> => {
+    const body = trackIds ? { items: urls.map((url) => ({ url, track_ids: trackIds, destination })) } : { urls, destination };
     try {
       return await request<AddJobsResponse>("POST", "/jobs", body);
     } catch (e) {
@@ -89,6 +91,11 @@ export const api = {
   importJob: (id: string) => request<unknown>("POST", `/jobs/${id}/import`),
   discardFiles: (id: string) => request<unknown>("DELETE", `/jobs/${id}/files`),
   removeJob: (id: string) => request<unknown>("DELETE", `/jobs/${id}`),
+  /** A ready job's files one by one, for when the whole download did not work out. */
+  jobFiles: (id: string) => request<{ files: JobFile[] }>("GET", `/jobs/${id}/files`).then((r) => r.files),
+  /** Addresses the browser opens itself (a link), so the file streams to disk. */
+  downloadUrl: (id: string) => `/api/jobs/${id}/download`,
+  fileUrl: (id: string, index: number) => `/api/jobs/${id}/files/${index}`,
 
   settings: () => request<{ settings: Settings; defaults: Settings }>("GET", "/settings"),
   saveSettings: (settings: Partial<Settings>) =>
