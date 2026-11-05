@@ -5,6 +5,7 @@ import { leftReloadedPage } from "../lib/api";
 import { bytes } from "../lib/format";
 import { useStore } from "../lib/store";
 import type { Status } from "../lib/types";
+import { Backdrop } from "./Backdrop";
 import { DotsLogo } from "./DotsLogo";
 import { Icon, type IconName } from "./Icon";
 
@@ -63,6 +64,7 @@ export function Layout() {
 
   return (
     <div className="app">
+      <Backdrop />
       <aside className="sidebar">
         <NavLink to="/search" className="brand" aria-label="Calavera, go to search">
           <DotsLogo size={34} />

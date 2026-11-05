@@ -19,7 +19,7 @@ const ICON_MIN_RADIUS = 0.26;
 type Part = keyof typeof DOTS;
 const parse = (part: Part) => DOTS[part].split(",").map((dot) => dot.split(" ").map(Number));
 
-type Colours = Record<Part, string>;
+export type Colours = Record<Part, string>;
 
 /**
  * The drawing as SVG markup for the browser-tab icon, in the light set and,
@@ -36,6 +36,28 @@ export function logoSvg(light: Colours, dark: Colours): string {
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${VIEW}"><style>${style(light)}` +
     `@media (prefers-color-scheme: dark){${style(dark)}}</style>${groups}</svg>`
   );
+}
+
+/**
+ * A repeating tile of the logo, `size` px square, as SVG markup: each skull
+ * is `{x, y, size}` in px (top-left corner), and skulls over an edge are
+ * drawn again on the other side so the tile repeats without seams.
+ */
+export function logoTileSvg(size: number, skulls: { x: number; y: number; size: number }[], colours: Colours): string {
+  const parts = Object.keys(DOTS) as Part[];
+  const [vx, vy, vs] = VIEW.split(" ").map(Number);
+  const drawing = parts
+    .map((part) => `<g fill="${colours[part]}">${parse(part).map(([x, y, r]) => `<circle cx="${x / 2}" cy="${y / 2}" r="${r}"/>`).join("")}</g>`)
+    .join("");
+  const placed: string[] = [];
+  for (const s of skulls)
+    for (const dx of [-size, 0, size])
+      for (const dy of [-size, 0, size]) {
+        const x = s.x + dx, y = s.y + dy;
+        if (x < size && x + s.size > 0 && y < size && y + s.size > 0)
+          placed.push(`<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${(s.size / vs).toFixed(4)}) translate(${-vx} ${-vy})">${drawing}</g>`);
+      }
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">${placed.join("")}</svg>`;
 }
 
 /** The logo, coloured by the --dot-* variables of the theme, in a square of `size`. */
