@@ -345,12 +345,15 @@ function HistoryRow({ job, hours }: { job: Job; hours: number }) {
           <strong>{jobTitle(job)}</strong>
           <span>{facts || job.url}</span>
         </span>
-        <span className={`row-end ${status.tone}`}>
-          <Icon name={status.icon} size={16} weight={2.4} />
-          <span className="label">
-            {job.status === "ready" && !job.has_files ? "Files removed" : partial ? "Partly in library" : status.label}
+        {/* A job that did what it was asked says nothing, like a command that succeeds. */}
+        {(job.status !== "done" || partial) && (
+          <span className={`row-end ${partial ? "" : status.tone}`}>
+            <Icon name={partial ? "info" : status.icon} size={16} weight={2.4} />
+            <span className="label">
+              {job.status === "ready" && !job.has_files ? "Files removed" : partial ? "Partly in library" : status.label}
+            </span>
           </span>
-        </span>
+        )}
         <span className="chev"><Icon name="chevron" size={16} weight={2.4} /></span>
       </button>
       {open && (
