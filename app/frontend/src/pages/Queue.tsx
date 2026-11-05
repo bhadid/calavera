@@ -132,7 +132,7 @@ export function QueuePage() {
       )}
 
       {(now || ready.length > 0) && (
-      <div className="bento">
+      <div className="bento bento-fit">
         {ready.length > 0 && <ReadyTile jobs={ready} hours={hours} />}
         {now && <NowTile job={now} />}
         {next.length > 0 && (

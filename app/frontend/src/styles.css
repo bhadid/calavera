@@ -512,6 +512,23 @@ h1 {
     grid-row: span var(--h6, var(--h4, var(--h2, 1)));
   }
 }
+/* A tile placed straight on the page spans its one column. Without this,
+   .tile's "span 2" adds an empty second column, and everything else on the
+   page ends one gap short of the tile's edge. */
+.page > .tile {
+  grid-column: 1 / -1;
+}
+/* Tiles that each take a whole row (the queue) are as tall as their content:
+   the minimum row height would only leave a gap under a short list. */
+.bento-fit {
+  grid-auto-rows: auto;
+}
+@container (min-width: 600px) {
+  .bento-fit {
+    grid-auto-rows: auto;
+  }
+}
+
 /* A grid of equal small tiles (albums), filling the width. */
 .bento-cards {
   display: grid;
