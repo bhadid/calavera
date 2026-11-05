@@ -20,6 +20,12 @@ const COVERS: { value: Settings["cover_size"]; label: string }[] = [
   { value: 3000, label: "3000" },
   { value: 5000, label: "5000 px" },
 ];
+const KEEP: { value: number; label: string }[] = [
+  { value: 6, label: "6 h" },
+  { value: 24, label: "1 day" },
+  { value: 72, label: "3 days" },
+  { value: 168, label: "1 week" },
+];
 const THEMES: { value: Theme; label: string }[] = [
   { value: "system", label: "Automatic" },
   { value: "light", label: "Light" },
@@ -111,6 +117,15 @@ export function SettingsPage() {
                   </div>
                   <div className="setting-control">
                     <Segmented label="Highest sample rate" value={draft.max_sample_rate} options={RATES} onChange={(v) => set("max_sample_rate", v)} />
+                  </div>
+                </div>
+                <div className="setting">
+                  <div className="setting-text">
+                    <strong>Keep downloads for</strong>
+                    <span>How long songs downloaded for a device wait in the queue before their files are deleted.</span>
+                  </div>
+                  <div className="setting-control">
+                    <Segmented label="Keep downloads for" value={draft.keep_ready_hours} options={KEEP} onChange={(v) => set("keep_ready_hours", v)} />
                   </div>
                 </div>
               </div>

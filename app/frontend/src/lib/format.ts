@@ -28,6 +28,17 @@ export function atTime(seconds: number): string {
   return `${then.toDateString() === new Date().toDateString() ? "" : "yesterday "}at ${time}`;
 }
 
+/** "until 14:05", "until tomorrow 09:30", "until Fri 12 Dec 09:30". */
+export function until(seconds: number): string {
+  const then = new Date(seconds * 1000);
+  const time = then.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  if (then.toDateString() === new Date().toDateString()) return `until ${time}`;
+  if (then.toDateString() === tomorrow.toDateString()) return `until tomorrow ${time}`;
+  return `until ${then.toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" })} ${time}`;
+}
+
 /**
  * The page for an album, from its Apple Music link, e.g.
  * https://music.apple.com/de/album/some-name/123 -> /album/123?sf=de.

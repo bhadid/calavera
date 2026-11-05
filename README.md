@@ -39,6 +39,9 @@ overwriting what is already there.
 - **Search** the Apple Music catalogue, browse an artist's albums, and see
   which albums you already have. Artist and album names link to their pages
   everywhere, including the download history.
+- **Add to your library or download to your device.** A finished album goes
+  into your music library, or waits in the queue for you to download it in
+  the browser: one song as its file, more as a ZIP.
 - **Choose songs.** Open an album to pick individual songs. Songs Apple lists
   but does not offer (greyed out in its own apps) are shown as such and left
   out automatically.
@@ -99,7 +102,7 @@ With a compose file of your own, each image can be built straight from a
 release tag; the version pins are part of the Dockerfiles:
 
 ```yaml
-build: https://github.com/bhadid/calavera.git#v0.7.5:app        # or …:wrapper
+build: https://github.com/bhadid/calavera.git#v0.8.0:app        # or …:wrapper
 ```
 
 Copy the `security_opt`, `cap_drop`, volumes and ports from `compose.yaml`;
@@ -158,18 +161,24 @@ the 6-digit code.
   a while (a search or an artist page for 15 minutes, an album for an hour)
   instead of asked for again. Reloading the page in your browser, or
   pressing *Search*, asks Apple afresh.
-- **Queue:** what is downloading, with its progress, what is up next, and the
-  history by day; tap an entry for its details, actions and log.
+- **Queue:** what is downloading, with its progress, what is up next, what
+  is ready to download to your device, and the history by day; tap an entry
+  for its details, actions and log. A download for your device is kept for a
+  day (see Settings), then its files are deleted. If the ZIP download breaks
+  off, *Single files* offers the songs one by one, and *Add to library* puts
+  them into the library after all.
 - **Album page:** year, label, quality and library state under the title,
-  then every song with a checkmark. Everything downloadable starts selected; untick what you
-  do not want. Songs that are not available or are
-  already in your library cannot be ticked and say why. Next to the download
-  button is the album's folder in the library. Calavera recognises an album
+  then every song with a checkmark. Everything not yet in your library
+  starts selected; untick what you do not want. *Add to library* adds the
+  ticked songs the library does not have; *Download* downloads every ticked
+  song to this device, also ones the library has. Songs Apple does not offer
+  cannot be ticked. Next to the buttons is the album's folder in the library. Calavera recognises an album
   only by that exact folder name (capitals aside), so an album you got
   elsewhere is found once its folder is renamed to match. Click the cover to
   see it large; right-click to save it as `Artist - Album.jpg`.
-- **Settings:** FLAC on/off, highest sample rate, lyrics, cover size, metadata
-  language, store for search. Under *Appearance*, light, dark or automatic,
+- **Settings:** FLAC on/off, highest sample rate, how long downloads for
+  your device are kept, lyrics, cover size, metadata language, store for
+  search. Under *Appearance*, light, dark or automatic,
   and the accent colour: monochrome or one of eight colours. These choices
   are kept in your browser, not on the server.
 

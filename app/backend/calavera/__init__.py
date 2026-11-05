@@ -1,3 +1,3 @@
 """Calavera: a web UI for downloading from Apple Music into a FLAC library."""
 
-__version__ = "0.7.5"
+__version__ = "0.8.0"

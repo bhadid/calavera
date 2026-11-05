@@ -40,6 +40,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const logListeners = useRef(new Map<string, Set<LogListener>>());
   const nextToast = useRef(1);
+  // The last known status of each job, to notice one becoming ready.
+  const lastStatus = useRef(new Map<string, Job["status"]>());
 
   const dismiss = useCallback((id: number) => setToasts((all) => all.filter((t) => t.id !== id)), []);
   const notify = useCallback(
@@ -68,6 +70,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       api
         .jobs()
         .then((list) => {
+          list.forEach((j) => lastStatus.current.set(j.id, j.status));
           setJobs(list);
           setJobsLoaded(true);
         })
@@ -84,6 +87,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       stream.onmessage = (message) => {
         const event = JSON.parse(message.data) as ServerEvent;
         if (event.type === "job") {
+          const before = lastStatus.current.get(event.job.id);
+          lastStatus.current.set(event.job.id, event.job.status);
+          if (event.job.status === "ready" && before && before !== "ready") {
+            notify(`${event.job.title || "Your download"} is ready. Download it from the Queue.`, "success");
+          }
           setJobs((all) => {
             const index = all.findIndex((j) => j.id === event.job.id);
             if (index === -1) return [event.job, ...all];
@@ -112,7 +120,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       document.removeEventListener("visibilitychange", onVisibility);
       close();
     };
-  }, []);
+  }, [notify]);
 
   // Status changes slowly, except during a sign-in.
   const busy = status?.wrapper.login.state === "running" || status?.wrapper.login.state === "awaiting_2fa" || !status?.wrapper.ready;

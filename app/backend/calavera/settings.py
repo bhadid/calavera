@@ -27,3 +27,6 @@ class Settings(BaseModel):
     lyrics: bool = True
     # Embedded cover size in pixels (square).
     cover_size: Literal[1400, 3000, 5000] = 3000
+    # Hours a download for the user's device waits in staging before its
+    # files are deleted.
+    keep_ready_hours: int = Field(default=24, ge=1, le=168)

@@ -16,8 +16,8 @@ export function AlbumPage() {
   // label shows at once; otherwise once the page has asked.
   const markedByLink = Boolean((useLocation().state as AlbumLinkState | null)?.otherRelease);
   const {
-    album, error, numbers, otherRelease: asked, selected, toggle, toggleAll, busy, download, label,
-    otherEdition, selectable, unavailable, owned, everything, queued,
+    album, error, numbers, otherRelease: asked, selected, toggle, toggleAll, busy, addToLibrary, download, label,
+    otherEdition, selectable, forLibrary, canAdd, unavailable, owned, everything, queued, queuedDevice,
   } = useAlbumPage(id, storefront);
 
   if (error) {
@@ -43,7 +43,7 @@ export function AlbumPage() {
   // Only a library state worth knowing gets a label; "not there yet" is the usual case.
   const libraryPill = !album.in_library ? null : otherEdition ? (
     <span className="pill pill-bad">Other edition in library</span>
-  ) : selectable.length === 0 ? (
+  ) : !canAdd ? (
     <span className="pill pill-ok">
       <Icon name="check" size={12} weight={3} />
       In library
@@ -91,7 +91,7 @@ export function AlbumPage() {
 
       </div>
 
-      {(unavailable > 0 || otherEdition || (!otherEdition && selectable.length === 0 && unavailable < album.tracks.length)) && (
+      {(unavailable > 0 || otherEdition || (!otherEdition && !canAdd && selectable.length > 0)) && (
         <div className="notices">
           {unavailable > 0 && (
             <Notice tone="warn">
@@ -105,11 +105,13 @@ export function AlbumPage() {
             <Notice tone="warn">
               <strong>Your folder {album.in_library}/ holds a different edition of this album.</strong> Its files carry another barcode,
               for example the explicit version instead of the clean one. Calavera does not add songs to it, so that the two editions do
-              not get mixed.
+              not get mixed. You can still download its songs to this device.
             </Notice>
           )}
-          {!otherEdition && selectable.length === 0 && unavailable < album.tracks.length && (
-            <Notice tone="ok">Every available song of this album is already in your library.</Notice>
+          {!otherEdition && !canAdd && selectable.length > 0 && (
+            <Notice tone="ok">
+              Every available song of this album is already in your library. You can still download songs to this device.
+            </Notice>
           )}
         </div>
       )}
@@ -132,15 +134,16 @@ export function AlbumPage() {
           <ul className="list tracks">
             {album.tracks.map((track) => {
               const reason = blocked(track, otherEdition);
+              const unavailableTrack = !track.available;
               const checkboxId = `track-${track.id}`;
               return (
-                <li key={track.id} className={`row-group track${reason ? " track-blocked" : ""}`}>
+                <li key={track.id} className={`row-group track${unavailableTrack ? " track-blocked" : ""}`}>
                   <label className="row" htmlFor={checkboxId} style={{ minHeight: 52 }}>
                     <input
                       id={checkboxId}
                       type="checkbox"
                       checked={selected.has(track.id)}
-                      disabled={Boolean(reason) || otherEdition}
+                      disabled={unavailableTrack}
                       onChange={() => toggle(track.id)}
                     />
                     <span className="check" aria-hidden="true">
@@ -179,15 +182,24 @@ export function AlbumPage() {
             "This album is already in the queue."
           ) : (
             <>
-              {!album.in_library ? "Saves to " : otherEdition ? "Another edition is at " : selectable.length > 0 ? "Adds to " : "In the library at "}
+              {!album.in_library ? "Adds to " : otherEdition ? "Another edition is at " : canAdd ? "Adds to " : "In the library at "}
               <span className="path">{album.library_path}/</span>
-              {owned > 0 && selectable.length > 0 && ` · ${plural(owned, "song")} already there ${owned === 1 ? "stays as it is" : "stay as they are"}.`}
+              {owned > 0 && canAdd && ` · ${plural(owned, "song")} already there ${owned === 1 ? "stays as it is" : "stay as they are"}.`}
               {" "}Existing files are never replaced.
             </>
           )}
         </p>
-        <button className="btn btn-filled" disabled={busy || selected.size === 0 || Boolean(queued)} onClick={download}>
-          {selected.size > 0 && <Icon name="download" size={19} weight={2.2} />}
+        <button
+          className="btn btn-gray btn-device"
+          disabled={busy || selected.size === 0 || Boolean(queuedDevice)}
+          onClick={download}
+          title={selected.size ? `Download ${plural(selected.size, "song")} to this device` : "Select songs to download"}
+        >
+          <Icon name="download" size={19} weight={2.2} />
+          {queuedDevice ? "Queued" : "Download"}
+        </button>
+        <button className="btn btn-filled" disabled={busy || forLibrary.size === 0 || Boolean(queued)} onClick={addToLibrary}>
+          {forLibrary.size > 0 && !queued && <Icon name="plus" size={19} weight={2.2} />}
           {queued ? "In the queue" : label}
         </button>
       </div>

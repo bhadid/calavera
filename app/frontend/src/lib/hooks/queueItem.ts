@@ -6,7 +6,8 @@ import { useStore } from "../store";
 export function useQueueItem(url: string, appleId: string, inLibrary?: string | null) {
   const { jobs, notify } = useStore();
   const [busy, setBusy] = useState(false);
-  const job = jobs.find((j) => j.apple_id === appleId);
+  // Only jobs for the library: a download to the device does not make it owned.
+  const job = jobs.find((j) => j.apple_id === appleId && (j.options.destination ?? "library") === "library");
   const state: "queued" | "running" | "owned" | "available" =
     job?.status === "queued" ? "queued" : job?.status === "running" ? "running" : inLibrary || job?.status === "done" ? "owned" : "available";
 

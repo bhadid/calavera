@@ -8,8 +8,10 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 import shutil
 from contextlib import asynccontextmanager
+from typing import Literal
 from urllib.parse import quote, urlparse
 
 from fastapi import FastAPI, HTTPException, Request
@@ -18,12 +20,12 @@ from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, Res
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, ValidationError
 
-from . import __version__, library, urls
+from . import __version__, audio, bundle, library, urls
 from .catalog import GROUPS, Catalog, CatalogError, NotInCatalog
 from .config import LOCAL_HOSTS, Config, host_name
 from .config import load as load_config
 from .db import Database
-from .jobs import JobError, JobManager
+from .jobs import JobError, JobManager, StagedAlbum
 from .memory import ALBUM, ARTIST, QUALITY, SEARCH, Memory
 from .plan import track_file_stem
 from .settings import Settings
@@ -52,11 +54,14 @@ class NewJobItem(BaseModel):
     url: str
     # Song ids to download from an album link. Empty or absent: the whole album.
     track_ids: list[str] | None = Field(default=None, max_length=500)
+    # "device": keep the files for the browser instead of adding them to the library.
+    destination: Literal["library", "device"] = "library"
 
 
 class NewJobs(BaseModel):
     """Either plain links, or items when specific songs of an album are wanted."""
     urls: list[str] = Field(default_factory=list, max_length=50)
+    destination: Literal["library", "device"] = "library"
     items: list[NewJobItem] = Field(default_factory=list, max_length=50)
 
 
@@ -67,6 +72,11 @@ class Login(BaseModel):
 
 class Code(BaseModel):
     code: str = Field(pattern=r"^\d{6}$")
+
+
+def audio_type(suffix: str) -> str:
+    return {".flac": "audio/flac", ".m4a": "audio/mp4", ".jpg": "image/jpeg", ".lrc": "text/plain"}.get(
+        suffix.lower(), "application/octet-stream")
 
 
 def create_app(config: Config | None = None) -> FastAPI:
@@ -175,13 +185,14 @@ def create_app(config: Config | None = None) -> FastAPI:
 
     @app.post("/api/jobs")
     async def add_jobs(body: NewJobs):
-        wanted = [NewJobItem(url=u) for u in dict.fromkeys(u.strip() for u in body.urls if u.strip())] + body.items
+        plain = dict.fromkeys(u.strip() for u in body.urls if u.strip())
+        wanted = [NewJobItem(url=u, destination=body.destination) for u in plain] + body.items
         if not wanted:
             raise HTTPException(422, "No links were given.")
         added, rejected = [], []
         for item in wanted:
             try:
-                added.append(jobs.enqueue(item.url, item.track_ids))
+                added.append(jobs.enqueue(item.url, item.track_ids, item.destination))
             except (urls.UnsupportedUrl, JobError) as e:
                 rejected.append({"url": item.url, "error": str(e)})
         return JSONResponse({"added": added, "rejected": rejected}, status_code=201 if added else 422)
@@ -231,6 +242,59 @@ def create_app(config: Config | None = None) -> FastAPI:
         except JobError as e:
             raise HTTPException(409, str(e)) from e
         return {"job": jobs.get(job_id)}
+
+    # -- downloads to the user's device ------------------------------------------
+    def ready_files(job_id: str) -> tuple[dict, list[StagedAlbum], list[bundle.Entry]]:
+        job = require_job(job_id)
+        if job["status"] != "ready":
+            raise HTTPException(409, "This job has nothing to download.")
+        albums = jobs.staged_albums(job_id)
+        entries = bundle.entries_for((library.folder_name(f"{a.artist} - {a.album}"), a.path) for a in albums)
+        if not entries:
+            raise HTTPException(410, "The downloaded files were removed. Retry the job to download them again.")
+        return job, albums, entries
+
+    def attachment(name: str) -> dict[str, str]:
+        return {"Content-Disposition": f"attachment; filename*=UTF-8''{quote(name)}", "Cache-Control": "no-store"}
+
+    def send_file(entry: bundle.Entry, name: str) -> FileResponse:
+        # FileResponse answers Range requests, so an interrupted file resumes.
+        return FileResponse(entry.path, headers=attachment(name), media_type=audio_type(entry.path.suffix))
+
+    @app.get("/api/jobs/{job_id}/download")
+    async def download_job(job_id: str):
+        """A ready job's files: the file itself when there is one track,
+        otherwise a ZIP made while it is sent."""
+        job, albums, entries = await asyncio.to_thread(ready_files, job_id)
+        tracks = [e for e in entries if e.path.suffix.lower() in audio.AUDIO_EXTS]
+        if len(tracks) == 1:
+            track = tracks[0]
+            title = re.sub(r"^\d+[-. ]*\s*", "", track.path.stem) or track.path.stem
+            return send_file(track, library.folder_name(f"{track.path.parent.parent.name} - {title}") + track.path.suffix)
+        if len(albums) == 1:
+            name = library.folder_name(f"{albums[0].artist} - {albums[0].album}")
+        else:
+            name = library.folder_name(job["title"] or "Calavera")
+        return StreamingResponse(
+            bundle.zip_stream(entries), media_type="application/zip",
+            headers={**attachment(f"{name}.zip"), "Content-Length": str(bundle.zip_size(entries))},
+        )
+
+    @app.get("/api/jobs/{job_id}/files")
+    async def list_job_files(job_id: str):
+        """A ready job's files one by one, for when the ZIP will not do."""
+        _job, _albums, entries = await asyncio.to_thread(ready_files, job_id)
+        return {"files": [{"index": i, "name": e.name, "size": e.size} for i, e in enumerate(entries)]}
+
+    @app.get("/api/jobs/{job_id}/files/{index}")
+    async def download_job_file(job_id: str, index: int):
+        # Files are addressed by their place in the list, never by a path
+        # taken from the request.
+        _job, _albums, entries = await asyncio.to_thread(ready_files, job_id)
+        if not 0 <= index < len(entries):
+            raise HTTPException(404, "No such file.")
+        entry = entries[index]
+        return send_file(entry, entry.path.name)
 
     @app.delete("/api/jobs/{job_id}")
     async def remove_job(job_id: str):

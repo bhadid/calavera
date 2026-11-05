@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { plural } from "../lib/format";
+import { bytes, plural, until } from "../lib/format";
 import { useJobActions } from "../lib/hooks/jobActions";
 import { useStore } from "../lib/store";
 import { api } from "../lib/api";
-import type { Job, JobStatus } from "../lib/types";
+import type { Job, JobFile, JobStatus } from "../lib/types";
 import { useConfirm } from "../components/Confirm";
 import { ArtistNames } from "../components/ArtistNames";
 import { Icon, type IconName } from "../components/Icon";
@@ -26,6 +26,7 @@ const STATUS: Record<JobStatus, { label: string; tone: string; icon: IconName }>
   queued: { label: "Queued", tone: "", icon: "clock" },
   running: { label: "Downloading", tone: "", icon: "download" },
   done: { label: "In library", tone: "ok", icon: "check" },
+  ready: { label: "Ready to download", tone: "ok", icon: "download" },
   skipped: { label: "Already there", tone: "", icon: "info" },
   failed: { label: "Failed", tone: "bad", icon: "warning" },
   canceled: { label: "Canceled", tone: "", icon: "close" },
@@ -34,6 +35,26 @@ const STATUS: Record<JobStatus, { label: string; tone: string; icon: IconName }>
 
 const jobPage = (job: Job) => `/${job.kind}/${job.apple_id}?sf=${job.storefront}`;
 const jobTitle = (job: Job) => job.title || (job.kind === "album" ? "Album" : "Song");
+const forDevice = (job: Job) => job.options.destination === "device";
+const readyToFetch = (job: Job) => job.status === "ready" && job.has_files;
+
+/** How long a ready job's files are kept, from the setting (24 h until it is known). */
+function useKeepHours(): number {
+  const [hours, setHours] = useState(24);
+  useEffect(() => {
+    let alive = true;
+    api
+      .settings()
+      .then((r) => alive && setHours(r.settings.keep_ready_hours))
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, []);
+  return hours;
+}
+
+const keptUntil = (job: Job, hours: number) => (job.finished_at ? `Kept ${until(job.finished_at + hours * 3600)}` : "");
 
 function day(seconds: number): string {
   const then = new Date(seconds * 1000);
@@ -52,6 +73,8 @@ export function QueuePage() {
   active.sort((a, b) => Number(b.status === "running") - Number(a.status === "running") || a.created_at - b.created_at);
   const [now, ...next] = active;
   const finished = jobs.filter((j) => !active.includes(j));
+  const ready = finished.filter(readyToFetch);
+  const hours = useKeepHours();
   const [shown, setShown] = useState(HISTORY_STEP);
   const wrapper = status?.wrapper;
 
@@ -108,8 +131,9 @@ export function QueuePage() {
         </div>
       )}
 
-      {now && (
+      {(now || ready.length > 0) && (
       <div className="bento">
+        {ready.length > 0 && <ReadyTile jobs={ready} hours={hours} />}
         {now && <NowTile job={now} />}
         {next.length > 0 && (
           <section className="tile" style={span(2, 4, 6)} aria-labelledby="next-heading">
@@ -152,7 +176,7 @@ export function QueuePage() {
                 <div key={group.day} role="group" aria-label={group.day}>
                   <div className="group-label">{group.day}</div>
                   {group.jobs.map((job) => (
-                    <HistoryRow key={job.id} job={job} />
+                    <HistoryRow key={job.id} job={job} hours={hours} />
                   ))}
                 </div>
               ))}
@@ -174,6 +198,64 @@ export function QueuePage() {
   );
 }
 
+/** Jobs whose files wait for the browser, newest first, each a tap from the download. */
+function ReadyTile({ jobs, hours }: { jobs: Job[]; hours: number }) {
+  return (
+    <section className="tile" style={span(2, 4, 6)} aria-labelledby="ready-heading">
+      <div className="tile-head" id="ready-heading">
+        <Icon name="download" size={16} />
+        Ready to download · {jobs.length}
+      </div>
+      <ol className="next ready-list">
+        {jobs.map((job) => (
+          <li key={job.id} className="next-item">
+            <Cover src={job.artwork_url} className="cover-sm" />
+            <Link className="text" to={jobPage(job)}>
+              <strong>{jobTitle(job)}</strong>
+              {job.artist && <span>{job.artist}</span>}
+              <span>{keptUntil(job, hours)}</span>
+            </Link>
+            <a className="btn btn-filled btn-small" href={api.downloadUrl(job.id)} download aria-label={`Download ${jobTitle(job)}`}>
+              <Icon name="download" size={16} weight={2.2} />
+              <span className="btn-text">Download</span>
+            </a>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
+/** A ready job's files, one link each: the fallback when the whole download fails. */
+function FileList({ jobId }: { jobId: string }) {
+  const [files, setFiles] = useState<JobFile[] | null>(null);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    let alive = true;
+    api
+      .jobFiles(jobId)
+      .then((list) => alive && setFiles(list))
+      .catch((e) => alive && setError(e instanceof Error ? e.message : "The files could not be listed."));
+    return () => {
+      alive = false;
+    };
+  }, [jobId]);
+  if (error) return <p className="error">{error}</p>;
+  if (!files) return <p className="muted">Loading…</p>;
+  return (
+    <ul className="file-list">
+      {files.map((f) => (
+        <li key={f.index}>
+          <a className="link" href={api.fileUrl(jobId, f.index)} download>
+            {f.name.split("/").pop()}
+          </a>
+          <span className="muted num">{bytes(f.size)}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function NowTile({ job }: { job: Job }) {
   const { busy, cancel, selection } = useJobActions(job);
   const [log, setLog] = useState(false);
@@ -185,7 +267,7 @@ function NowTile({ job }: { job: Job }) {
     <section className={`tile${className}`} style={{ ...span(2, 4, 6), ...style }} aria-labelledby="now-heading">
       <div className="tile-head" id="now-heading">
         <Icon name="download" size={16} />
-        {running ? "Now downloading" : "Starting"}
+        {running ? (forDevice(job) ? "Now downloading for this device" : "Now downloading") : "Starting"}
       </div>
       <div className="now">
         <Link to={jobPage(job)} tabIndex={-1} aria-hidden="true">
@@ -244,9 +326,11 @@ function UpNextItem({ job, first }: { job: Job; first: boolean }) {
 }
 
 /** A finished job: one row that opens to its details, actions and log. */
-function HistoryRow({ job }: { job: Job }) {
+function HistoryRow({ job, hours }: { job: Job; hours: number }) {
   const [open, setOpen] = useState(false);
   const [log, setLog] = useState(false);
+  const [files, setFiles] = useState(false);
+  const fetchable = readyToFetch(job);
   const { busy, canKeep, canAddMissing, keep, retry, discard, remove, selection } = useJobActions(job);
   const status = STATUS[job.status];
   const partial = job.status === "done" && job.result.some((r) => (r.unavailable ?? 0) > 0);
@@ -263,7 +347,9 @@ function HistoryRow({ job }: { job: Job }) {
         </span>
         <span className={`row-end ${status.tone}`}>
           <Icon name={status.icon} size={16} weight={2.4} />
-          <span className="label">{partial ? "Partly in library" : status.label}</span>
+          <span className="label">
+            {job.status === "ready" && !job.has_files ? "Files removed" : partial ? "Partly in library" : status.label}
+          </span>
         </span>
         <span className="chev"><Icon name="chevron" size={16} weight={2.4} /></span>
       </button>
@@ -272,6 +358,13 @@ function HistoryRow({ job }: { job: Job }) {
           {(job.status === "failed" || job.status === "interrupted") && job.error && <p className="error">{job.error}</p>}
           {(job.status === "skipped" || job.status === "done") && job.detail && <p className="muted">{job.detail}</p>}
           {canKeep && <p className="muted">{plural(job.staged_tracks, "track")} finished downloading and can be kept.</p>}
+          {job.status === "ready" && (
+            <p className="muted">
+              {fetchable
+                ? `${keptUntil(job, hours)}, then the files are deleted.`
+                : "The downloaded files were deleted. Retry to download again."}
+            </p>
+          )}
           {job.result.map((r, i) => (
             <p key={i} className="muted path">
               {r.status === "imported" && (
@@ -284,12 +377,34 @@ function HistoryRow({ job }: { job: Job }) {
                 </>
               )}
               {r.status === "exists" && <>Existing folder: {r.path}/</>}
+              {r.status === "ready" && fetchable && (
+                <>
+                  {[r.tracks ? plural(r.tracks, "track") : "", r.format?.toUpperCase(), r.quality?.join(", ")].filter(Boolean).join(" · ")}
+                </>
+              )}
             </p>
           ))}
           <div className="actions">
+            {fetchable && (
+              <a className="btn btn-filled btn-small" href={api.downloadUrl(job.id)} download>
+                <Icon name="download" size={16} weight={2.2} />
+                Download
+              </a>
+            )}
             <Link className="btn btn-gray btn-small" to={jobPage(job)}>
               Go to album
             </Link>
+            {fetchable && (
+              <button className="btn btn-gray btn-small" aria-expanded={files} onClick={() => setFiles(!files)}>
+                {files ? "Hide single files" : "Single files"}
+              </button>
+            )}
+            {fetchable && (
+              <button className="btn btn-gray btn-small" disabled={busy} onClick={keep} title="Add these songs to the library. Existing files are never replaced.">
+                <Icon name="plus" size={16} />
+                Add to library
+              </button>
+            )}
             {canKeep && (
               <button className="btn btn-filled btn-small" disabled={busy} onClick={keep} title="Convert and import the tracks that finished downloading. Existing files are never replaced.">
                 Keep {plural(job.staged_tracks, "track")}
@@ -300,7 +415,7 @@ function HistoryRow({ job }: { job: Job }) {
                 Add missing tracks
               </button>
             )}
-            {job.status !== "done" && (
+            {job.status !== "done" && !fetchable && (
               <button className="btn btn-gray btn-small" disabled={busy} onClick={retry}>
                 <Icon name="retry" size={16} />
                 Retry
@@ -318,6 +433,7 @@ function HistoryRow({ job }: { job: Job }) {
               {log ? "Hide log" : "Show log"}
             </button>
           </div>
+          {files && fetchable && <FileList jobId={job.id} />}
           {log && <JobLog jobId={job.id} />}
         </div>
       )}
