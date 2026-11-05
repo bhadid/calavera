@@ -94,7 +94,8 @@ export function QueuePage() {
   active.sort((a, b) => Number(b.status === "running") - Number(a.status === "running") || a.created_at - b.created_at);
   const [now, ...next] = active;
   const finished = jobs.filter((j) => !active.includes(j));
-  const ready = finished.filter(readyToFetch);
+  // Only what still waits to be downloaded; a downloaded one stays in the history.
+  const ready = finished.filter((j) => readyToFetch(j) && !j.fetched_at);
   const keep = useKeep();
   const [shown, setShown] = useState(HISTORY_STEP);
   const wrapper = status?.wrapper;
@@ -355,6 +356,9 @@ function HistoryRow({ job, policy }: { job: Job; policy: Keep }) {
   const { busy, canKeep, canAddMissing, keep, retry, discard, remove, selection } = useJobActions(job);
   const status = STATUS[job.status];
   const partial = job.status === "done" && job.result.some((r) => (r.unavailable ?? 0) > 0);
+  // Downloaded to a device is done as much as being in the library is.
+  const succeeded = (job.status === "done" && !partial) || (job.status === "ready" && Boolean(job.fetched_at));
+  const expired = job.status === "ready" && !job.has_files && !job.fetched_at;
   const tracks = job.result.reduce((n, r) => n + (r.tracks ?? 0), 0);
   const facts = [job.artist, job.kind === "album" ? "Album" : "Song", tracks ? plural(tracks, "track") : ""].filter(Boolean).join(" · ");
   const id = `job-${job.id}`;
@@ -367,12 +371,10 @@ function HistoryRow({ job, policy }: { job: Job; policy: Keep }) {
           <span>{facts || job.url}</span>
         </span>
         {/* A job that did what it was asked says nothing, like a command that succeeds. */}
-        {(job.status !== "done" || partial) && (
-          <span className={`row-end ${partial ? "" : status.tone}`}>
-            <Icon name={partial ? "info" : status.icon} size={16} weight={2.4} />
-            <span className="label">
-              {job.status === "ready" && !job.has_files ? "Files removed" : partial ? "Partly in library" : status.label}
-            </span>
+        {!succeeded && (
+          <span className={`row-end ${partial || expired ? "" : status.tone}`}>
+            <Icon name={partial ? "info" : expired ? "clock" : status.icon} size={16} weight={2.4} />
+            <span className="label">{expired ? "Expired" : partial ? "Partly in library" : status.label}</span>
           </span>
         )}
         <span className="chev"><Icon name="chevron" size={16} weight={2.4} /></span>
@@ -384,9 +386,7 @@ function HistoryRow({ job, policy }: { job: Job; policy: Keep }) {
           {canKeep && <p className="muted">{plural(job.staged_tracks, "track")} finished downloading and can be kept.</p>}
           {job.status === "ready" && (
             <p className="muted">
-              {fetchable
-                ? `${keptUntil(job, policy)}.`
-                : "The downloaded files were deleted. Retry to download again."}
+              {fetchable ? `${keptUntil(job, policy)}.` : job.fetched_at ? "Downloaded to a device." : "Expired before it was downloaded."}
             </p>
           )}
           {job.result.map((r, i) => (
