@@ -39,11 +39,11 @@ export function logoSvg(light: Colours, dark: Colours): string {
 }
 
 /**
- * A repeating tile of the logo, `size` px square, as SVG markup: each skull
- * is `{x, y, size}` in px (top-left corner), and skulls over an edge are
- * drawn again on the other side so the tile repeats without seams.
+ * A repeating tile of the logo, `width` × `height` px, as SVG markup: each
+ * skull is `{x, y, size}` in px (top-left corner), and skulls over an edge
+ * are drawn again on the other side so the tile repeats without seams.
  */
-export function logoTileSvg(size: number, skulls: { x: number; y: number; size: number }[], colours: Colours): string {
+export function logoTileSvg(width: number, height: number, skulls: { x: number; y: number; size: number; opacity?: number }[], colours: Colours): string {
   const parts = Object.keys(DOTS) as Part[];
   const [vx, vy, vs] = VIEW.split(" ").map(Number);
   const drawing = parts
@@ -51,13 +51,14 @@ export function logoTileSvg(size: number, skulls: { x: number; y: number; size: 
     .join("");
   const placed: string[] = [];
   for (const s of skulls)
-    for (const dx of [-size, 0, size])
-      for (const dy of [-size, 0, size]) {
+    for (const dx of [-width, 0, width])
+      for (const dy of [-height, 0, height]) {
         const x = s.x + dx, y = s.y + dy;
-        if (x < size && x + s.size > 0 && y < size && y + s.size > 0)
-          placed.push(`<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${(s.size / vs).toFixed(4)}) translate(${-vx} ${-vy})">${drawing}</g>`);
+        const opacity = s.opacity === undefined ? "" : ` opacity="${s.opacity.toFixed(2)}"`;
+        if (x < width && x + s.size > 0 && y < height && y + s.size > 0)
+          placed.push(`<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${(s.size / vs).toFixed(4)}) translate(${-vx} ${-vy})"${opacity}>${drawing}</g>`);
       }
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">${placed.join("")}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${placed.join("")}</svg>`;
 }
 
 /** The logo, coloured by the --dot-* variables of the theme, in a square of `size`. */

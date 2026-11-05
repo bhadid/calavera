@@ -1,23 +1,38 @@
 import { useEffect, useState } from "react";
 import { logoTileSvg, type Colours } from "./DotsLogo";
 
-// The window's background: three layers of small skulls from the logo, each
-// a repeating tile, drifting down at their own speed so the near ones (big,
-// quick) pass the far ones (small, faint, slow). The motion is a CSS
-// transform per layer, so it costs no JavaScript while it runs; with reduced
-// motion the layers stand still (styles.css).
+// The window's background: three layers of small skulls from the logo,
+// drifting down at their own speed so the near ones (big, quick) pass the far
+// ones (small, faint, slow). Each layer is one repeating image, moved by a
+// CSS transform, so it costs no JavaScript while it runs; with reduced motion
+// the layers stand still (styles.css).
+//
+// So the repeat does not show, each image is large, its skulls are scattered
+// at random (anew on every visit) with room between them, and the three
+// layers repeat at different widths and heights, so they never line up.
 
-// size of the tile, size of its skulls, opacity, seconds per tile
-const LAYERS: [number, number, number, number][] = [
-  [150, 12, 0.35, 60],
-  [210, 26, 0.6, 38],
-  [320, 48, 0.9, 24],
+type Layer = { width: number; height: number; count: number; min: number; max: number; opacity: number; speed: number };
+const LAYERS: Layer[] = [
+  // speed in px per second
+  { width: 700, height: 430, count: 34, min: 9, max: 15, opacity: 0.35, speed: 2.5 },
+  { width: 860, height: 530, count: 26, min: 20, max: 32, opacity: 0.6, speed: 5.5 },
+  { width: 1040, height: 650, count: 16, min: 40, max: 58, opacity: 0.9, speed: 13 },
 ];
 
-// Fixed scatter of three skulls per tile, so the pattern is the same on every visit.
-function scatter(seed: number, tile: number, skull: number) {
-  const random = () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646;
-  return [0, 1, 2].map(() => ({ x: random() * tile, y: random() * tile, size: skull * (0.8 + random() * 0.4) }));
+/** Skulls at random places in the tile, no two closer than about their size (measured across the tile's edges too). */
+function scatter({ width, height, count, min, max }: Layer) {
+  const skulls: { x: number; y: number; size: number; opacity: number }[] = [];
+  for (let tries = 0; skulls.length < count && tries < count * 60; tries++) {
+    const size = min + Math.random() * (max - min);
+    const x = Math.random() * width, y = Math.random() * height;
+    const crowded = skulls.some((s) => {
+      const dx = Math.min(Math.abs(s.x - x), width - Math.abs(s.x - x));
+      const dy = Math.min(Math.abs(s.y - y), height - Math.abs(s.y - y));
+      return Math.hypot(dx, dy) < (s.size + size) * 1.4;
+    });
+    if (!crowded) skulls.push({ x, y, size, opacity: 0.55 + Math.random() * 0.45 });
+  }
+  return skulls;
 }
 
 /** The logo's three shades as the page shows them now (theme and accent). */
@@ -29,6 +44,7 @@ function currentColours(): Colours {
 
 export function Backdrop() {
   const [colours, setColours] = useState(currentColours);
+  const [layout] = useState(() => LAYERS.map(scatter));
 
   // Theme and accent are attributes and inline variables on <html>; the
   // system appearance is a media query.
@@ -50,18 +66,18 @@ export function Backdrop() {
 
   return (
     <div className="backdrop" aria-hidden="true">
-      {LAYERS.map(([tile, skull, opacity, seconds], i) => {
-        const svg = logoTileSvg(tile, scatter(7 + i, tile, skull), colours);
+      {LAYERS.map((layer, i) => {
+        const svg = logoTileSvg(layer.width, layer.height, layout[i], colours);
         return (
           <div
             key={i}
             style={{
               backgroundImage: `url("data:image/svg+xml,${encodeURIComponent(svg)}")`,
-              backgroundSize: `${tile}px ${tile}px`,
-              opacity,
-              top: -tile,
-              animationDuration: `${seconds}s`,
-              ["--tile" as string]: `${tile}px`,
+              backgroundSize: `${layer.width}px ${layer.height}px`,
+              opacity: layer.opacity,
+              top: -layer.height,
+              animationDuration: `${layer.height / layer.speed}s`,
+              ["--tile" as string]: `${layer.height}px`,
             }}
           />
         );

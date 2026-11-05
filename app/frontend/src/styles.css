@@ -28,9 +28,6 @@
   --fill: rgba(120, 120, 128, 0.12);
   --fill-2: rgba(120, 120, 128, 0.2);
   --material: rgba(249, 249, 251, 0.78);
-  /* Frosted tiles and sidebar: the backdrop shows through, blurred. */
-  --glass: rgba(255, 255, 255, 0.7);
-  --glass-bar: rgba(249, 249, 251, 0.6);
   --accent: var(--ac-b-l, #000000);
   --on-accent: #ffffff;
   --accent-soft: color-mix(in srgb, var(--accent) 12%, transparent);
@@ -73,8 +70,6 @@
     --fill: rgba(120, 120, 128, 0.24);
     --fill-2: rgba(120, 120, 128, 0.36);
     --material: rgba(22, 22, 24, 0.78);
-    --glass: rgba(28, 28, 30, 0.7);
-    --glass-bar: rgba(22, 22, 24, 0.55);
     --accent: var(--ac-b-d, #ffffff);
     --on-accent: #000000;
     --accent-soft: color-mix(in srgb, var(--accent) 18%, transparent);
@@ -98,8 +93,6 @@
   --fill: rgba(120, 120, 128, 0.24);
   --fill-2: rgba(120, 120, 128, 0.36);
   --material: rgba(22, 22, 24, 0.78);
-  --glass: rgba(28, 28, 30, 0.7);
-  --glass-bar: rgba(22, 22, 24, 0.55);
   --accent: var(--ac-b-d, #ffffff);
   --on-accent: #000000;
   --accent-soft: color-mix(in srgb, var(--accent) 18%, transparent);
@@ -205,9 +198,7 @@ a {
 .app {
   min-height: 100vh;
 }
-/* The drifting skulls behind everything (components/Backdrop.tsx). The
-   layers start a little left of the window so the skulls sit clear of the
-   sidebar's edge. */
+/* The drifting skulls behind everything (components/Backdrop.tsx). */
 .backdrop {
   position: fixed;
   inset: 0;
@@ -218,7 +209,7 @@ a {
 }
 .backdrop > div {
   position: absolute;
-  left: -24px;
+  left: 0;
   right: 0;
   bottom: 0;
   will-change: transform;
@@ -311,7 +302,7 @@ a {
     flex-direction: column;
     gap: 6px;
     padding: 18px 12px 16px;
-    background: var(--glass-bar);
+    background: var(--material);
     -webkit-backdrop-filter: saturate(180%) blur(24px);
     backdrop-filter: saturate(180%) blur(24px);
     border-right: 0.5px solid var(--sep);
@@ -545,9 +536,7 @@ h1 {
   gap: 10px;
   padding: var(--pad);
   border-radius: var(--r-tile);
-  background: var(--glass);
-  -webkit-backdrop-filter: saturate(180%) blur(24px);
-  backdrop-filter: saturate(180%) blur(24px);
+  background: var(--tile);
   box-shadow: var(--shadow);
   container-type: inline-size;
   overflow: hidden;
@@ -2045,7 +2034,6 @@ button.row {
 }
 
 @media (prefers-reduced-transparency: reduce) {
-  .tile:not(.tinted),
   .tabbar,
   .sidebar,
   .actionbar,
