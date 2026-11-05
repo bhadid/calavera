@@ -11,6 +11,7 @@ import json
 import re
 import shutil
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Literal
 from urllib.parse import quote, urlparse
 
@@ -318,10 +319,53 @@ def create_app(config: Config | None = None) -> FastAPI:
         response = FileResponse(entry.path, headers=attachment(name), media_type=audio_type(entry.path.suffix))
         return WhenSent(response, done) if reaches_end(request.headers.get("range"), entry.size) else response
 
+    def library_folders(job: dict) -> list[tuple[str, Path]]:
+        """The library folders a finished job put its album in (or found it
+        in), as (name for the download, folder). Only folders inside the
+        library; ones moved or renamed since are left out."""
+        root = config.library_dir.resolve()
+        found = []
+        for r in job["result"]:
+            if r.get("status") not in ("imported", "exists") or not r.get("path"):
+                continue
+            folder = (root / r["path"]).resolve()
+            if folder.is_relative_to(root) and folder != root and folder.is_dir():
+                found.append((library.folder_name(" - ".join(Path(r["path"]).parts)), folder))
+        return found
+
+    async def download_from_library(job: dict) -> Response:
+        """A job whose album is in the library, straight from there: Apple
+        and staging are not involved, and the library is only read."""
+        folders = await asyncio.to_thread(library_folders, job)
+        if not folders:
+            raise HTTPException(410, "The album's folder is no longer in the library.")
+        if job["kind"] == "song":
+            try:
+                song = await catalog.song(job["storefront"], job["apple_id"], get_settings().language)
+            except CatalogError as e:
+                raise HTTPException(502, str(e)) from e
+            key = library.stem_key(track_file_stem(song))
+            for _name, folder in folders:
+                for path in sorted(folder.iterdir()):
+                    if path.suffix.lower() in audio.AUDIO_EXTS and library.track_key(path.name) == key:
+                        name = library.folder_name(f"{song['artist']} - {song['name']}") + path.suffix
+                        return FileResponse(path, headers=attachment(name), media_type=audio_type(path.suffix))
+            raise HTTPException(410, "The song's file is no longer in the library.")
+        entries = await asyncio.to_thread(bundle.entries_for, folders)
+        name = folders[0][0] if len(folders) == 1 else library.folder_name(job["title"] or "Calavera")
+        return StreamingResponse(
+            bundle.zip_stream(entries), media_type="application/zip",
+            headers={**attachment(f"{name}.zip"), "Content-Length": str(bundle.zip_size(entries))},
+        )
+
     @app.get("/api/jobs/{job_id}/download")
     async def download_job(job_id: str, request: Request):
-        """A ready job's files: the file itself when there is one track,
-        otherwise a ZIP made while it is sent."""
+        """A job's files: the file itself when there is one track, otherwise
+        a ZIP made while it is sent. From staging for a job that is ready,
+        from the library for one whose album is there."""
+        job = require_job(job_id)
+        if job["status"] in ("done", "skipped"):
+            return await download_from_library(job)
         job, albums, entries = await asyncio.to_thread(ready_files, job_id)
         tracks = [e for e in entries if e.path.suffix.lower() in audio.AUDIO_EXTS]
         if len(tracks) == 1:

@@ -134,6 +134,12 @@ files stay in staging for the browser to fetch.
 - Otherwise they go `keep_ready_hours` (24 by default) after the job
   finished. A sweep at start and every 2 minutes deletes them; *Discard*
   does at once.
+- For a job whose album is in the library (`done`, or `skipped` because it
+  was there), the same `/download` reads from the library instead: the folder
+  named in the job's result, as a ZIP, or for a song job the song's file
+  (found by its name, as the album page does). The folder must resolve to a
+  place inside the library; Apple and staging are not involved, and the
+  library is only read.
 - *Add to library* on a ready job is the import above with the destination
   dropped: it resumes from the staged files.
 

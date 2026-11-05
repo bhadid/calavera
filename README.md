@@ -102,7 +102,7 @@ With a compose file of your own, each image can be built straight from a
 release tag; the version pins are part of the Dockerfiles:
 
 ```yaml
-build: https://github.com/bhadid/calavera.git#v0.8.1:app        # or …:wrapper
+build: https://github.com/bhadid/calavera.git#v0.8.2:app        # or …:wrapper
 ```
 
 Copy the `security_opt`, `cap_drop`, volumes and ports from `compose.yaml`;
@@ -167,7 +167,8 @@ the 6-digit code.
   from the server 10 minutes after you downloaded it completely, and after a
   day if you never do (both in Settings). If the ZIP download breaks off,
   *Show single files* offers the songs one by one, and *Add to library* puts
-  them into the library after all.
+  them into the library after all. An entry whose album is in your library
+  downloads straight from there, without asking Apple again.
 - **Album page:** year, label, quality and library state under the title,
   then every song with a checkmark. Everything not yet in your library
   starts selected; untick what you do not want. *Add to library* adds the
