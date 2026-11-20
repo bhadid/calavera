@@ -50,7 +50,7 @@ BASE_DIR_IN_CHROOT = "/data"
 TOKEN_FILE = os.environ.get("CONTROL_TOKEN_FILE", "/control/token")
 API_PORT = int(os.environ.get("WRAPPER_PORT", "12340"))
 CONTROL_PORT = int(os.environ.get("CONTROL_PORT", "12341"))
-TWOFA_WINDOW_S = 60  # wrapper-lite waits this long for 2fa.txt
+TWOFA_WINDOW_S = 600  # wrapper-lite waits this long for 2fa.txt
 LOG_LINES = 200
 
 SESSION_FILE = os.path.join(DATA_DIR, "MUSIC_TOKEN")
