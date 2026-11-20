@@ -142,10 +142,6 @@ class Database:
             ).fetchall()
         return [dict(r) for r in rows]
 
-    def clear_logs(self, job_id: str) -> None:
-        with self._lock:
-            self._conn.execute("DELETE FROM job_logs WHERE job_id = ?", (job_id,))
-
     # -- key/value ---------------------------------------------------------------
     def get_kv(self, key: str) -> Any | None:
         with self._lock:

@@ -30,8 +30,8 @@ docker build --target test app
 The build fails if a test fails. The tests cover link parsing, the amdl output
 parser, settings validation, FLAC conversion and verification (real ffmpeg on
 generated audio), the library import rules, the download plan, the catalogue
-client and its memory (against canned answers, never Apple) and the
-database upgrade.
+client and its memory (against canned answers, never Apple), the
+database upgrade, and job messages and logs across a retry.
 
 Of the API routes only the catalogue ones are tested (with their memory,
 against a stand-in for Apple). Not covered by automated tests: the other
@@ -202,4 +202,4 @@ pipeline:
 | Jobs fail with "Not signed in" | Account page; the wrapper log at the bottom of it. |
 | "The library folder is empty" | The library path is not mounted on the host, or `LIBRARY_PATH` is wrong. |
 | Search fails, downloads work | Apple changed its web player; see `catalog.py`. |
-| A job fails with "N of M tracks downloaded" | The job log. Usually a track without a lossless version. |
+| A job fails with "N of M tracks downloaded" | The message gives amdl's reason; the job log has the rest. A refused `/key` means the session expired. |

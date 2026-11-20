@@ -20,7 +20,12 @@ from .settings import Settings
 
 _QUEUE_RE = re.compile(r"^Queue (\d+) of (\d+)")
 _TRACK_RE = re.compile(r"^Track (\d+) of (\d+)")
-_PERCENT_RE = re.compile(r"^(Downloading|Decrypting)\.\.\.\s+(\d+)%")
+# A progress bar, redrawn with carriage returns. When something goes wrong
+# amdl prints its message right after the bar, on the same line: the text
+# after the bar is kept.
+_PERCENT_RE = re.compile(r"^(Downloading|Decrypting)\.\.\.\s+(\d+)%(?:\s*\([^)]*\))?")
+# amdl's reasons for a failed track or link: "Failed to run v4: …".
+_FAILURE_RE = re.compile(r"^Failed to \S.*:")
 _QUALITY_RE = re.compile(r"^(\d+)-bit / (\d+) Hz")
 _SUMMARY_RE = re.compile(r"Completed:\s*(\d+)\s*/\s*(\d+).*?Warnings:\s*(\d+).*?Errors:\s*(\d+)")
 
@@ -119,6 +124,7 @@ class Progress:
     percent: int = 0
     quality: str = ""     # e.g. "24-bit / 96 kHz"
     summaries: list[Summary] = field(default_factory=list)
+    failures: list[str] = field(default_factory=list)  # amdl's "Failed to …" lines
 
     @property
     def fraction(self) -> float:
@@ -134,12 +140,14 @@ class Progress:
             return None
         return Summary(*(sum(getattr(s, f) for s in self.summaries) for f in ("completed", "total", "warnings", "errors")))
 
-    def feed(self, line: str) -> bool:
-        """Update from one output line. Returns True if the line is progress
-        noise that should not be kept in the job log."""
+    def feed(self, line: str) -> str | None:
+        """Update from one output line. Returns the text to keep in the job
+        log, or None for a line that is only progress noise."""
         if m := _PERCENT_RE.match(line):
             self.phase, self.percent = m[1], int(m[2])
-            return True
+            line = line[m.end():].strip()
+            if not line:
+                return None
         if m := _QUEUE_RE.match(line):
             self.songs_started = int(m[1])
         elif m := _TRACK_RE.match(line):
@@ -150,7 +158,9 @@ class Progress:
             self.quality = f"{m[1]}-bit / {rate / 1000:g} kHz"
         elif m := _SUMMARY_RE.search(line):
             self.summaries.append(Summary(*(int(g) for g in m.groups())))
-        return False
+        elif _FAILURE_RE.match(line):
+            self.failures.append(line)
+        return line
 
 
 @dataclass
@@ -201,8 +211,9 @@ class Runner:
         line = raw.decode("utf-8", "replace").strip()
         if not line:
             return
-        if not progress.feed(line):
-            on_line(line)
+        kept = progress.feed(line)
+        if kept:
+            on_line(kept)
         on_progress(progress)
 
     def cancel(self) -> None:

@@ -24,8 +24,8 @@ Track 2 of 13: songs
 def feed(text: str) -> tuple[amdl.Progress, list[str]]:
     progress, kept = amdl.Progress(), []
     for line in text.splitlines():
-        if not progress.feed(line):
-            kept.append(line)
+        if (text := progress.feed(line)) is not None:
+            kept.append(text)
     return progress, kept
 
 
@@ -36,6 +36,22 @@ def test_progress_follows_tracks_and_drops_progress_bar_lines():
     assert not any(line.startswith(("Downloading...", "Decrypting...")) for line in kept)
     assert "Downloaded" in kept
     assert 1 / 13 <= progress.fraction < 2 / 13
+
+
+def test_a_message_after_a_progress_bar_is_kept():
+    # amdl prints why a track failed right after the redrawn progress bar.
+    progress, kept = feed(
+        "Track 1 of 1: songs\n"
+        "Decrypting...   0%  (1.0 kB/71 MB, 68 MB/s) Failed to run v4: lite-server /key returned 500 "
+        'Internal Server Error: {"error":"Invalid CKC error."}\n'
+        "=======  [✔ ] Completed: 0/1  |  [⚠ ] Warnings: 0  |  [✖ ] Errors: 1  =======\n"
+        "Error detected, exiting..."
+    )
+    reason = 'Failed to run v4: lite-server /key returned 500 Internal Server Error: {"error":"Invalid CKC error."}'
+    assert kept[1] == reason
+    assert progress.failures == [reason]
+    assert progress.phase == "Decrypting"
+    assert not progress.summary.clean
 
 
 def test_link_counter_for_runs_with_several_links():

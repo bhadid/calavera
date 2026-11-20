@@ -190,7 +190,7 @@ Job outcomes:
 |---|---|
 | In library | Downloaded, verified, and copied to the library. A *partial* tag means some songs of the album are not available on Apple Music; the card says how many. |
 | Already in library | The album folder exists; nothing was changed and usually nothing was downloaded. *Add missing tracks* adds the songs the folder lacks. |
-| Failed | See the message and the log. A track that fails unexpectedly stops the import: nothing partial is imported on its own. If some tracks did finish, *Keep N tracks* imports those; otherwise retry, discard or remove the job. |
+| Failed | See the message and the log; the log keeps earlier runs of the job. A track that fails unexpectedly stops the import: nothing partial is imported on its own. If some tracks did finish, *Keep N tracks* imports those; otherwise retry, discard or remove the job. |
 | Canceled / Interrupted | Stopped by you, or by a restart. *Retry* runs it again. |
 
 ### Library rules
