@@ -7,6 +7,7 @@ import { type AlbumLinkState, OtherReleasePill, QualityPill } from "../component
 import { Icon } from "../components/Icon";
 import { BackBar } from "../components/Layout";
 import { Notice, span, tint } from "../components/tiles";
+import { useLibraryProblem } from "../lib/store";
 
 export function AlbumPage() {
   const { id = "" } = useParams();
@@ -19,6 +20,7 @@ export function AlbumPage() {
     album, error, numbers, otherRelease: asked, selected, toggle, toggleAll, busy, addToLibrary, download, label,
     otherEdition, selectable, forLibrary, canAdd, unavailable, owned, everything, queued, queuedDevice,
   } = useAlbumPage(id, storefront);
+  const libraryProblem = useLibraryProblem();
 
   if (error) {
     return (
@@ -180,6 +182,8 @@ export function AlbumPage() {
         <p>
           {queued ? (
             "This album is already in the queue."
+          ) : libraryProblem ? (
+            <>{libraryProblem} You can still download songs to this device.</>
           ) : (
             <>
               {!album.in_library ? "Adds to " : otherEdition ? "Another edition is at " : canAdd ? "Adds to " : "In the library at "}
@@ -194,11 +198,17 @@ export function AlbumPage() {
           disabled={busy || selected.size === 0 || Boolean(queuedDevice)}
           onClick={download}
           title={selected.size ? `Download ${plural(selected.size, "song")} to this device` : "Select songs to download"}
+          aria-label={queuedDevice ? "Queued for this device" : "Download to this device"}
         >
-          <Icon name="download" size={19} weight={2.2} />
-          {queuedDevice ? "Queued" : "Download"}
+          <Icon name={queuedDevice ? "clock" : "download"} size={19} weight={2.2} />
+          <span className="btn-text">{queuedDevice ? "Queued" : "Download"}</span>
         </button>
-        <button className="btn btn-filled" disabled={busy || forLibrary.size === 0 || Boolean(queued)} onClick={addToLibrary}>
+        <button
+          className="btn btn-filled"
+          disabled={busy || forLibrary.size === 0 || Boolean(queued) || Boolean(libraryProblem)}
+          onClick={addToLibrary}
+          title={libraryProblem ?? undefined}
+        >
           {forLibrary.size > 0 && !queued && <Icon name="plus" size={19} weight={2.2} />}
           {queued ? "In the queue" : label}
         </button>

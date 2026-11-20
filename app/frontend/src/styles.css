@@ -869,6 +869,18 @@ button.pill {
 .owned-wait {
   color: var(--label-2);
 }
+/* In a list, the states of a compact button take its width and centre their
+   icon, so that checkmarks, clocks and buttons line up in one column. */
+.owned-compact {
+  width: 34px;
+  justify-content: center;
+}
+@media (pointer: coarse) {
+  .owned-compact {
+    width: 44px;
+    min-height: 44px;
+  }
+}
 .progress {
   height: 6px;
   border-radius: 3px;
@@ -1415,7 +1427,7 @@ button.row {
 }
 @container (min-width: 400px) {
   .top-result {
-    grid-template-columns: 44% minmax(0, 1fr);
+    grid-template-columns: 40% minmax(0, 1fr);
     align-items: end;
   }
 }
@@ -1644,6 +1656,17 @@ button.row {
 /* Next to the main action, sized to its label. */
 .actionbar .btn-device {
   flex: none;
+}
+/* On a phone, adding to the library takes the room: the device download is
+   its icon, which means the same everywhere (and its label is read out). */
+@media (max-width: 759px) {
+  .actionbar .btn-device {
+    width: 50px;
+    padding: 0;
+  }
+  .actionbar .btn-device .btn-text {
+    display: none;
+  }
 }
 @media (min-width: 760px) {
   .actionbar {

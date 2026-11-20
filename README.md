@@ -13,8 +13,8 @@ original, and files it under `Artist/Album/` in your library without ever
 overwriting what is already there.
 
 <p>
-  <img src="docs/screenshots/search-dark.png" alt="Calavera's search page in the dark appearance, searching for Skrillex: the top result in its cover's colours beside a list of songs, a row of artists, and album tiles" width="560">
-  <img src="docs/screenshots/album-light.png" alt="Calavera's album page on a phone in the light appearance: the single Mirage by MPH and Skrillex in its cover's colours, with its quality in numbers, its song with a checkmark, and a download button" width="200">
+  <img src="docs/screenshots/search-dark.png" alt="Calavera's search page in the dark appearance, searching for D-Sturb: the top result Synchronised in its cover's colours with Add to library, beside a list of songs, each with an add button or a checkmark, an artist, and album tiles" width="560">
+  <img src="docs/screenshots/album-light.png" alt="Calavera's album page on a phone in the light appearance: Through My Veins by D-Sturb, 9 of 12 songs in the library, with a download button and Add 3 songs to library" width="200">
 </p>
 
 ## Before you use it
@@ -102,7 +102,7 @@ With a compose file of your own, each image can be built straight from a
 release tag; the version pins are part of the Dockerfiles:
 
 ```yaml
-build: https://github.com/bhadid/calavera.git#v0.8.5:app        # or …:wrapper
+build: https://github.com/bhadid/calavera.git#v0.8.6:app        # or …:wrapper
 ```
 
 Copy the `security_opt`, `cap_drop`, volumes and ports from `compose.yaml`;
@@ -152,9 +152,10 @@ the 6-digit code.
 ## Using it
 
 - **Search** (the start page): type an artist, album or song, or paste a
-  link. Paste several links at once and they go to the queue together with
-  *Add to the queue*. *In library*
-  marks albums whose folder already exists. Tap a cover or title to open the
+  link. Paste several links at once and *Add to library* queues them
+  together. The **+** button on an album or song adds it to your library;
+  a checkmark marks albums whose folder already exists. (The download
+  arrow always means *to this device*: on an album page and in the queue.) Tap a cover or title to open the
   album, an artist's name to open the artist's page. It is laid out
   as in Apple's Music app: a row each for albums, singles and EPs, live
   albums, compilations and appearances; *See all* shows the whole group,
@@ -220,7 +221,8 @@ Albums are stored as `<library>/<Artist>/<Album>/NN. Title.flac` plus
 - Only verified tracks are imported. Songs Apple does not offer are left out
   up front and reported; any other failed track stops the import.
 - If the library folder is missing, empty or read-only (for example an
-  unmounted network share), nothing is written.
+  unmounted network share), nothing is written, and the add buttons are
+  disabled with the reason; downloads to your device still work.
 - The copy goes to a hidden temporary folder, every file is read back and
   checksummed, and only then is the folder renamed into place. Media servers
   that watch for new files may not notice a folder that appears this way;
