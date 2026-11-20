@@ -1,6 +1,6 @@
-# On every push to main and every pull request: run the backend tests, build
-# the app image (which type-checks and builds the frontend) and check the
-# accent colours. The same commands as in docs/DEVELOPMENT.md.
+# On every push to main and every pull request: run the backend and
+# supervisor tests, build the app image (which type-checks and builds the
+# frontend) and check the accent colours. The same commands as in docs/DEVELOPMENT.md.
 #
 # The wrapper image is not built here: it compiles wrapper-lite from source,
 # which downloads about 1 GB and takes several minutes.
@@ -21,6 +21,8 @@ jobs:
       - uses: actions/checkout@v7
       - name: Backend tests
         run: docker build --target test app
+      - name: Supervisor tests
+        run: docker run --rm -v "$PWD/wrapper":/w:ro -w /w -e PYTHONDONTWRITEBYTECODE=1 python:3.12-slim python -m unittest -v
       - name: App image, with frontend type check and build
         run: docker build app
       - name: Accent colour check

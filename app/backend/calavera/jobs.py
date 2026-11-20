@@ -100,6 +100,23 @@ def expired(jobs: list[dict[str, Any]], now: float, hours: int, after_download: 
     return due
 
 
+def failure_reason(failures: list[str]) -> str:
+    """What to tell the user about amdl's "Failed to …" lines: the first one,
+    and what it means when the wrapper could not get a decryption key."""
+    if not failures:
+        return ""
+    reason = failures[0].rstrip(".")
+    if len(reason) > 300:
+        reason = reason[:300] + "…"
+    reason = f"amdl: {reason}."
+    if "/key" in failures[0]:
+        reason += (
+            " Apple refused the decryption key, which usually means the Apple Music session has expired:"
+            " sign in again on Account, then retry."
+        )
+    return reason
+
+
 @dataclass(frozen=True)
 class StagedAlbum:
     artist: str  # folder names as amdl wrote them
@@ -323,8 +340,10 @@ class JobManager:
             if self._runner:
                 self._runner.cancel()
 
-    def _requeue(self, job_id: str, options: dict[str, Any]) -> None:
-        self._db.clear_logs(job_id)
+    def _requeue(self, job_id: str, options: dict[str, Any], why: str) -> None:
+        # The log of earlier runs stays: it is often the only record of why
+        # they failed.
+        self._log(job_id, f"── {why}, {time.strftime('%-d %b, %H:%M')}. Earlier runs are above. ──")
         self._update(
             job_id, status="queued", stage="", progress=0, detail="", error="", result=[],
             options=options, started_at=None, finished_at=None, fetched_at=None,
@@ -338,7 +357,7 @@ class JobManager:
         if not job or job["status"] in ACTIVE:
             raise JobError("Only a finished job can be retried.")
         self.discard_files(job_id)
-        self._requeue(job_id, {**job["options"], "resume": False})
+        self._requeue(job_id, {**job["options"], "resume": False}, "Retried")
 
     def import_anyway(self, job_id: str) -> None:
         """Import what a finished job has, or can still get, adding to an
@@ -356,7 +375,7 @@ class JobManager:
         if not resume:
             self.discard_files(job_id)
         options = {k: v for k, v in job["options"].items() if k != "destination"}
-        self._requeue(job_id, {**options, "merge": True, "resume": resume})
+        self._requeue(job_id, {**options, "merge": True, "resume": resume}, "Run again to import")
 
     def remove(self, job_id: str) -> None:
         job = self._db.get_job(job_id)
@@ -591,13 +610,15 @@ class JobManager:
         result = await self._runner.run(links, job_dir, config, lambda line: self._log(job_id, line), on_progress)
         self._check_cancel()
         summary = result.progress.summary
+        reason = failure_reason(result.progress.failures)
         if summary is None:
-            raise JobError(f"The downloader stopped without a result (exit code {result.exit_code}). See the log.")
+            raise JobError(f"The downloader stopped without a result (exit code {result.exit_code}). {reason or 'See the log.'}")
         if not summary.clean or result.exit_code != 0 or (expected and summary.completed < expected):
             total = max(summary.total, expected)
             raise JobError(
                 f"{summary.completed} of {total} tracks downloaded, {total - summary.completed} failed. "
-                "Nothing was imported. You can keep the downloaded tracks, or see the log for the reason."
+                + (reason or "See the log for the reason.")
+                + " Nothing was imported; you can keep the downloaded tracks."
             )
 
     def _drop_unfinished(self, job_id: str) -> None:

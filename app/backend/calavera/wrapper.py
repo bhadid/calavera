@@ -36,7 +36,10 @@ class WrapperClient:
     async def status(self) -> dict:
         """State for the UI. Never raises."""
         state = {"reachable": False, "phase": "unreachable", "session": False, "ready": False, "problem": None,
-                 "regions": [], "login": {"state": "idle", "message": "", "twofa_deadline": None}, "log_tail": []}
+                 "regions": [], "login": {"state": "idle", "message": "", "twofa_deadline": None},
+                 # Whether Apple still accepts the session (see AuthWatch in
+                 # the supervisor). A supervisor too old to report it counts as ok.
+                 "auth": {"ok": True, "problem": None, "since": None}, "log_tail": []}
         try:
             resp = await self._http.get(f"{self._supervisor_url}/health", headers=self._headers())
             resp.raise_for_status()
@@ -45,7 +48,9 @@ class WrapperClient:
             return state
         if state["phase"] == "running":
             state["regions"] = await self.regions()
-            state["ready"] = bool(state["regions"])
+            # wrapper-lite keeps listing its storefronts when Apple refuses
+            # the session, so both are needed for downloads to work.
+            state["ready"] = bool(state["regions"]) and bool(state["auth"].get("ok", True))
         return state
 
     async def _post(self, path: str, body: dict) -> tuple[int, dict]:

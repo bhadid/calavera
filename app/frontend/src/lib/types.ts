@@ -101,6 +101,9 @@ export interface WrapperStatus {
   ready: boolean;
   regions: string[];
   login: LoginState;
+  /** Whether Apple still accepts the session. When it does not, wrapper-lite
+   * keeps running and listing storefronts, but downloads fail. */
+  auth: { ok: boolean; problem: string | null; since: number | null };
   log_tail: string[];
 }
 

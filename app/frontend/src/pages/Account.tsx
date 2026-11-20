@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { dayAndTime } from "../lib/format";
 import { useSecondsLeft, useSignIn } from "../lib/hooks/signIn";
 import { Icon } from "../components/Icon";
 import { accountState } from "../components/Layout";
@@ -16,6 +17,14 @@ export function AccountPage() {
   const account = accountState(status);
   // Signed in, the form waits behind a button: signing in again is rare.
   const [again, setAgain] = useState(false);
+  // A finished sign-in puts the form away again.
+  const loginState = login?.state;
+  useEffect(() => {
+    if (loginState === "succeeded") setAgain(false);
+  }, [loginState]);
+  // While the wrapper starts with a new session there is nothing to fill in.
+  const showForm = wrapper ? again || inProgress || (!wrapper.ready && wrapper.phase !== "starting") : false;
+  const expired = wrapper?.phase === "running" && !wrapper.auth.ok && !inProgress;
 
   return (
     <div className="page">
@@ -26,7 +35,7 @@ export function AccountPage() {
         <p className="empty">Loading…</p>
       ) : (
         <>
-          {(login.state === "failed" || error || !wrapper.reachable || wrapper.phase === "needs_fix") && (
+          {(login.state === "failed" || error || !wrapper.reachable || wrapper.phase === "needs_fix" || expired) && (
             <>
               {!wrapper.reachable && (
                 <Notice tone="bad" role="alert">
@@ -36,6 +45,12 @@ export function AccountPage() {
               {wrapper.reachable && wrapper.phase === "needs_fix" && (
                 <Notice tone="bad" role="alert">
                   <strong>The wrapper cannot use its volumes.</strong> {wrapper.problem}
+                </Notice>
+              )}
+              {expired && (
+                <Notice tone="bad" role="alert">
+                  <strong>Apple no longer accepts this session.</strong> {wrapper.auth.problem}
+                  {wrapper.auth.since && ` Since ${dayAndTime(wrapper.auth.since)}.`} Downloads fail until you sign in again.
                 </Notice>
               )}
               {login.state === "failed" && <Notice tone="bad" role="alert">{login.message}</Notice>}
@@ -55,18 +70,22 @@ export function AccountPage() {
               <p className="muted">
                 {wrapper.ready
                   ? `Store: ${wrapper.regions.join(", ")}. Downloads are ready.`
-                  : wrapper.phase === "starting"
-                    ? "A session exists; the wrapper is starting."
-                    : inProgress
-                      ? "Signing in…"
-                      : "Sign in once; the session is kept until Apple ends it."}
+                  : expired
+                    ? "The session has expired. Sign in again to keep downloading."
+                    : wrapper.phase === "starting"
+                      ? "A session exists; the wrapper is starting."
+                      : inProgress
+                        ? "Signing in…"
+                        : "Sign in once; the session is kept until Apple ends it."}
               </p>
-              {wrapper.ready && !again && login.state !== "running" && login.state !== "awaiting_2fa" ? (
-                <div className="actions">
-                  <button className="btn btn-gray btn-small" onClick={() => setAgain(true)}>
-                    Sign in again
-                  </button>
-                </div>
+              {!showForm ? (
+                wrapper.ready && (
+                  <div className="actions">
+                    <button className="btn btn-gray btn-small" onClick={() => setAgain(true)}>
+                      Sign in again
+                    </button>
+                  </div>
+                )
               ) : (
               <>
               <div className="tile-bar" style={{ marginTop: 8 }}>

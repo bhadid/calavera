@@ -197,6 +197,17 @@ browser ─POST /api/account/code──▶ app ─POST /login/2fa─▶ supervis
                                                          └ supervisor starts the serving wrapper-lite again
 ```
 
+Apple can stop accepting a session while wrapper-lite keeps running and its
+`/status` still lists the storefronts. The supervisor therefore reads
+wrapper-lite's log (`AuthWatch`): a token refresh in which Apple sent no
+music token, or a refused decryption key (`Invalid CKC error`), marks the
+session as refused; a good refresh or the next key handed out clears the
+sign it set, and a sign-in clears both. `/health` reports this as `auth`.
+The app counts the wrapper as ready only when it lists storefronts and
+`auth.ok` holds. The state lives in the supervisor's memory: after a restart
+of the wrapper container it is found again at the next refresh (every 30
+minutes) or download.
+
 The supervisor requires a bearer token on every request. It creates the token
 on first start in the `control` volume, which only these two containers mount.
 The password exists in the supervisor only until the sign-in process has been

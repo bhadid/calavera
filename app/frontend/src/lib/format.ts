@@ -28,6 +28,14 @@ export function atTime(seconds: number): string {
   return `${then.toDateString() === new Date().toDateString() ? "" : "yesterday "}at ${time}`;
 }
 
+/** "14:05" today, otherwise "Sunday 9 November, 07:05". */
+export function dayAndTime(seconds: number): string {
+  const then = new Date(seconds * 1000);
+  const time = then.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  if (then.toDateString() === new Date().toDateString()) return time;
+  return `${then.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" })}, ${time}`;
+}
+
 /** "9 min", "3 h 12 min", "2 days": time left, rounded up to the minute. */
 export function timeLeft(seconds: number): string {
   const minutes = Math.max(1, Math.ceil(seconds / 60));
