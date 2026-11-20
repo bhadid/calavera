@@ -2,23 +2,23 @@
 // (app/frontend/src/components/DotsLogo.tsx) in the default shades:
 //
 //   app/frontend/public/favicon.svg           light and dark set, no tile
-//   app/frontend/public/apple-touch-icon.svg  dark set on the drawing's dark
-//                                             tile, for the PNG below
+//   app/frontend/public/apple-touch-icon.svg  dark set on a transparent
+//                                             background, for the PNG below
 //
 // Run after changing the drawing or its shades; check-accent.mjs fails if
 // favicon.svg is out of date. Then make the 180 x 180 PNG that iOS uses on the
-// home screen (it takes no SVG):
+// home screen (it takes no SVG). Its background stays transparent: iOS then
+// puts the skull on its own dark tile, as it does for its own apps.
 //
 //   docker run --rm -u "$(id -u):$(id -g)" -v "$PWD":/w -w /w node:22-alpine node scripts/favicon.mjs
 //   docker run --rm -v "$PWD/app/frontend/public":/p zenika/alpine-chrome --no-sandbox --disable-gpu \
-//     --headless --hide-scrollbars --window-size=180,180 --screenshot=/p/apple-touch-icon.png /p/apple-touch-icon.svg
+//     --headless --hide-scrollbars --default-background-color=00000000 --window-size=180,180 --screenshot=/p/apple-touch-icon.png /p/apple-touch-icon.svg
 import { readFileSync, writeFileSync } from "node:fs";
 import { accentTokens, DEFAULT_ACCENT } from "../app/frontend/src/lib/accentColour.ts";
 
 const PARTS = ["edge", "bone", "high"];
-// The tile the drawing was made on, and how much of it the skull fills on
-// the home screen (iOS rounds the corners, so the skull keeps clear of them).
-const TILE = "#14121f";
+// How much of the home-screen tile the skull fills (iOS rounds the corners,
+// so the skull keeps clear of them).
 const HOME_SCREEN_FILL = 0.66;
 
 function logo() {
@@ -54,7 +54,7 @@ export function homeScreenIcon() {
   const style = PARTS.map((part) => `.${part}{fill:${t[`--ac-dot-${part}-d`]}}`).join("");
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${box.join(" ")}" width="180" height="180"><style>${style}</style>` +
-    `<rect x="${box[0]}" y="${box[1]}" width="${big}" height="${big}" fill="${TILE}"/>${groups(dots, (r) => r)}</svg>\n`
+    `${groups(dots, (r) => r)}</svg>\n`
   );
 }
 
