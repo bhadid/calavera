@@ -102,7 +102,7 @@ With a compose file of your own, each image can be built straight from a
 release tag; the version pins are part of the Dockerfiles:
 
 ```yaml
-build: https://github.com/bhadid/calavera.git#v0.8.3:app        # or …:wrapper
+build: https://github.com/bhadid/calavera.git#v0.8.4:app        # or …:wrapper
 ```
 
 Copy the `security_opt`, `cap_drop`, volumes and ports from `compose.yaml`;
@@ -141,6 +141,11 @@ the 6-digit code.
   `docker compose exec wrapper python3 /app/supervisor.py login`
 - What is kept is Apple's session, in the `wrapper-session` Docker volume. It
   survives restarts and rebuilds, but not `docker compose down -v`.
+- Apple can end the session on its side, for example after the server ran
+  with a wrong clock. The wrapper then keeps running, but Apple stops
+  renewing its token and refuses decryption keys. Calavera notices both in
+  the wrapper's log: the account shows *Session expired*, and the Account
+  and Queue pages say since when. Signing in again fixes it.
 - Apple IDs protected by hardware security keys cannot sign in: Apple issues
   no 6-digit codes for them.
 

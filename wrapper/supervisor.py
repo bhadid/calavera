@@ -93,6 +93,64 @@ def log(msg: str) -> None:
     print(f"[supervisor] {msg}", flush=True)
 
 
+# A decryption key handed out: wrapper-lite logs this only once Apple sent it.
+KEY_OK_RE = re.compile(r"\badamId: \d+, uri: ")
+
+
+class AuthWatch:
+    """Notices in wrapper-lite's log that Apple no longer accepts the session.
+
+    wrapper-lite keeps serving when that happens: its status still lists the
+    storefronts, and only the downloads fail. Two signs are watched:
+
+    token  a background refresh in which Apple sent no new music token
+           ("createMusicToken failed"); cleared by a refresh without one.
+    key    Apple refused a decryption key ("Invalid CKC error"); cleared
+           by the next key it hands out.
+
+    "failed to get dev token" is not one of them: it happens now and then
+    with a working session and is fixed by the next refresh. Signing in
+    again clears both.
+    """
+
+    MESSAGES = {
+        "token": "Apple did not renew the Apple Music session token.",
+        "key": "Apple refused a decryption key.",
+    }
+
+    def __init__(self) -> None:
+        self._problems: dict[str, float] = {}  # sign -> when first seen
+        self._refresh_failed = False
+
+    def feed(self, line: str, now: float | None = None) -> None:
+        now = time.time() if now is None else now
+        if "background token refresh starting" in line:
+            self._refresh_failed = False
+        elif "createMusicToken failed" in line:
+            self._refresh_failed = True
+            self._problems.setdefault("token", now)
+        elif "background token refresh completed" in line:
+            if not self._refresh_failed:
+                self._problems.pop("token", None)
+        elif "Invalid CKC error" in line:
+            self._problems.setdefault("key", now)
+        elif KEY_OK_RE.search(line):
+            self._problems.pop("key", None)
+
+    def reset(self) -> None:
+        self._problems.clear()
+        self._refresh_failed = False
+
+    def state(self) -> dict:
+        if not self._problems:
+            return {"ok": True, "problem": None, "since": None}
+        return {
+            "ok": False,
+            "problem": " ".join(self.MESSAGES[sign] for sign in ("token", "key") if sign in self._problems),
+            "since": min(self._problems.values()),
+        }
+
+
 class Supervisor:
     """Owns the wrapper-lite processes and the state reported by the API."""
 
@@ -107,6 +165,9 @@ class Supervisor:
         self._stopping = False
         self._restarts = 0
         self._problem: str | None = None
+        # Kept across restarts of wrapper-lite: restarting does not repair a
+        # session Apple refuses. Only a sign-in does.
+        self._auth = AuthWatch()
 
     # -- state ---------------------------------------------------------------
     @staticmethod
@@ -141,6 +202,7 @@ class Supervisor:
                 "session": self.has_session(),
                 "problem": self._problem,
                 "login": dict(self._login),
+                "auth": self._auth.state(),
                 "log_tail": list(self._logs)[-40:],
             }
 
@@ -197,10 +259,15 @@ class Supervisor:
         def pump() -> None:
             assert proc.stdout is not None
             for line in proc.stdout:
-                if "listening on" in line:
-                    with self._lock:
+                with self._lock:
+                    if "listening on" in line:
                         self._listening = True
+                    was_ok = self._auth.state()["ok"]
+                    self._auth.feed(line)
+                    now_ok = self._auth.state()["ok"]
                 self._record(line)
+                if was_ok != now_ok:
+                    log("Apple accepts the session again" if now_ok else "Apple refuses the session: sign in again")
             proc.wait()
             with self._lock:
                 self._listening = False
@@ -297,6 +364,7 @@ class Supervisor:
             if rc == 0 and self.has_session():
                 self._login = {"state": "succeeded", "message": "Signed in.", "twofa_deadline": None}
                 self._restarts = 0
+                self._auth.reset()
                 log("sign-in succeeded")
             else:
                 detail = f" ({last_problem})" if last_problem else ""

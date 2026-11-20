@@ -26,6 +26,7 @@ export function accountState(status: Status | null): { tone: Tone; text: string 
   if (wrapper.ready) return { tone: "ok", text: "Signed in" };
   if (!wrapper.reachable) return { tone: "bad", text: "Wrapper offline" };
   if (wrapper.phase === "needs_fix") return { tone: "bad", text: "Needs a fix" };
+  if (wrapper.phase === "running" && !wrapper.auth.ok) return { tone: "bad", text: "Session expired" };
   if (wrapper.phase === "awaiting_2fa") return { tone: "warn", text: "Code needed" };
   if (wrapper.phase === "starting" || wrapper.phase === "logging_in") return { tone: "warn", text: "Connecting" };
   return { tone: "bad", text: "Not signed in" };

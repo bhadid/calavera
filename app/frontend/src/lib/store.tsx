@@ -123,7 +123,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [notify]);
 
   // Status changes slowly, except during a sign-in.
-  const busy = status?.wrapper.login.state === "running" || status?.wrapper.login.state === "awaiting_2fa" || !status?.wrapper.ready;
+  // An expired session changes only when the user signs in, which makes it busy.
+  const busy =
+    status?.wrapper.login.state === "running" ||
+    status?.wrapper.login.state === "awaiting_2fa" ||
+    (!status?.wrapper.ready && status?.wrapper.auth.ok !== false);
   useEffect(() => {
     refreshStatus();
     const timer = window.setInterval(refreshStatus, busy ? 2000 : 15000);

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { bytes, plural, timeLeft } from "../lib/format";
+import { bytes, dayAndTime, plural, timeLeft } from "../lib/format";
 import { useJobActions } from "../lib/hooks/jobActions";
 import { useStore } from "../lib/store";
 import { api } from "../lib/api";
@@ -142,6 +142,12 @@ export function QueuePage() {
               {wrapper.phase === "needs_fix" ? (
                 <>
                   <strong>The wrapper cannot start.</strong> Downloads will fail until it is fixed. <Link to="/account">Account</Link>
+                </>
+              ) : !wrapper.auth.ok ? (
+                <>
+                  <strong>The Apple Music session has expired.</strong> {wrapper.auth.problem}
+                  {wrapper.auth.since && ` Since ${dayAndTime(wrapper.auth.since)}.`} Downloads will fail until you{" "}
+                  <Link to="/account">sign in again</Link>.
                 </>
               ) : (
                 <>

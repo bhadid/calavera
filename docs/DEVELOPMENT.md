@@ -33,9 +33,16 @@ generated audio), the library import rules, the download plan, the catalogue
 client and its memory (against canned answers, never Apple), the
 database upgrade, and job messages and logs across a retry.
 
+The supervisor's watch on the Apple session (`AuthWatch`) has its own tests,
+standard library only, fed with wrapper-lite's log lines:
+
+```bash
+docker run --rm -v "$PWD/wrapper":/w:ro -w /w -e PYTHONDONTWRITEBYTECODE=1 python:3.12-slim python -m unittest -v
+```
+
 Of the API routes only the catalogue ones are tested (with their memory,
 against a stand-in for Apple). Not covered by automated tests: the other
-routes, the job pipeline as a whole and the supervisor. They were exercised by hand; see "Manual checks" below.
+routes, the job pipeline as a whole and the rest of the supervisor. They were exercised by hand; see "Manual checks" below.
 
 ## Browser smoke test
 
@@ -200,6 +207,7 @@ pipeline:
 | "Wrapper offline" | `docker compose logs wrapper`. `unshare` or `mount ... failed` means the `security_opt` entries in `compose.yaml` are not in effect. |
 | "Wrapper needs a fix" | Volumes from 0.5.0 or older still belong to root; the Account page gives the `chown` command (README, "Upgrading from 0.5.0 or older"). |
 | Jobs fail with "Not signed in" | Account page; the wrapper log at the bottom of it. |
+| "Session expired" | Apple stopped accepting the session: `createMusicToken failed` or `Invalid CKC error` in `docker compose logs wrapper`. Sign in again. A server that booted with a wrong clock can cause it. |
 | "The library folder is empty" | The library path is not mounted on the host, or `LIBRARY_PATH` is wrong. |
 | Search fails, downloads work | Apple changed its web player; see `catalog.py`. |
 | A job fails with "N of M tracks downloaded" | The message gives amdl's reason; the job log has the rest. A refused `/key` means the session expired. |
