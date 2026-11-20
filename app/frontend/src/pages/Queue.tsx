@@ -93,7 +93,11 @@ export function QueuePage() {
   // Running first, then queued in the order they will run (oldest first).
   active.sort((a, b) => Number(b.status === "running") - Number(a.status === "running") || a.created_at - b.created_at);
   const [now, ...next] = active;
-  const finished = jobs.filter((j) => !active.includes(j));
+  // Newest first by when they finished: a job retried today belongs to
+  // today, however long ago it was added.
+  const finished = jobs
+    .filter((j) => !active.includes(j))
+    .sort((a, b) => (b.finished_at ?? b.created_at) - (a.finished_at ?? a.created_at));
   // Only what still waits to be downloaded; a downloaded one stays in the history.
   const ready = finished.filter((j) => readyToFetch(j) && !j.fetched_at);
   const keep = useKeep();
@@ -115,7 +119,8 @@ export function QueuePage() {
     if (ok) await Promise.allSettled(removable.map((j) => api.removeJob(j.id)));
   }
 
-  // History grouped by the day each job finished.
+  // History grouped by the day each job finished. Sorted that way, each day
+  // forms one group, so its label is a unique key.
   const groups: { day: string; jobs: Job[] }[] = [];
   for (const job of finished.slice(0, shown)) {
     const label = day(job.finished_at ?? job.created_at);
