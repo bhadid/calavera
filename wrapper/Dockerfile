@@ -14,7 +14,7 @@ FROM debian:${DEBIAN_VERSION} AS build
 ARG WRAPPER_REPO=https://github.com/WorldObservationLog/wrapper
 # The pinned wrapper-lite commit. Updating it: see README, "Updating the
 # pinned components" (.github/scripts/check-upstream.sh reads this line).
-ARG WRAPPER_REF=386ec82e1fc9c9761aa68060a2be6f19d39106fc
+ARG WRAPPER_REF=e51e370a6b0660ed9d722fff1add079098aeb935
 # Android NDK r23b and the SHA-256 of android-ndk-r23b-linux.zip (Google
 # publishes the SHA-1, f47ec4c4badd11e9f593a8450180884a927c330d, which this
 # file also matches). Change both together.
@@ -49,14 +49,17 @@ COPY supervisor.py /app/supervisor.py
 # dropping root, prepare what that user must be able to write:
 # - rootfs/dev/urandom: the launcher opens it read-write before bind-mounting
 #   the device over it (rootfs/dev and rootfs/proc only need to exist);
+# - rootfs/etc: the launcher copies the container's resolv.conf there on
+#   every start, so wrapper-lite uses Docker's DNS (otherwise a public
+#   resolver, 8.8.8.8);
 # - rootfs/data and /control: the mount points of the two volumes. Docker
 #   copies this ownership into a new, empty named volume, so fresh installs
 #   need no further step. Volumes from Calavera 0.5.0 or older hold
 #   root-owned files: see README, "Upgrading from 0.5.0 or older".
 RUN chmod +x /app/wrapper-lite-rootless \
-    && mkdir -p /app/rootfs/dev /app/rootfs/proc /app/rootfs/data /control \
+    && mkdir -p /app/rootfs/dev /app/rootfs/proc /app/rootfs/data /app/rootfs/etc /control \
     && touch /app/rootfs/dev/urandom \
-    && chown 10001:10001 /app/rootfs/dev/urandom /control \
+    && chown 10001:10001 /app/rootfs/dev/urandom /app/rootfs/etc /control \
     && chown -R 10001:10001 /app/rootfs/data
 USER 10001:10001
 ENV PYTHONUNBUFFERED=1

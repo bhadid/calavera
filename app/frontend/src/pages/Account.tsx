@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
-import { dayAndTime } from "../lib/format";
+import { dayAndTime, duration } from "../lib/format";
 import { useSecondsLeft, useSignIn } from "../lib/hooks/signIn";
 import { Icon } from "../components/Icon";
 import { accountState } from "../components/Layout";
 import { Notice, span } from "../components/tiles";
 
 function Countdown({ deadline }: { deadline: number }) {
-  return <strong className="num">{useSecondsLeft(deadline)} s</strong>;
+  return <strong className="num">{duration(useSecondsLeft(deadline) * 1000)} min</strong>;
 }
 
 export function AccountPage() {
@@ -108,7 +108,7 @@ export function AccountPage() {
                 <form className="form" onSubmit={submitCode}>
                   <p>
                     Apple sent a 6-digit code to your trusted devices. Enter it within{" "}
-                    {login.twofa_deadline ? <Countdown deadline={login.twofa_deadline} /> : "a minute"}.
+                    {login.twofa_deadline ? <Countdown deadline={login.twofa_deadline} /> : "ten minutes"}.
                   </p>
                   <div>
                     <label className="field-label" htmlFor="code">

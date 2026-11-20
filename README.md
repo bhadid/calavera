@@ -102,7 +102,7 @@ With a compose file of your own, each image can be built straight from a
 release tag; the version pins are part of the Dockerfiles:
 
 ```yaml
-build: https://github.com/bhadid/calavera.git#v0.8.4:app        # or …:wrapper
+build: https://github.com/bhadid/calavera.git#v0.8.5:app        # or …:wrapper
 ```
 
 Copy the `security_opt`, `cap_drop`, volumes and ports from `compose.yaml`;
@@ -128,7 +128,7 @@ interface. Behind a reverse proxy, put its host name into `ALLOWED_HOSTS`.
 ## Signing in
 
 **Account → Sign in.** Enter the Apple ID and password; if Apple asks for
-two-factor authentication a code field appears, with about a minute to enter
+two-factor authentication a code field appears, with ten minutes to enter
 the 6-digit code.
 
 - The password goes from your browser to Calavera, on to the wrapper
@@ -285,7 +285,7 @@ gets the same versions as one built here:
 
 | Component | Pin | Where |
 |---|---|---|
-| wrapper-lite | commit `386ec82e1fc9c9761aa68060a2be6f19d39106fc` | `wrapper/Dockerfile` → `ARG WRAPPER_REF` |
+| wrapper-lite | commit `e51e370a6b0660ed9d722fff1add079098aeb935` | `wrapper/Dockerfile` → `ARG WRAPPER_REF` |
 | amdl | release `v0.1.4` + SHA-256 of the binary | `app/Dockerfile` → `ARG AMDL_VERSION`, `ARG AMDL_SHA256` |
 | ffmpeg | static 7.1, image digest | `app/Dockerfile` |
 | Python packages | direct ones in `requirements.in`, full lock generated | `app/backend/requirements.txt` |
