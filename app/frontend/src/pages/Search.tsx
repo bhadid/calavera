@@ -10,6 +10,12 @@ import { Icon } from "../components/Icon";
 import { Cover, Notice, span, tint } from "../components/tiles";
 import { albumPath, atTime } from "../lib/format";
 
+// The field takes the cursor on arrival only with a mouse. On a phone,
+// focusing it on every visit to the tab brings up the keyboard; in an iOS
+// home-screen app, after the keyboard goes away, the fixed tab bar can stop
+// taking taps.
+const HAS_KEYBOARD = matchMedia("(hover: hover) and (pointer: fine)").matches;
+
 /**
  * Search: the catalogue by words or one link, or several pasted links at
  * once, which then go to the queue together.
@@ -62,7 +68,7 @@ export function SearchPage() {
             autoCorrect="off"
             spellCheck={false}
             enterKeyHint="search"
-            autoFocus
+            autoFocus={HAS_KEYBOARD}
           />
           {text && (
             <button type="button" className="clear" onClick={clear} aria-label="Clear">
