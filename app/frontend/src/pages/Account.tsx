@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSecondsLeft, useSignIn } from "../lib/hooks/signIn";
 import { Icon } from "../components/Icon";
 import { accountState } from "../components/Layout";
@@ -16,6 +16,13 @@ export function AccountPage() {
   const account = accountState(status);
   // Signed in, the form waits behind a button: signing in again is rare.
   const [again, setAgain] = useState(false);
+  // A finished sign-in puts the form away again.
+  const loginState = login?.state;
+  useEffect(() => {
+    if (loginState === "succeeded") setAgain(false);
+  }, [loginState]);
+  // While the wrapper starts with a new session there is nothing to fill in.
+  const showForm = wrapper ? again || inProgress || (!wrapper.ready && wrapper.phase !== "starting") : false;
 
   return (
     <div className="page">
@@ -61,12 +68,14 @@ export function AccountPage() {
                       ? "Signing in…"
                       : "Sign in once; the session is kept until Apple ends it."}
               </p>
-              {wrapper.ready && !again && login.state !== "running" && login.state !== "awaiting_2fa" ? (
-                <div className="actions">
-                  <button className="btn btn-gray btn-small" onClick={() => setAgain(true)}>
-                    Sign in again
-                  </button>
-                </div>
+              {!showForm ? (
+                wrapper.ready && (
+                  <div className="actions">
+                    <button className="btn btn-gray btn-small" onClick={() => setAgain(true)}>
+                      Sign in again
+                    </button>
+                  </div>
+                )
               ) : (
               <>
               <div className="tile-bar" style={{ marginTop: 8 }}>
