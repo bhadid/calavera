@@ -9,6 +9,7 @@ import { AlbumTile, kindOf, QualityPill, QueueButton, shortName } from "../compo
 import { Icon } from "../components/Icon";
 import { Cover, Notice, span, tint } from "../components/tiles";
 import { albumPath, atTime } from "../lib/format";
+import { useLibraryProblem } from "../lib/store";
 
 // The field takes the cursor on arrival only with a mouse. On a phone,
 // focusing it on every visit to the tab brings up the keyboard; in an iOS
@@ -24,6 +25,7 @@ export function SearchPage() {
   const { query, text, setText, results, error, loading, empty, submit, clear } = useSearch();
   const { add, rejected, setRejected, submitting } = useAddLinks();
   const links = linksIn(text);
+  const libraryProblem = useLibraryProblem();
 
   async function addLinks() {
     const refused = await add(links);
@@ -85,11 +87,11 @@ export function SearchPage() {
               <Icon name="link" size={16} />
               {links.length} Apple Music links
             </div>
-            <p className="muted">Albums and songs from these links go to the queue together.</p>
+            <p className="muted">Albums and songs from these links go to your library together, through the queue.</p>
             <div className="actions">
-              <button className="btn btn-filled" disabled={submitting} onClick={addLinks}>
-                <Icon name="download" size={19} weight={2.2} />
-                Add {links.length} to the queue
+              <button className="btn btn-filled" disabled={submitting || Boolean(libraryProblem)} onClick={addLinks} title={libraryProblem ?? undefined}>
+                <Icon name="plus" size={19} weight={2.2} />
+                Add {links.length} to library
               </button>
             </div>
           </section>
@@ -177,7 +179,7 @@ function Results({ results }: { results: SearchResults }) {
                         {duration(song.duration_ms)}
                       </span>
                     </div>
-                    <QueueButton url={song.url} appleId={song.id} inLibrary={song.in_library} compact label={`Download ${song.name}`} />
+                    <QueueButton url={song.url} appleId={song.id} inLibrary={song.in_library} compact label={`Add ${song.name} to library`} />
                   </div>
                 );
               })}

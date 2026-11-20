@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { bytes, dayAndTime, plural, timeLeft } from "../lib/format";
 import { useJobActions } from "../lib/hooks/jobActions";
-import { useStore } from "../lib/store";
+import { useLibraryProblem, useStore } from "../lib/store";
 import { api } from "../lib/api";
 import type { Job, JobFile, JobStatus } from "../lib/types";
 import { useConfirm } from "../components/Confirm";
@@ -365,6 +365,7 @@ function HistoryRow({ job, policy }: { job: Job; policy: Keep }) {
   const [files, setFiles] = useState(false);
   const fetchable = readyToFetch(job);
   const { busy, canKeep, canAddMissing, keep, retry, discard, remove, selection } = useJobActions(job);
+  const libraryProblem = useLibraryProblem();
   const status = STATUS[job.status];
   const partial = job.status === "done" && job.result.some((r) => (r.unavailable ?? 0) > 0);
   // Downloaded to a device is done as much as being in the library is.
@@ -444,18 +445,20 @@ function HistoryRow({ job, policy }: { job: Job; policy: Keep }) {
               </button>
             )}
             {fetchable && (
-              <button className="btn btn-gray btn-small" disabled={busy} onClick={keep} title="Add these songs to the library. Existing files are never replaced.">
-                <Icon name="plus" size={16} />
+              <button className="btn btn-gray btn-small" disabled={busy || Boolean(libraryProblem)} onClick={keep} title={libraryProblem ?? "Add these songs to the library. Existing files are never replaced."}>
+                <Icon name="plus" size={16} weight={2.2} />
                 Add to library
               </button>
             )}
             {canKeep && (
-              <button className="btn btn-filled btn-small" disabled={busy} onClick={keep} title="Convert and import the tracks that finished downloading. Existing files are never replaced.">
+              <button className="btn btn-filled btn-small" disabled={busy || Boolean(libraryProblem)} onClick={keep} title={libraryProblem ?? "Convert and import the tracks that finished downloading. Existing files are never replaced."}>
+                <Icon name="plus" size={16} weight={2.2} />
                 Keep {plural(job.staged_tracks, "track")}
               </button>
             )}
             {canAddMissing && (
-              <button className="btn btn-gray btn-small" disabled={busy} onClick={keep} title="Add only the tracks the existing album folder does not have. Existing files are never replaced.">
+              <button className="btn btn-gray btn-small" disabled={busy || Boolean(libraryProblem)} onClick={keep} title={libraryProblem ?? "Add only the tracks the existing album folder does not have. Existing files are never replaced."}>
+                <Icon name="plus" size={16} weight={2.2} />
                 Add missing tracks
               </button>
             )}

@@ -32,6 +32,17 @@ export function useStore(): Store {
   return store;
 }
 
+/**
+ * Why nothing can be added to the library right now (for example, its drive
+ * is not mounted), or null. Adding is then disabled, with this as the reason;
+ * downloads to the device still work.
+ */
+export function useLibraryProblem(): string | null {
+  const { status } = useStore();
+  if (!status || status.library.ok) return null;
+  return status.library.problem ?? "The music library is not available.";
+}
+
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [jobsLoaded, setJobsLoaded] = useState(false);

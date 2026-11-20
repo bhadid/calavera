@@ -2,6 +2,7 @@ import { useId, useRef } from "react";
 import { Link } from "react-router-dom";
 import { albumPath, qualityLabel, year } from "../lib/format";
 import { useQueueItem } from "../lib/hooks/queueItem";
+import { useLibraryProblem } from "../lib/store";
 import type { Album } from "../lib/types";
 import { Icon } from "./Icon";
 import { Cover } from "./tiles";
@@ -11,14 +12,20 @@ export interface AlbumLinkState {
   otherRelease?: boolean;
 }
 
-/** Queues an item, or shows that it is queued, downloading or owned. */
-export function QueueButton({ url, appleId, inLibrary, label = "Download", compact = false }: {
+/**
+ * Adds an item to the library (through the queue), or shows that it is
+ * queued, downloading or owned. Compact, it is a round icon button, and the
+ * states take the same width so that a list of them lines up.
+ */
+export function QueueButton({ url, appleId, inLibrary, label = "Add to library", compact = false }: {
   url: string; appleId: string; inLibrary?: string | null; label?: string; compact?: boolean;
 }) {
   const { state, busy, add } = useQueueItem(url, appleId, inLibrary);
+  const libraryProblem = useLibraryProblem();
+  const shape = compact ? " owned-compact" : "";
   if (state === "queued" || state === "running") {
     return (
-      <span className="owned owned-wait">
+      <span className={`owned owned-wait${shape}`} title={compact ? (state === "running" ? "Downloading" : "Queued") : undefined}>
         <Icon name="clock" size={16} />
         {compact ? <span className="sr-only">{state === "running" ? "Downloading" : "Queued"}</span> : state === "running" ? "Downloading" : "Queued"}
       </span>
@@ -26,15 +33,21 @@ export function QueueButton({ url, appleId, inLibrary, label = "Download", compa
   }
   if (state === "owned") {
     return (
-      <span className="owned" title={inLibrary ?? undefined}>
+      <span className={`owned${shape}`} title={inLibrary ?? (compact ? "In library" : undefined)}>
         <Icon name="check" size={17} weight={2.6} />
         {compact ? <span className="sr-only">In library</span> : "In library"}
       </span>
     );
   }
   return (
-    <button className={`btn btn-tinted btn-small${compact ? " btn-icon" : ""}`} disabled={busy} onClick={add} aria-label={compact ? label : undefined}>
-      <Icon name="download" size={17} weight={2.2} />
+    <button
+      className={`btn btn-tinted btn-small${compact ? " btn-icon" : ""}`}
+      disabled={busy || Boolean(libraryProblem)}
+      onClick={add}
+      aria-label={compact ? label : undefined}
+      title={libraryProblem ?? (compact ? label : undefined)}
+    >
+      <Icon name="plus" size={17} weight={2.2} />
       {!compact && label}
     </button>
   );
