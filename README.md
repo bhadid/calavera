@@ -54,6 +54,8 @@ overwriting what is already there.
   names.
 - **Careful with your library.** Nothing existing is overwritten, renamed or
   deleted; an album whose folder already exists is skipped.
+- **New albums show up in Navidrome at once.** Optional: after each import
+  Calavera asks your media server (Subsonic API) to scan the library.
 - **Sign in from the UI**, with two-factor code. The password is not stored.
 - An interface of tiles after Apple's design guidelines, with light and dark
   appearances, a phone layout, the albums' own cover colours, and an optional
@@ -102,7 +104,7 @@ With a compose file of your own, each image can be built straight from a
 release tag; the version pins are part of the Dockerfiles:
 
 ```yaml
-build: https://github.com/bhadid/calavera.git#v0.8.6:app        # or …:wrapper
+build: https://github.com/bhadid/calavera.git#v0.8.7:app        # or …:wrapper
 ```
 
 Copy the `security_opt`, `cap_drop`, volumes and ports from `compose.yaml`;
@@ -119,6 +121,7 @@ the wrapper does not start without its three relaxed options.
 | `STAGING_PATH` | Scratch space for downloads in progress. Default `./data/staging`. |
 | `TZ` | Timezone, e.g. `Europe/Berlin`. |
 | `PUID` / `PGID` | Owner of the files written to the library (`id -u`, `id -g`). |
+| `SUBSONIC_URL` / `SUBSONIC_USER` / `SUBSONIC_PASSWORD` | Optional: a media server to scan after each import, e.g. `http://192.168.1.10:4533`. See [Media server scans](#media-server-scans). |
 
 **The UI has no login of its own.** Anyone who can reach it can queue
 downloads and start an Apple sign-in. Publish it on a trusted LAN address or on
@@ -224,9 +227,30 @@ Albums are stored as `<library>/<Artist>/<Album>/NN. Title.flac` plus
   unmounted network share), nothing is written, and the add buttons are
   disabled with the reason; downloads to your device still work.
 - The copy goes to a hidden temporary folder, every file is read back and
-  checksummed, and only then is the folder renamed into place. Media servers
-  that watch for new files may not notice a folder that appears this way;
-  trigger a library scan if yours does not.
+  checksummed, and only then is the folder renamed into place.
+
+### Media server scans
+
+A media server notices new files by watching the file system, which does
+not work across a network share: Navidrome on another machine never hears
+of an album Calavera writes to the share. With a Subsonic server set up
+(Navidrome, gonic and others), Calavera asks it to scan after each import,
+and the album shows up as soon as that scan is done (usually seconds). Set
+`SUBSONIC_URL`, `SUBSONIC_USER` and `SUBSONIC_PASSWORD` in `.env`, run
+`docker compose up -d`, and check it under *Settings → Media server → Test
+connection*.
+
+- The user must be allowed to start scans: in Navidrome, an admin. A
+  separate user just for Calavera is a good idea.
+- The password stays in `.env` (keep it `chmod 600`); the UI never shows or
+  takes it. It is not sent in clear text either: Subsonic's token
+  authentication sends a salted hash. That hash still lets anyone who can
+  read the traffic use the account, so use `https://` across an untrusted
+  network.
+- Albums imported while a scan runs are covered by one more scan after it.
+  The job's log says when the scan was asked for and when it finished; a
+  media server that cannot be reached never fails a job.
+- *Scan now* on the same page starts a scan by hand.
 
 "Already exists" means *the same folder name*. `Album (Deluxe Edition)` and
 `Album` are different albums, and so is an album you keep under another

@@ -28,6 +28,7 @@ from .config import LOCAL_HOSTS, Config, host_name
 from .config import load as load_config
 from .db import Database
 from .jobs import JobError, JobManager, StagedAlbum
+from .media import MediaServer, MediaServerError
 from .memory import ALBUM, ARTIST, QUALITY, SEARCH, Memory
 from .plan import track_file_stem
 from .settings import Settings
@@ -146,13 +147,16 @@ def create_app(config: Config | None = None) -> FastAPI:
     def get_settings() -> Settings:
         return Settings(**(db.get_kv(SETTINGS_KEY) or {}))
 
-    jobs = JobManager(config, db, catalog, wrapper, get_settings)
+    media = MediaServer(config.subsonic_url, config.subsonic_user, config.subsonic_password)
+    jobs = JobManager(config, db, catalog, wrapper, get_settings, media)
 
     @asynccontextmanager
     async def lifespan(_app: FastAPI):
         jobs.start()
+        media.start()
         yield
         await jobs.stop()
+        await media.stop()
         await catalog.close()
         await wrapper.close()
         db.close()
@@ -234,6 +238,28 @@ def create_app(config: Config | None = None) -> FastAPI:
             "staging": {"free_bytes": staging_free},
             "storefront": await storefront(),
         }
+
+    # -- media server ----------------------------------------------------------
+    # Set up in .env only: the UI has no login, so it never shows or takes the
+    # password.
+    @app.get("/api/media-server")
+    async def media_server():
+        return {"configured": media.configured, "url": media.url, "user": media.user, "last": media.last}
+
+    @app.post("/api/media-server/test")
+    async def media_server_test():
+        if not media.configured:
+            raise HTTPException(409, "No media server is set up.")
+        try:
+            return {"ok": True, **await media.test()}
+        except MediaServerError as e:
+            return {"ok": False, "message": str(e)}
+
+    @app.post("/api/media-server/scan")
+    async def media_server_scan():
+        if not media.request_scan():
+            raise HTTPException(409, "No media server is set up.")
+        return {"ok": True}
 
     # -- jobs --------------------------------------------------------------------
     @app.get("/api/jobs")

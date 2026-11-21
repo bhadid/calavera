@@ -243,3 +243,14 @@ export interface SearchResults {
   songs: Song[];
   artists: Artist[];
 }
+
+/** The media server scanned after each import (Subsonic API), set up in .env. */
+export interface MediaServer {
+  configured: boolean;
+  url: string;
+  user: string;
+  /** The latest scan's outcome since Calavera started. */
+  last: { ok: boolean; message: string; at: number } | null;
+}
+
+export type MediaServerTest = { ok: true; server: string; version: string } | { ok: false; message: string };

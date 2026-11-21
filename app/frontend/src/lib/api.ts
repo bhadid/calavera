@@ -7,6 +7,8 @@ import type {
   Job,
   JobFile,
   LogLine,
+  MediaServer,
+  MediaServerTest,
   OtherReleases,
   ReleaseGroup,
   SearchResults,
@@ -67,6 +69,9 @@ export interface AddJobsResponse {
 
 export const api = {
   status: () => request<Status>("GET", "/status"),
+  mediaServer: () => request<MediaServer>("GET", "/media-server"),
+  testMediaServer: () => request<MediaServerTest>("POST", "/media-server/test"),
+  scanMediaServer: () => request<{ ok: true }>("POST", "/media-server/scan"),
 
   jobs: () => request<{ jobs: Job[] }>("GET", "/jobs").then((r) => r.jobs),
   job: (id: string) => request<{ job: Job; log: LogLine[] }>("GET", `/jobs/${id}`),

@@ -44,6 +44,11 @@ class Config:
     # any other Host header are refused (DNS rebinding).
     allowed_hosts: tuple[str, ...] = ()
     api_docs: bool = False      # serve /api/docs, which loads assets from a CDN
+    # A media server to scan the library after each import (Subsonic API,
+    # e.g. Navidrome). Off unless all three are set; see media.py.
+    subsonic_url: str = ""
+    subsonic_user: str = ""
+    subsonic_password: str = ""
 
     @property
     def db_path(self) -> Path:
@@ -64,4 +69,7 @@ def load() -> Config:
         ffmpeg_bin=env("CALAVERA_FFMPEG_BIN", "ffmpeg"),
         allowed_hosts=tuple(h for h in map(host_name, env("CALAVERA_ALLOWED_HOSTS", "").split(",")) if h),
         api_docs=env("CALAVERA_API_DOCS", "") == "1",
+        subsonic_url=env("CALAVERA_SUBSONIC_URL", "").strip().rstrip("/"),
+        subsonic_user=env("CALAVERA_SUBSONIC_USER", "").strip(),
+        subsonic_password=env("CALAVERA_SUBSONIC_PASSWORD", ""),
     )
