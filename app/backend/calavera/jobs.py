@@ -4,8 +4,10 @@ One job runs at a time:
 
     plan  ->  download (amdl)  ->  verify  ->  convert to FLAC  ->  import
 
-Each stage is a method on `JobManager`; to add a stage (say, a media-server
-scan after import), add a method and call it from `_run`.
+Each stage is a method on `JobManager`; to add a stage, add a method and call
+it from `_run`. After an import, the media server (if one is set up) is asked
+to scan the library; that runs on its own and never holds up the queue or
+fails a job (see media.py).
 
 Job statuses
     queued       waiting for its turn
@@ -49,6 +51,7 @@ from . import amdl, audio, library, urls
 from .catalog import Catalog, CatalogError
 from .config import Config
 from .db import Database
+from .media import MediaServer
 from .plan import Plan, make_plan
 from .settings import Settings
 from .wrapper import WrapperClient
@@ -132,12 +135,14 @@ class JobManager:
         catalog: Catalog,
         wrapper: WrapperClient,
         get_settings: Callable[[], Settings],
+        media: MediaServer | None = None,
     ) -> None:
         self._config = config
         self._db = db
         self._catalog = catalog
         self._wrapper = wrapper
         self._get_settings = get_settings
+        self._media = media
         self._subscribers: set[asyncio.Queue] = set()
         self._wake = asyncio.Event()
         self._task: asyncio.Task | None = None
@@ -239,6 +244,11 @@ class JobManager:
     def _log(self, job_id: str, line: str) -> None:
         self._db.append_log(job_id, line)
         self._publish({"type": "log", "id": job_id, "line": line, "ts": time.time()})
+
+    def _log_if_kept(self, job_id: str, line: str) -> None:
+        """For lines that may come after the job was removed (a media scan)."""
+        if self._db.get_job(job_id):
+            self._log(job_id, line)
 
     # -- queries -----------------------------------------------------------------
     def staging_dir(self, job_id: str) -> Path:
@@ -481,6 +491,8 @@ class JobManager:
         merge = bool(options.get("merge"))
         results = await self._import(job_id, albums, quality, merge, plan)
         statuses = {r["status"] for r in results}
+        if "imported" in statuses and self._media:
+            self._media.request_scan(lambda line: self._log_if_kept(job_id, line))
         if "failed" in statuses:
             failed = next(r for r in results if r["status"] == "failed")
             self._finish(job_id, "failed", result=results, error=failed["message"])

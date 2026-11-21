@@ -67,6 +67,11 @@ services:
       # Host names the UI answers to; any other is refused (DNS rebinding).
       # localhost and 127.0.0.1 are always accepted.
       CALAVERA_ALLOWED_HOSTS: "${BIND_ADDRESS},${ALLOWED_HOSTS:-}"
+      # Optional: a media server (Subsonic API, e.g. Navidrome) to scan the
+      # library after each import.
+      CALAVERA_SUBSONIC_URL: ${SUBSONIC_URL:-}
+      CALAVERA_SUBSONIC_USER: ${SUBSONIC_USER:-}
+      CALAVERA_SUBSONIC_PASSWORD: ${SUBSONIC_PASSWORD:-}
     ports:
       - "${BIND_ADDRESS:?set BIND_ADDRESS in .env}:${WEB_PORT:-8080}:8080"
     volumes:

@@ -55,6 +55,7 @@ app/
       library.py          the never-overwrite library import and merge
       plan.py             which tracks of an album to download (pure functions)
       jobs.py             queue, worker and the pipeline
+      media.py            media-server scans after an import (Subsonic API)
       bundle.py           the ZIP of a download for the device, made while it is sent
       api.py              HTTP routes, events, static files, request guard
     tests/                pytest; runs in the Dockerfile's `test` stage
@@ -149,8 +150,16 @@ that do not decode completely are dropped, the rest go through steps 4 to 7.
 That is "Keep N tracks" after a failed download. Without staged tracks the
 job runs from the start in merge mode ("Add missing tracks").
 
-Each stage is one method. A new stage (for example "ask Navidrome to scan")
-is a new method called from `_run`.
+Each stage is one method. A new stage is a new method called from `_run`.
+
+**Media server scan.** After a job imports anything, `_run` asks
+`media.MediaServer` (if `SUBSONIC_*` is set) for a scan and moves on. One
+background task runs the scans: it waits for a scan that is already running
+(it may have missed the new folder), calls Subsonic's `startScan`, and polls
+`getScanStatus` until the scan is over, then writes the outcome into the
+log of each job that asked. Requests arriving meanwhile are covered by one
+more scan. Errors go into those logs only; a job never fails because of its
+media server.
 
 ### Why Calavera converts instead of amdl
 

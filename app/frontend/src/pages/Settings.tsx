@@ -1,10 +1,12 @@
+import { useEffect, useState } from "react";
 import { useAccent } from "../lib/accent";
+import { api, ApiError } from "../lib/api";
 import { accentTokens, type AccentChoice } from "../lib/accentColour";
-import { bytes } from "../lib/format";
+import { atTime, bytes } from "../lib/format";
 import { useSettingsDraft } from "../lib/hooks/settings";
 import { useStore } from "../lib/store";
 import { useTheme, type Theme } from "../lib/theme";
-import type { Settings } from "../lib/types";
+import type { MediaServer, Settings } from "../lib/types";
 import { Segmented, Switch } from "../components/Controls";
 import { Icon } from "../components/Icon";
 import { Notice, span } from "../components/tiles";
@@ -245,6 +247,11 @@ export function SettingsPage() {
         </section>
       </div>
 
+      <h2 className="section-title">Media server</h2>
+      <div className="bento">
+        <MediaServerTile />
+      </div>
+
       <h2 className="section-title">About</h2>
       <div className="bento">
         <section className="tile" style={span(2, 4, 6)} aria-label="System">
@@ -285,5 +292,91 @@ export function SettingsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * The media server Calavera asks to scan the library after each import, so
+ * that new albums show up at once. Set up in .env only: the UI has no login,
+ * so it never shows or takes the password.
+ */
+function MediaServerTile() {
+  const [server, setServer] = useState<MediaServer | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const load = () => api.mediaServer().then(setServer).catch(() => undefined);
+  useEffect(() => {
+    load();
+  }, []);
+
+  async function run(action: () => Promise<{ ok: boolean; text: string }>) {
+    setBusy(true);
+    setResult(null);
+    try {
+      setResult(await action());
+    } catch (e) {
+      setResult({ ok: false, text: e instanceof ApiError ? e.message : "No answer from Calavera." });
+    } finally {
+      setBusy(false);
+    }
+  }
+  const test = () =>
+    run(async () => {
+      const r = await api.testMediaServer();
+      return r.ok
+        ? { ok: true, text: `Connected to ${r.server}${r.version ? ` ${r.version}` : ""}. Calavera can start scans.` }
+        : { ok: false, text: r.message };
+    });
+  const scan = () =>
+    run(async () => {
+      await api.scanMediaServer();
+      // The scan runs on its own; its outcome shows below once it is done.
+      window.setTimeout(load, 5000);
+      return { ok: true, text: "Scan requested." };
+    });
+
+  return (
+    <section className="tile" style={span(2, 4, 6)} aria-label="Media server">
+      {!server ? (
+        <p className="muted">…</p>
+      ) : server.configured ? (
+        <div>
+          <div className="setting">
+            <div className="setting-text">
+              <strong>Scan after each import</strong>
+              <span className="path">
+                {server.user} at {server.url}
+              </span>
+            </div>
+            <div className="setting-control actions">
+              <button type="button" className="btn btn-gray btn-small" disabled={busy} onClick={test}>
+                Test connection
+              </button>
+              <button type="button" className="btn btn-gray btn-small" disabled={busy} onClick={scan}>
+                <Icon name="retry" size={16} />
+                Scan now
+              </button>
+            </div>
+          </div>
+          {result && (
+            <p className="help" role="status">
+              <span className={result.ok ? "ok" : "bad"}>{result.text}</span>
+            </p>
+          )}
+          {server.last && (
+            <p className="help">
+              Last scan {atTime(server.last.at)}: <span className={server.last.ok ? "" : "bad"}>{server.last.message}</span>
+            </p>
+          )}
+        </div>
+      ) : (
+        <p className="help">
+          Calavera can ask a media server that speaks the Subsonic API, such as Navidrome, to scan the library after each import, so
+          that new albums show up at once. Set <code>SUBSONIC_URL</code>, <code>SUBSONIC_USER</code> and <code>SUBSONIC_PASSWORD</code>{" "}
+          in <code>.env</code> (the user must be an admin) and run <code>docker compose up -d</code>.
+        </p>
+      )}
+    </section>
   );
 }
