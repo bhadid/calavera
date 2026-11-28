@@ -869,8 +869,32 @@ button.pill {
 .owned-wait {
   color: var(--label-2);
 }
+/* A queued or running job (components/JobRing.tsx). */
+.job-ring-wait {
+  stroke: currentColor;
+  opacity: 0.55;
+}
+.job-ring-track {
+  stroke: color-mix(in srgb, currentColor 22%, transparent);
+}
+.job-ring-arc {
+  stroke: var(--accent);
+  transition: stroke-dashoffset 0.4s ease;
+}
+.tinted .job-ring-arc {
+  stroke: var(--art-1);
+}
+.job-ring-start {
+  transform-origin: 12px 12px;
+  animation: job-ring-turn 1.1s linear infinite;
+}
+@keyframes job-ring-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
 /* In a list, the states of a compact button take its width and centre their
-   icon, so that checkmarks, clocks and buttons line up in one column. */
+   icon, so that checkmarks, progress rings and buttons line up in one column. */
 .owned-compact {
   width: 34px;
   justify-content: center;

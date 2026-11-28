@@ -5,6 +5,7 @@ import { ArtistNames } from "../components/ArtistNames";
 import { CoverViewer } from "../components/CoverViewer";
 import { type AlbumLinkState, OtherReleasePill, QualityPill } from "../components/AlbumTile";
 import { Icon } from "../components/Icon";
+import { JobRing } from "../components/JobRing";
 import { BackBar } from "../components/Layout";
 import { Notice, span, tint } from "../components/tiles";
 import { useLibraryProblem } from "../lib/store";
@@ -42,6 +43,7 @@ export function AlbumPage() {
   const { className, style } = tint(album.colors);
   const otherRelease = markedByLink || asked;
   const total = album.tracks.reduce((n, t) => n + t.duration_ms, 0);
+  const deviceLabel = queuedDevice?.status === "running" ? "Downloading" : "Queued";
   // Only a library state worth knowing gets a label; "not there yet" is the usual case.
   const libraryPill = !album.in_library ? null : otherEdition ? (
     <span className="pill pill-bad">Other edition in library</span>
@@ -198,10 +200,10 @@ export function AlbumPage() {
           disabled={busy || selected.size === 0 || Boolean(queuedDevice)}
           onClick={download}
           title={selected.size ? `Download ${plural(selected.size, "song")} to this device` : "Select songs to download"}
-          aria-label={queuedDevice ? "Queued for this device" : "Download to this device"}
+          aria-label={queuedDevice ? `${deviceLabel} for this device` : "Download to this device"}
         >
-          <Icon name={queuedDevice ? "clock" : "download"} size={19} weight={2.2} />
-          <span className="btn-text">{queuedDevice ? "Queued" : "Download"}</span>
+          {queuedDevice ? <JobRing job={queuedDevice} size={19} /> : <Icon name="download" size={19} weight={2.2} />}
+          <span className="btn-text">{queuedDevice ? deviceLabel : "Download"}</span>
         </button>
         <button
           className="btn btn-filled"
