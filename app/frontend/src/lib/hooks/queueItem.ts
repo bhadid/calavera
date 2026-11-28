@@ -22,5 +22,5 @@ export function useQueueItem(url: string, appleId: string, inLibrary?: string | 
       setBusy(false);
     }
   }
-  return { state, busy, add };
+  return { state, job, busy, add };
 }

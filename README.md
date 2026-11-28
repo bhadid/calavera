@@ -79,19 +79,16 @@ the library. More in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 Neither container runs as root: `app` runs as `PUID:PGID`, `wrapper` as user
 `10001`, both without Linux capabilities.
 
-## Requirements
-
-- Linux on x86-64 with Docker Engine and the Compose plugin.
-- About 1.5 GB for images, plus staging space for one album at a time.
-- Building the `wrapper` image downloads about 1 GB and takes several minutes
-  (wrapper-lite has no published releases and is compiled from source).
-
 ## Install
 
+You need Linux on x86-64 with Docker Engine and the Compose plugin, and
+about 1.5 GB for the images.
+
 ```bash
-git clone https://github.com/bhadid/calavera.git
+git clone --branch v0.8.8 https://github.com/bhadid/calavera.git
 cd calavera
-cp .env.example .env      # then edit it, see below
+cp .env.example .env      # then set BIND_ADDRESS and LIBRARY_PATH at least
+chmod 600 .env
 mkdir -p data/staging
 docker compose build
 docker compose up -d
@@ -100,33 +97,14 @@ docker compose up -d
 Open `http://<BIND_ADDRESS>:<WEB_PORT>`, go to **Account** (the status pill in
 the top right) and sign in.
 
-With a compose file of your own, each image can be built straight from a
-release tag; the version pins are part of the Dockerfiles:
-
-```yaml
-build: https://github.com/bhadid/calavera.git#v0.8.7:app        # or …:wrapper
-```
-
-Copy the `security_opt`, `cap_drop`, volumes and ports from `compose.yaml`;
-the wrapper does not start without its three relaxed options.
-
-### `.env`
-
-| Variable | Meaning |
-|---|---|
-| `BIND_ADDRESS` | Address the UI is published on: the host's LAN IP, or `127.0.0.1`. |
-| `WEB_PORT` | Port of the UI. Default `8080`. |
-| `ALLOWED_HOSTS` | Other host names you open the UI by, comma-separated: a local DNS name, or your reverse proxy's host name. Empty by default. |
-| `LIBRARY_PATH` | Your music library. Must exist, must not be empty, and be writable by `PUID:PGID`. |
-| `STAGING_PATH` | Scratch space for downloads in progress. Default `./data/staging`. |
-| `TZ` | Timezone, e.g. `Europe/Berlin`. |
-| `PUID` / `PGID` | Owner of the files written to the library (`id -u`, `id -g`). |
-| `SUBSONIC_URL` / `SUBSONIC_USER` / `SUBSONIC_PASSWORD` | Optional: a media server to scan after each import, e.g. `http://192.168.1.10:4533`. See [Media server scans](#media-server-scans). |
-
 **The UI has no login of its own.** Anyone who can reach it can queue
 downloads and start an Apple sign-in. Publish it on a trusted LAN address or on
-`127.0.0.1` behind your own authenticating reverse proxy, never on a public
-interface. Behind a reverse proxy, put its host name into `ALLOWED_HOSTS`.
+`127.0.0.1` behind your own reverse proxy, never on a public interface.
+
+**[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)** is the complete guide: every
+`.env` setting, libraries on a network share, the host clock, reverse
+proxies, media server scans, checking that it works, updating and rolling
+back, moving to another host, and troubleshooting.
 
 ## Signing in
 
@@ -256,93 +234,13 @@ connection*.
 `Album` are different albums, and so is an album you keep under another
 naming scheme.
 
-## Operating
+## Operating and updating
 
-```bash
-docker compose ps
-docker compose logs -f app        # or: wrapper
-docker compose stop               # keep everything, stop running
-docker compose down               # remove containers; session, queue and settings are kept
-```
-
-Kept across restarts and rebuilds: the Apple session (`wrapper-session`
-volume), the queue, history and settings (`data/calavera.db`).
-
-`docker compose down -v` deletes the Apple session (you would have to sign in
-again).
-
-### Updating Calavera
-
-New versions are listed under
-[Releases](https://github.com/bhadid/calavera/releases). In the folder
-you cloned:
-
-```bash
-git pull
-docker compose build
-docker compose up -d
-```
-
-Your `.env`, the Apple session, the queue, history and settings are kept.
-A download that is running is interrupted by the restart; *Retry* runs it
-again. To stay on a particular version instead of the latest state, use
-`git checkout v0.4.0` (for example) in place of `git pull`.
-
-#### Upgrading from 0.5.0 or older
-
-Since 0.6.0 the wrapper runs as user `10001` instead of root. The files that
-older versions left in its two volumes belong to root, so once, after
-`docker compose build`:
-
-```bash
-docker compose stop wrapper
-docker compose run --rm --no-deps --user 0 --cap-add CHOWN --entrypoint chown wrapper -R 10001:10001 /app/rootfs/data /control
-docker compose up -d
-```
-
-The Apple session is kept. Without this step the wrapper does not start, and
-the Account page shows this command. Going back to 0.5.0 works without
-undoing it.
-
-### Updating the pinned components
-
-Versions are pinned in the two Dockerfiles, so an image built from a git tag
-gets the same versions as one built here:
-
-| Component | Pin | Where |
-|---|---|---|
-| wrapper-lite | commit `e51e370a6b0660ed9d722fff1add079098aeb935` | `wrapper/Dockerfile` → `ARG WRAPPER_REF` |
-| amdl | release `v0.1.4` + SHA-256 of the binary | `app/Dockerfile` → `ARG AMDL_VERSION`, `ARG AMDL_SHA256` |
-| ffmpeg | static 7.1, image digest | `app/Dockerfile` |
-| Python packages | direct ones in `requirements.in`, full lock generated | `app/backend/requirements.txt` |
-| JavaScript packages | lockfile | `app/frontend/package-lock.json` |
-
-Change a pin, then `docker compose build && docker compose up -d`. After
-changing amdl, download one album and check the result: Calavera reads amdl's
-terminal output (see `app/backend/calavera/amdl.py`).
-
-There is no need to follow every upstream release. Update when something
-stops working (Apple changes things; the fix arrives upstream) or when you
-want a new feature.
-
-#### Finding out about updates
-
-If you keep your copy as a repository on GitHub (a fork, for example), two
-things in it watch for updates:
-
-- **`.github/workflows/upstream-check.yml`** runs every Monday and compares
-  the amdl and wrapper-lite pins with upstream. If either is behind it opens
-  an issue (label `upstream`) with the new version, the changes, and the
-  exact lines to put into the Dockerfile, including amdl's checksum. One
-  issue per component; it adds a comment if upstream moves again. It never
-  changes anything itself. Run it by hand under *Actions → Upstream check →
-  Run workflow*, or locally with
-  `DRY_RUN=1 .github/scripts/check-upstream.sh` (needs `curl` and `jq`).
-- **Dependabot** (`.github/dependabot.yml`) opens weekly pull requests for
-  Calavera's own dependencies: Python and JavaScript packages (minor and
-  patch versions, grouped), Docker base images and GitHub Actions. Image
-  tags set through build arguments (`PYTHON_VERSION`, `NODE_VERSION`,
-  `DEBIAN_VERSION`) and the ffmpeg digest are not updated by it.
+The Apple session, the queue, history and settings survive restarts and
+rebuilds. To update, check out the new release tag, then
+`docker compose build && docker compose up -d`. Each release's notes say if
+anything else is needed. Details, including going back to a previous
+version, are in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#updating).
 
 ## Known limits
 
@@ -366,7 +264,7 @@ things in it watch for updates:
   otherwise filter. It does not run privileged.
 - Developed and in daily use on Debian 12 with Docker Engine. Other Linux
   distributions should work but are untested, as are rootless Docker,
-  Podman, SELinux hosts and ARM.
+  Podman and SELinux hosts. ARM is not supported.
 
 ## Development
 

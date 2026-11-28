@@ -5,6 +5,7 @@ import { useQueueItem } from "../lib/hooks/queueItem";
 import { useLibraryProblem } from "../lib/store";
 import type { Album } from "../lib/types";
 import { Icon } from "./Icon";
+import { JobRing } from "./JobRing";
 import { Cover } from "./tiles";
 
 /** What a tile tells the album page it opens. */
@@ -20,13 +21,13 @@ export interface AlbumLinkState {
 export function QueueButton({ url, appleId, inLibrary, label = "Add to library", compact = false }: {
   url: string; appleId: string; inLibrary?: string | null; label?: string; compact?: boolean;
 }) {
-  const { state, busy, add } = useQueueItem(url, appleId, inLibrary);
+  const { state, job, busy, add } = useQueueItem(url, appleId, inLibrary);
   const libraryProblem = useLibraryProblem();
   const shape = compact ? " owned-compact" : "";
-  if (state === "queued" || state === "running") {
+  if ((state === "queued" || state === "running") && job) {
     return (
       <span className={`owned owned-wait${shape}`} title={compact ? (state === "running" ? "Downloading" : "Queued") : undefined}>
-        <Icon name="clock" size={16} />
+        <JobRing job={job} size={18} />
         {compact ? <span className="sr-only">{state === "running" ? "Downloading" : "Queued"}</span> : state === "running" ? "Downloading" : "Queued"}
       </span>
     );

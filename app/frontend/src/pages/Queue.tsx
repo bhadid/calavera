@@ -9,6 +9,7 @@ import { useConfirm } from "../components/Confirm";
 import { ArtistNames } from "../components/ArtistNames";
 import { Icon, type IconName } from "../components/Icon";
 import { JobLog } from "../components/JobLog";
+import { JobRing } from "../components/JobRing";
 import { Cover, Notice, span, tint } from "../components/tiles";
 
 // History is shown this many jobs at a time, newest first.
@@ -23,7 +24,7 @@ const STAGE: Record<string, string> = {
 };
 
 const STATUS: Record<JobStatus, { label: string; tone: string; icon: IconName }> = {
-  queued: { label: "Queued", tone: "", icon: "clock" },
+  queued: { label: "Queued", tone: "", icon: "queue" },
   running: { label: "Downloading", tone: "", icon: "download" },
   done: { label: "In library", tone: "ok", icon: "check" },
   ready: { label: "Ready to download", tone: "ok", icon: "download" },
@@ -171,7 +172,7 @@ export function QueuePage() {
         {next.length > 0 && (
           <section className="tile" style={span(2, 4, 6)} aria-labelledby="next-heading">
             <div className="tile-head" id="next-heading">
-              <Icon name="clock" size={16} />
+              <Icon name="queue" size={16} />
               Up next · {next.length}
             </div>
             <ol className="next">
@@ -388,7 +389,11 @@ function HistoryRow({ job, policy }: { job: Job; policy: Keep }) {
         {/* A job that did what it was asked says nothing, like a command that succeeds. */}
         {!succeeded && (
           <span className={`row-end ${partial || expired ? "" : status.tone}`}>
-            <Icon name={partial ? "info" : expired ? "clock" : status.icon} size={16} weight={2.4} />
+            {job.status === "queued" ? (
+              <JobRing job={job} />
+            ) : (
+              <Icon name={partial ? "info" : expired ? "clear" : status.icon} size={16} weight={2.4} />
+            )}
             <span className="label">{expired ? "Expired" : partial ? "Partly in library" : status.label}</span>
           </span>
         )}
