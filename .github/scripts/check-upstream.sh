@@ -3,7 +3,7 @@
 # published, and open (or update) an issue for each component that is behind.
 #
 # It only reports. Updating is a manual step, because every amdl or
-# wrapper-lite update needs a test download (see README, "Updating").
+# wrapper-lite update needs a test download (see docs/DEPLOYMENT.md, "The pinned components").
 #
 #   DRY_RUN=1 .github/scripts/check-upstream.sh     print instead of touching issues
 #

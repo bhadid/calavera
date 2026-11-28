@@ -202,12 +202,4 @@ pipeline:
 
 ## Troubleshooting
 
-| Symptom | Look at |
-|---|---|
-| "Wrapper offline" | `docker compose logs wrapper`. `unshare` or `mount ... failed` means the `security_opt` entries in `compose.yaml` are not in effect. |
-| "Wrapper needs a fix" | Volumes from 0.5.0 or older still belong to root; the Account page gives the `chown` command (README, "Upgrading from 0.5.0 or older"). |
-| Jobs fail with "Not signed in" | Account page; the wrapper log at the bottom of it. |
-| "Session expired" | Apple stopped accepting the session: `createMusicToken failed` or `Invalid CKC error` in `docker compose logs wrapper`. Sign in again. A server that booted with a wrong clock can cause it. |
-| "The library folder is empty" | The library path is not mounted on the host, or `LIBRARY_PATH` is wrong. |
-| Search fails, downloads work | Apple changed its web player; see `catalog.py`. |
-| A job fails with "N of M tracks downloaded" | The message gives amdl's reason; the job log has the rest. A refused `/key` means the session expired. |
+See [DEPLOYMENT.md](DEPLOYMENT.md#troubleshooting).
